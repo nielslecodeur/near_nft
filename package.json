@@ -1,0 +1,39 @@
+{
+  "name": "everkeep",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "test": "tsx --test tests/*.test.ts",
+    "demo": "tsx scripts/sandbox.ts",
+    "sign": "tsx scripts/signer.ts",
+    "check:testnet": "tsx scripts/check-testnet.ts",
+    "build:contracts": "bash scripts/build.sh",
+    "test:contracts": "bash scripts/test-contracts.sh",
+    "test:browser": "node scripts/browser-check.mjs",
+    "demo:local": "bash scripts/local-demo.sh"
+  },
+  "dependencies": {
+    "@near-js/transactions": "2.5.1",
+    "@near-wallet-selector/core": "10.1.4",
+    "@near-wallet-selector/modal-ui": "10.1.4",
+    "@near-wallet-selector/my-near-wallet": "10.1.4",
+    "@noble/post-quantum": "0.6.1",
+    "near-api-js": "7.4.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "5.1.0",
+    "prettier": "3.9.10",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vite": "7.3.7"
+  }
+}

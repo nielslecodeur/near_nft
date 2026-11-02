@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-02T19:17:19.254Z",
+  "browser": "Chromium",
+  "version": "156.0.8078.74",
+  "empty": true,
+  "liveSandbox": true,
+  "pageErrors": [],
+  "flows": [
+    "lecture vérifiée",
+    "création",
+    "dépôt 1000",
+    "mandat en français",
+    "allocation",
+    "refus réel du plafond",
+    "révocation",
+    "rotation",
+    "transfert Alice → Bob",
+    "retrait",
+    "rachat du principal",
+    "desktop et mobile sans débordement"
+  ]
+}

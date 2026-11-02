@@ -1,0 +1,41 @@
+{
+  "recorded_at": "2026-11-02T19:13:35.846628+00:00",
+  "rust_toolchain": "1.98.1",
+  "near_sdk": "5.30.0",
+  "cargo_near": "0.22.0",
+  "command": "bash scripts/build.sh",
+  "mode": "non-reproducible-wasm --locked --no-abi; cfg near; wasm-opt",
+  "artifacts": {
+    "collection.wasm": {
+      "bytes": 427804,
+      "sha256": "c6e8687c952deaa2cf98b6198e5efb098c2ffbf61e94947969b887d23b398a01"
+    },
+    "demo_token.wasm": {
+      "bytes": 145417,
+      "sha256": "5dde26a670aba69d176e863dffb9e407de91c7acd3ec388539cab3eab9b32aa5"
+    },
+    "strategy.wasm": {
+      "bytes": 142017,
+      "sha256": "e409d6cc3f6a8a59644b2ad27e648c992446e00bcbae9480f4e94a68067350ff"
+    },
+    "test_receiver.wasm": {
+      "bytes": 143692,
+      "sha256": "c8ed6db203d97e837c7ec6148e9f357a3d958d81a322884c852732006a6f910d"
+    },
+    "wallet.wasm": {
+      "bytes": 221782,
+      "sha256": "fc4e03d01567a825559a7b1715156e00a90e4cee83885edf31ec5ece30d0ce0b"
+    }
+  },
+  "lockfiles": {
+    "Cargo.lock": {
+      "bytes": 69637,
+      "sha256": "6bdcadf2fb20a0651d7bc482cdff2735ac11f9dcf3f1ce0b12ec3dc878460f41"
+    },
+    "package-lock.json": {
+      "bytes": 181521,
+      "sha256": "6f27473ee46c109b597813e115fddbd5b6aefee72a61b88e5ef313a7c43fce84"
+    }
+  },
+  "lockfile_note": "package-lock.json line endings normalized to LF for Git; dependency versions unchanged"
+}

@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-02T19:16:11.372Z",
+  "walletModule": {
+    "network": "testnet",
+    "signedIn": false
+  },
+  "desktopOverflow": false,
+  "pageErrors": [],
+  "frenchActivity": true,
+  "duplicateSuccessRows": false,
+  "scope": "Module initialization only; no wallet connection, signature or transaction on testnet"
+}

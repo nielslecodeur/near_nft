@@ -1,0 +1,13 @@
+{
+  "checked_at": "2026-11-02T15:23:53.516Z",
+  "endpoint": "https://rpc.testnet.near.org",
+  "chain_id": "testnet",
+  "version": {
+    "version": "2.14.0-rc.5",
+    "build": "2.14.0-rc.5",
+    "commit": "b7b4737cab46f17a6daa2ed694d7aebbd204363a",
+    "rustc_version": "1.95.0"
+  },
+  "protocol_version": 88,
+  "verification": "RPC capability only; no contract deployed or executed"
+}

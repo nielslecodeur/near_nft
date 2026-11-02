@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Everkeep : build contrats",
+      "type": "process",
+      "command": "bash",
+      "args": ["scripts/build.sh"],
+      "windows": {
+        "command": "wsl.exe",
+        "args": ["-e", "bash", "scripts/build.sh"]
+      },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Everkeep : démo sandbox",
+      "type": "process",
+      "command": "bash",
+      "args": ["scripts/local-demo.sh"],
+      "windows": {
+        "command": "wsl.exe",
+        "args": ["-e", "bash", "scripts/local-demo.sh"]
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Everkeep : interface",
+      "type": "process",
+      "command": "bash",
+      "args": ["scripts/web.sh"],
+      "windows": {
+        "command": "wsl.exe",
+        "args": ["-e", "bash", "scripts/web.sh"]
+      },
+      "problemMatcher": []
+    }
+  ]
+}
