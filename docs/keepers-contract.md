@@ -254,8 +254,8 @@ The per-card counters (`royalties_earned`, `deposited_total`, `withdrawn_total`,
 | **Sandbox integration** (near-workspaces, existing pattern in `scripts/`) | the full demo path (mint → list → buy → royalty credited → tier change → withdraw); `nft_transfer_call` accept and reject; a sale in the middle of a pending withdraw |
 
 ## 11. Deployment plan (Checkpoint C)
-- **Account:** `keepers.everkeep-dev-mw0weth5.testnet`, with `creator = everkeep-dev-mw0weth5.testnet`.
-- **Upgrades:** the full-access key is kept during the hackathon, for redeploys without state migration. This will be stated in the README.
+- **Account:** `keepers-v1.everkeep-dev-mw0weth5.testnet`, with `creator = everkeep-dev-mw0weth5.testnet`. **Deployed 2026-11-05** (tx `BZ3rGc7t3cEhLXXVXTvdA4hRtErPWKsKyivsK19T3ANL`, code hash `B4W6DaiWnaWgotrqsVeNNe14UNHdtmmJcSWCd8mi57h7`).
+- **No upgrades:** the account is **keyless**. Create, fund, deploy and init happen in one transaction with no access key, following the repo's convention (`reserve-v3`, `baskets-v1`). The code can never change. A new version deploys to a new account via `KEEPERS_VERSION=v2 npm run testnet:keepers -- --execute`.
 - **Records:** the address and code hash go to `public/testnet.json` and the README, along with "do X, see Y" steps for every function.
 
 ## 12. Checkpoint B results (2026-11-05)

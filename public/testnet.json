@@ -24,5 +24,11 @@
       "wallet_code_hash": "CLZfwzTxtY918Vbu7i47YYWxhnzrQaFogsb74Mez7pf7",
       "protocol": "everkeep-fictional-v1"
     }
+  },
+  "keepers": {
+    "contract": "keepers-v1.everkeep-dev-mw0weth5.testnet",
+    "code_hash": "B4W6DaiWnaWgotrqsVeNNe14UNHdtmmJcSWCd8mi57h7",
+    "creator": "everkeep-dev-mw0weth5.testnet",
+    "network": "testnet"
   }
 }

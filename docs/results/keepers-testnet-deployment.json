@@ -1,0 +1,31 @@
+{
+  "network": "testnet",
+  "contract": "keepers-v1.everkeep-dev-mw0weth5.testnet",
+  "creator": "everkeep-dev-mw0weth5.testnet",
+  "code_hash": "B4W6DaiWnaWgotrqsVeNNe14UNHdtmmJcSWCd8mi57h7",
+  "keyless": true,
+  "deployed_at": "2026-11-05T20:37:33.730Z",
+  "transactions": [
+    "BZ3rGc7t3cEhLXXVXTvdA4hRtErPWKsKyivsK19T3ANL"
+  ],
+  "config": {
+    "creator": "everkeep-dev-mw0weth5.testnet",
+    "mint_price": "1000000000000000000000000",
+    "storage_reserve": "20000000000000000000000",
+    "royalty_bps": 1000,
+    "min_list_price": "100000000000000000000000",
+    "max_supply": 1000,
+    "tier_names": [
+      "matte",
+      "brushed",
+      "holographic",
+      "animated"
+    ],
+    "tier_thresholds": [
+      "500000000000000000000000",
+      "2000000000000000000000000",
+      "10000000000000000000000000"
+    ]
+  },
+  "nft_total_supply": "0"
+}
