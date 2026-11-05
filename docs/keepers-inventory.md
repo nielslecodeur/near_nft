@@ -153,7 +153,7 @@ The receiving owner must be registered on the token, or `ft_transfer` fails and 
 
 **Estimate:** about 2–3 days in total (B′ contract and tests, C′ deploy, D′ UI), out of the roughly 9 days left.
 
-## 11. Checkpoint B′ results (2026-11-06)
+## 11. Checkpoint B′ results (2026-11-05)
 
 **Code:** `contracts/keepers` now builds v2. v1 is preserved by the git tag `keepers-v1` and by `artifacts/keepers-v1.wasm`, whose hash `B4W6Dai…` matches the testnet deployment.
 
