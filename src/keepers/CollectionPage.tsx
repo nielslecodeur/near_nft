@@ -11,6 +11,8 @@ import { Button, Notice, Skeleton } from "../terminal/primitives";
 import { KeeperTile } from "./KeeperCard";
 import { TIER_LABELS } from "./art";
 import {
+  KEEPERS_V1,
+  cardHref,
   formatNear,
   getAllCards,
   getConfig,
@@ -19,15 +21,18 @@ import {
   type Card,
   type KeepersConfig,
   type KeepersStats,
+  type Version,
 } from "./chain";
 import type { Wallet } from "./KeepersApp";
 
 type Filter = "all" | "listed" | "mine";
 
 export function CollectionPage({
+  version,
   wallet,
   navigate,
 }: {
+  version: Version;
   wallet: Wallet;
   navigate: (to: string) => void;
 }) {
@@ -43,16 +48,16 @@ export function CollectionPage({
     setLoading(true);
     setError("");
     try {
-      const [c, s] = await Promise.all([getConfig(), getStats()]);
+      const [c, s] = await Promise.all([getConfig(version), getStats(version)]);
       setConfig(c);
       setStats(s);
-      setCards(await getAllCards(s.minted));
+      setCards(await getAllCards(s.minted, version));
     } catch (e) {
       setError(`Could not read the contract: ${String(e)}`);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [version]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -89,72 +94,97 @@ export function CollectionPage({
 
   return (
     <div className="kp-collection">
-      <section className="kp-hero">
-        <div className="kp-hero-text">
-          <p className="kp-eyebrow">NEAR Hackathon · NFTs that do something</p>
-          <h1>Keepers hold money, earn from every resale and evolve.</h1>
+      {version === "v1" ? (
+        <section className="kp-vault-head">
+          <p className="kp-eyebrow">Legacy collection</p>
+          <h1>Keepers v1</h1>
           <p className="kp-lede">
-            Each Keeper is an NFT with its own NEAR balance, held by the
-            contract for that token. Every resale pays{" "}
-            {config ? config.royalty_bps / 100 : 10}% into the card itself, and
-            its frame upgrades as the balance grows. Sell it, and the balance,
-            tier and access move with it.
-          </p>
-          <div className="kp-hero-actions">
-            <Button
-              variant="primary"
-              icon={Sparkles}
-              busy={minting}
-              disabled={!config}
-              onClick={() => void onMint()}
+            The first Keepers contract ({KEEPERS_V1}). Its cards still hold
+            NEAR, earn royalties, evolve and open the Vault, but they have no
+            token basket. New cards are minted on{" "}
+            <a
+              href="/keepers"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/keepers");
+              }}
             >
-              Mint a Keeper · {mintCost} NEAR
-            </Button>
-            <span className="kp-hint">
-              1 NEAR goes to the creator, 0.02 NEAR covers on-chain storage. The
-              card starts empty and matte.
-            </span>
+              v2
+            </a>
+            .
+          </p>
+        </section>
+      ) : (
+        <section className="kp-hero">
+          <div className="kp-hero-text">
+            <p className="kp-eyebrow">
+              NEAR Hackathon · NFTs that do something
+            </p>
+            <h1>Keepers hold money, earn from every resale and evolve.</h1>
+            <p className="kp-lede">
+              Each Keeper is an NFT with its own NEAR balance and a basket of
+              real tokens, held by the contract for that card. Every resale pays{" "}
+              {config ? config.royalty_bps / 100 : 10}% into the card itself,
+              and its frame upgrades as the balance grows. Sell it, and the
+              balance, basket, tier and access move with it.
+            </p>
+            <div className="kp-hero-actions">
+              <Button
+                variant="primary"
+                icon={Sparkles}
+                busy={minting}
+                disabled={!config}
+                onClick={() => void onMint()}
+              >
+                Mint a Keeper · {mintCost} NEAR
+              </Button>
+              <span className="kp-hint">
+                1 NEAR goes to the creator, 0.02 NEAR covers on-chain storage.
+                The card starts empty and matte.
+              </span>
+            </div>
           </div>
-        </div>
-        <ul className="kp-features" aria-label="What a Keeper does">
-          <li>
-            <Coins aria-hidden="true" />
-            <div>
-              <strong>Holds funds</strong>
-              <span>
-                Anyone can top up a card. Only its owner can withdraw.
-              </span>
-            </div>
-          </li>
-          <li>
-            <TrendingUp aria-hidden="true" />
-            <div>
-              <strong>Earns its own royalties</strong>
-              <span>
-                10% of each resale goes to the card, not to the creator.
-              </span>
-            </div>
-          </li>
-          <li>
-            <Layers aria-hidden="true" />
-            <div>
-              <strong>Evolves on chain</strong>
-              <span>
-                The frame tier is computed by the contract from the balance.
-              </span>
-            </div>
-          </li>
-          <li>
-            <KeyRound aria-hidden="true" />
-            <div>
-              <strong>Grants access</strong>
-              <span>
-                Holders unlock the Vault. Sell the card and access moves too.
-              </span>
-            </div>
-          </li>
-        </ul>
-      </section>
+          <ul className="kp-features" aria-label="What a Keeper does">
+            <li>
+              <Coins aria-hidden="true" />
+              <div>
+                <strong>Holds NEAR and a basket</strong>
+                <span>
+                  NEAR plus wNEAR, USDC, USDT and demoUSD. Anyone can add, only
+                  the owner can withdraw.
+                </span>
+              </div>
+            </li>
+            <li>
+              <TrendingUp aria-hidden="true" />
+              <div>
+                <strong>Earns its own royalties</strong>
+                <span>
+                  10% of each resale goes to the card, not to the creator.
+                </span>
+              </div>
+            </li>
+            <li>
+              <Layers aria-hidden="true" />
+              <div>
+                <strong>Evolves on chain</strong>
+                <span>
+                  The frame tier is computed by the contract from the balance.
+                </span>
+              </div>
+            </li>
+            <li>
+              <KeyRound aria-hidden="true" />
+              <div>
+                <strong>Grants access</strong>
+                <span>
+                  Holders unlock the Vault. Sell the card and access moves too.
+                </span>
+              </div>
+            </li>
+          </ul>
+        </section>
+      )}
 
       {error && (
         <Notice tone="error" title="Something went wrong">
@@ -239,7 +269,9 @@ export function CollectionPage({
         ) : shown.length === 0 ? (
           <div className="kp-empty">
             {cards.length === 0
-              ? "No Keeper has been minted yet. Mint the first one."
+              ? version === "v1"
+                ? "No v1 Keeper."
+                : "No Keeper has been minted yet. Mint the first one."
               : filter === "listed"
                 ? "No Keeper is for sale right now."
                 : "You don't own a Keeper yet."}
@@ -251,8 +283,8 @@ export function CollectionPage({
                 key={card.token_id}
                 card={card}
                 account={wallet.account}
-                href={`/keepers/${card.token_id}`}
-                onOpen={() => navigate(`/keepers/${card.token_id}`)}
+                href={cardHref(card)}
+                onOpen={() => navigate(cardHref(card))}
               />
             ))}
           </div>

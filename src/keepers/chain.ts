@@ -1,17 +1,38 @@
 /**
  * Keepers chain access. Every value shown in the UI comes from these view calls
- * on the deployed contract; nothing is computed from mock data.
+ * on the deployed contracts; nothing is computed from mock data.
+ *
+ * v2 (default) adds a card inventory of NEP-141 tokens. v1 stays readable and
+ * usable through the "v1 legacy" pages so its cards are never stranded.
  */
 import { config as rpcConfig, rpc, walletSelector } from "../client";
 import { hasWalletApprovalSession } from "../wallet-session";
 import { vaultMessage, verifySignature } from "./nep413";
 
-export const KEEPERS_CONTRACT =
-  import.meta.env.VITE_KEEPERS_ID || "keepers-v1.everkeep-dev-mw0weth5.testnet";
+export const KEEPERS_V2 =
+  import.meta.env.VITE_KEEPERS_ID || "keepers-v2.everkeep-dev-mw0weth5.testnet";
+export const KEEPERS_V1 =
+  import.meta.env.VITE_KEEPERS_V1_ID ||
+  "keepers-v1.everkeep-dev-mw0weth5.testnet";
+/** The current collection (v2). */
+export const KEEPERS_CONTRACT = KEEPERS_V2;
+export const WRAP = "wrap.testnet";
 export const EXPLORER = "https://testnet.nearblocks.io";
 export const YOCTO = 10n ** 24n;
 const TGAS = 1_000_000_000_000n;
+/** NEP-145 registration on the allowlisted tokens (all ask 0.00125 NEAR). */
+const TOKEN_REGISTRATION = 1_250_000_000_000_000_000_000n;
 
+export type Version = "v1" | "v2";
+export const contractOf = (v: Version) =>
+  v === "v1" ? KEEPERS_V1 : KEEPERS_V2;
+/** Page URL of a card, per collection version. */
+export const cardHref = (card: { token_id: string; version: Version }) =>
+  card.version === "v1"
+    ? `/keepers/v1/${card.token_id}`
+    : `/keepers/${card.token_id}`;
+
+export type TokenAmount = { token: string; amount: string };
 export type Card = {
   token_id: string;
   owner_id: string;
@@ -27,6 +48,12 @@ export type Card = {
   deposited_total: string;
   withdrawn_total: string;
   list_price: string | null;
+  /** v2 only. */
+  listing_id?: string | null;
+  /** v2 only: one entry per allowlisted token. */
+  inventory?: TokenAmount[];
+  /** Added client-side: which collection this card belongs to. */
+  version: Version;
 };
 export type KeepersConfig = {
   creator: string;
@@ -37,6 +64,7 @@ export type KeepersConfig = {
   max_supply: number;
   tier_names: string[];
   tier_thresholds: string[];
+  tokens?: string[];
 };
 export type KeepersStats = {
   minted: number;
@@ -44,20 +72,28 @@ export type KeepersStats = {
   total_pending_payouts: string;
   storage_cost: string;
   account_balance: string;
+  token_totals?: TokenAmount[];
 };
 export type ChainToken = {
   token_id: string;
   owner_id: string;
   metadata: { title: string; media: string; extra: string };
 };
+export type TokenMeta = {
+  token: string;
+  symbol: string;
+  decimals: number;
+  icon: string | null;
+};
 
-export async function viewKeepers<T>(
+export async function viewOn<T>(
+  account: string,
   method: string,
   args: object = {},
 ): Promise<T> {
   const result = await rpc("query", {
     request_type: "call_function",
-    account_id: KEEPERS_CONTRACT,
+    account_id: account,
     method_name: method,
     args_base64: btoa(JSON.stringify(args)),
     // Optimistic so a just-signed transaction is visible immediately.
@@ -65,49 +101,127 @@ export async function viewKeepers<T>(
   });
   return JSON.parse(new TextDecoder().decode(new Uint8Array(result.result)));
 }
+export const viewKeepers = <T>(
+  method: string,
+  args: object = {},
+  v: Version = "v2",
+) => viewOn<T>(contractOf(v), method, args);
 
-export const getConfig = () => viewKeepers<KeepersConfig>("config");
-export const getStats = () => viewKeepers<KeepersStats>("stats");
-export const getCard = (tokenId: string) =>
-  viewKeepers<Card | null>("card", { token_id: tokenId });
-export const getToken = (tokenId: string) =>
-  viewKeepers<ChainToken | null>("nft_token", { token_id: tokenId });
-export const isHolder = (accountId: string) =>
-  viewKeepers<boolean>("is_holder", { account_id: accountId });
-export const cardsForOwner = (accountId: string) =>
-  viewKeepers<Card[]>("cards_for_owner", { account_id: accountId, limit: 50 });
+const tag = (v: Version) => (c: Omit<Card, "version">) =>
+  ({ ...c, version: v }) as Card;
+
+export const getConfig = (v: Version = "v2") =>
+  viewKeepers<KeepersConfig>("config", {}, v);
+export const getStats = (v: Version = "v2") =>
+  viewKeepers<KeepersStats>("stats", {}, v);
+export const getCard = async (tokenId: string, v: Version = "v2") => {
+  const c = await viewKeepers<Omit<Card, "version"> | null>(
+    "card",
+    { token_id: tokenId },
+    v,
+  );
+  return c ? tag(v)(c) : null;
+};
+export const getToken = (tokenId: string, v: Version = "v2") =>
+  viewKeepers<ChainToken | null>("nft_token", { token_id: tokenId }, v);
+export const isHolder = (accountId: string, v: Version = "v2") =>
+  viewKeepers<boolean>("is_holder", { account_id: accountId }, v);
+export const cardsForOwner = async (accountId: string, v: Version = "v2") =>
+  (
+    await viewKeepers<Omit<Card, "version">[]>(
+      "cards_for_owner",
+      { account_id: accountId, limit: 50 },
+      v,
+    )
+  ).map(tag(v));
 
 /** All minted cards, fetched in pages of 50 (the contract's page cap). */
-export async function getAllCards(minted: number): Promise<Card[]> {
+export async function getAllCards(
+  minted: number,
+  v: Version = "v2",
+): Promise<Card[]> {
   const pages = Array.from({ length: Math.ceil(minted / 50) }, (_, i) =>
-    viewKeepers<Card[]>("cards", { from_index: String(i * 50), limit: 50 }),
+    viewKeepers<Omit<Card, "version">[]>(
+      "cards",
+      { from_index: String(i * 50), limit: 50 },
+      v,
+    ),
   );
-  return (await Promise.all(pages)).flat();
+  return (await Promise.all(pages)).flat().map(tag(v));
 }
 
 // ---------------------------------------------------------------------------
-// Amounts
+// NEP-141 tokens of the inventory
 // ---------------------------------------------------------------------------
 
-/** yoctoNEAR → "1.2345" (trailing zeros trimmed, at most `digits` decimals). */
-export function formatNear(yocto: string | bigint, digits = 4): string {
-  const v = BigInt(yocto);
-  const whole = v / YOCTO;
-  const frac = (v % YOCTO)
+const metaCache = new Map<string, Promise<TokenMeta>>();
+export function tokenMeta(token: string): Promise<TokenMeta> {
+  let m = metaCache.get(token);
+  if (!m) {
+    m = viewOn<{ symbol: string; decimals: number; icon: string | null }>(
+      token,
+      "ft_metadata",
+    ).then((r) => ({
+      token,
+      symbol: r.symbol,
+      decimals: r.decimals,
+      icon: r.icon || null,
+    }));
+    m.catch(() => metaCache.delete(token));
+    metaCache.set(token, m);
+  }
+  return m;
+}
+export const ftBalance = async (token: string, account: string) =>
+  BigInt(await viewOn<string>(token, "ft_balance_of", { account_id: account }));
+export const ftRegistered = async (token: string, account: string) =>
+  (await viewOn<unknown>(token, "storage_balance_of", {
+    account_id: account,
+  })) !== null;
+export const nearBalance = async (account: string) =>
+  BigInt(
+    (
+      await rpc("query", {
+        request_type: "view_account",
+        account_id: account,
+        finality: "optimistic",
+      })
+    ).amount,
+  );
+
+// ---------------------------------------------------------------------------
+// Amounts (exact integer math, no floating point)
+// ---------------------------------------------------------------------------
+
+/** Raw token units → "1.2345" (trailing zeros trimmed, at most `digits` decimals). */
+export function formatAmount(
+  raw: string | bigint,
+  decimals: number,
+  digits = 4,
+): string {
+  const v = BigInt(raw);
+  const unit = 10n ** BigInt(decimals);
+  const whole = v / unit;
+  const frac = (v % unit)
     .toString()
-    .padStart(24, "0")
+    .padStart(decimals, "0")
     .slice(0, digits)
     .replace(/0+$/, "");
   return frac ? `${whole}.${frac}` : whole.toString();
 }
-
-/** "1.5" → yoctoNEAR, exact (no floating point). Returns null if invalid. */
-export function parseNear(text: string): bigint | null {
+/** "1.5" → raw units for a token with `decimals`. Returns null if invalid. */
+export function parseAmount(text: string, decimals: number): bigint | null {
   const s = text.trim();
-  if (!/^\d+(\.\d{0,24})?$/.test(s)) return null;
+  if (!new RegExp(`^\\d+(\\.\\d{0,${decimals}})?$`).test(s)) return null;
   const [whole, frac = ""] = s.split(".");
-  return BigInt(whole) * YOCTO + BigInt(frac.padEnd(24, "0") || "0");
+  return (
+    BigInt(whole) * 10n ** BigInt(decimals) +
+    BigInt(frac.padEnd(decimals, "0") || "0")
+  );
 }
+export const formatNear = (yocto: string | bigint, digits = 4) =>
+  formatAmount(yocto, 24, digits);
+export const parseNear = (text: string) => parseAmount(text, 24);
 
 // ---------------------------------------------------------------------------
 // Signed calls through the connected wallet (near-connect)
@@ -118,15 +232,16 @@ type Outcome = {
   transaction: { hash: string };
   receipts_outcome?: { outcome: { status: unknown } }[];
 };
+type Call = {
+  method: string;
+  args: Record<string, unknown>;
+  deposit: bigint;
+  gasTgas: bigint;
+};
+type Tx = { receiverId: string; calls: Call[] };
 const failed = (s: unknown) =>
   typeof s === "object" && s !== null && "Failure" in s;
 
-/**
- * Signs one function call with the connected wallet, then reads the final
- * outcome back from RPC (the wallet's own return value can be partial).
- * Same path as the Everkeep app (src/testnet-network.ts walletCall): plain
- * near-connect actions, no @near-js serializers, which need Node's Buffer.
- */
 /**
  * Connected wallet ready to sign. Intear signs every request (transactions
  * and NEP-413 messages) with an app key that Everkeep keeps in memory only
@@ -149,30 +264,20 @@ async function readyWallet() {
   return { wallet, signer };
 }
 
-async function call(
-  method: string,
-  args: Record<string, unknown>,
-  deposit: bigint,
-  gasTgas: bigint,
-) {
-  const { wallet, signer } = await readyWallet();
-  const sent = (await wallet.signAndSendTransaction({
-    network: "testnet",
-    signerId: signer,
-    receiverId: KEEPERS_CONTRACT,
-    actions: [
-      {
-        type: "FunctionCall",
-        params: {
-          methodName: method,
-          args,
-          gas: (gasTgas * TGAS).toString(),
-          deposit: deposit.toString(),
-        },
-      },
-    ],
-  })) as { transaction?: { hash: string } } | undefined;
-  const hash = sent?.transaction?.hash;
+/** Plain near-connect actions: no @near-js serializers (they need Node's Buffer). */
+const toActions = (calls: Call[]) =>
+  calls.map((c) => ({
+    type: "FunctionCall" as const,
+    params: {
+      methodName: c.method,
+      args: c.args,
+      gas: (c.gasTgas * TGAS).toString(),
+      deposit: c.deposit.toString(),
+    },
+  }));
+
+/** Reads the final outcome from RPC (a wallet's own return value can be partial). */
+async function confirm(hash: string | undefined, signer: string) {
   if (!hash)
     throw new Error(
       "The wallet returned no transaction hash. Check your wallet history before retrying.",
@@ -192,6 +297,51 @@ async function call(
   return result;
 }
 
+/** Signs one or several transactions in a single wallet request. */
+async function send(txs: Tx[]): Promise<Outcome[]> {
+  const { wallet, signer } = await readyWallet();
+  if (txs.length === 1) {
+    const sent = (await wallet.signAndSendTransaction({
+      network: "testnet",
+      signerId: signer,
+      receiverId: txs[0].receiverId,
+      actions: toActions(txs[0].calls),
+    })) as { transaction?: { hash: string } } | undefined;
+    return [await confirm(sent?.transaction?.hash, signer)];
+  }
+  const sent = (await wallet.signAndSendTransactions({
+    network: "testnet",
+    signerId: signer,
+    transactions: txs.map((t) => ({
+      receiverId: t.receiverId,
+      actions: toActions(t.calls),
+    })),
+  })) as { transaction?: { hash: string } }[] | undefined;
+  if (!sent?.length)
+    throw new Error(
+      "The wallet returned no results. Check your wallet history before retrying.",
+    );
+  const out: Outcome[] = [];
+  for (const s of sent) out.push(await confirm(s?.transaction?.hash, signer));
+  return out;
+}
+
+const call = async (
+  v: Version,
+  method: string,
+  args: Record<string, unknown>,
+  deposit: bigint,
+  gasTgas: bigint,
+) =>
+  (
+    await send([
+      {
+        receiverId: contractOf(v),
+        calls: [{ method, args, deposit, gasTgas }],
+      },
+    ])
+  )[0];
+
 function returned<T>(result: Outcome): T | null {
   const s = result.status as { SuccessValue?: string };
   if (!s?.SuccessValue) return null;
@@ -200,6 +350,7 @@ function returned<T>(result: Outcome): T | null {
 
 export async function mint(mintPrice: string, storageReserve: string) {
   const result = await call(
+    "v2",
     "mint",
     {},
     BigInt(mintPrice) + BigInt(storageReserve),
@@ -207,29 +358,134 @@ export async function mint(mintPrice: string, storageReserve: string) {
   );
   return returned<{ token_id: string }>(result)?.token_id ?? null;
 }
-export const deposit = (tokenId: string, amount: bigint) =>
-  call("deposit", { token_id: tokenId }, amount, 15n);
-export const withdraw = (tokenId: string, amount: bigint | null) =>
+export const deposit = (card: Card, amount: bigint) =>
+  call(card.version, "deposit", { token_id: card.token_id }, amount, 15n);
+export const withdraw = (card: Card, amount: bigint | null) =>
   call(
+    card.version,
     "withdraw",
-    { token_id: tokenId, amount: amount === null ? null : amount.toString() },
+    {
+      token_id: card.token_id,
+      amount: amount === null ? null : amount.toString(),
+    },
     1n,
     30n,
   );
-export const list = (tokenId: string, price: bigint) =>
-  call("list", { token_id: tokenId, price: price.toString() }, 1n, 15n);
-export const delist = (tokenId: string) =>
-  call("delist", { token_id: tokenId }, 1n, 15n);
-/** `seenBalance` protects the buyer: the purchase fails if the card holds less. */
-export const buy = (tokenId: string, price: string, seenBalance: string) =>
+export const list = (card: Card, price: bigint) =>
   call(
+    card.version,
+    "list",
+    { token_id: card.token_id, price: price.toString() },
+    1n,
+    15n,
+  );
+export const delist = (card: Card) =>
+  call(card.version, "delist", { token_id: card.token_id }, 1n, 15n);
+/**
+ * Buys exactly what the buyer reviewed: v2 names the `listing_id` (any
+ * delist/relist since makes it fail); v1 names the NEAR balance seen.
+ */
+export const buy = (card: Card) =>
+  call(
+    card.version,
     "buy",
-    { token_id: tokenId, min_card_balance: seenBalance },
-    BigInt(price),
+    card.version === "v2"
+      ? { token_id: card.token_id, listing_id: card.listing_id }
+      : { token_id: card.token_id, min_card_balance: card.balance },
+    BigInt(card.list_price!),
     50n,
   );
-export const transfer = (tokenId: string, receiverId: string) =>
-  call("nft_transfer", { token_id: tokenId, receiver_id: receiverId }, 1n, 30n);
+export const transfer = (card: Card, receiverId: string) =>
+  call(
+    card.version,
+    "nft_transfer",
+    { token_id: card.token_id, receiver_id: receiverId },
+    1n,
+    30n,
+  );
+
+/**
+ * Fills a v2 card with tokens in one wallet request: one transaction per token.
+ * For wNEAR, the same transaction registers the user on wrap.testnet if needed
+ * and wraps the missing NEAR before transferring.
+ */
+export async function fillCard(
+  card: Card,
+  account: string,
+  items: { token: string; amount: bigint }[],
+) {
+  const msg = JSON.stringify({ token_id: card.token_id });
+  const txs: Tx[] = [];
+  for (const { token, amount } of items) {
+    if (amount <= 0n) continue;
+    const calls: Call[] = [];
+    if (token === WRAP) {
+      if (!(await ftRegistered(WRAP, account)))
+        calls.push({
+          method: "storage_deposit",
+          args: { account_id: account, registration_only: true },
+          deposit: TOKEN_REGISTRATION,
+          gasTgas: 10n,
+        });
+      const held = (await ftRegistered(WRAP, account))
+        ? await ftBalance(WRAP, account)
+        : 0n;
+      if (held < amount)
+        calls.push({
+          method: "near_deposit",
+          args: {},
+          deposit: amount - held,
+          gasTgas: 10n,
+        });
+    }
+    calls.push({
+      method: "ft_transfer_call",
+      args: {
+        receiver_id: KEEPERS_V2,
+        amount: amount.toString(),
+        msg,
+      },
+      deposit: 1n,
+      gasTgas: 60n,
+    });
+    txs.push({ receiverId: token, calls });
+  }
+  if (!txs.length) throw new Error("Enter at least one amount.");
+  return send(txs);
+}
+
+/** Withdraws one token from a v2 card; registers the owner on the token first if needed. */
+export async function withdrawToken(
+  card: Card,
+  account: string,
+  token: string,
+) {
+  const txs: Tx[] = [];
+  if (!(await ftRegistered(token, account)))
+    txs.push({
+      receiverId: token,
+      calls: [
+        {
+          method: "storage_deposit",
+          args: { account_id: account, registration_only: true },
+          deposit: TOKEN_REGISTRATION,
+          gasTgas: 10n,
+        },
+      ],
+    });
+  txs.push({
+    receiverId: KEEPERS_V2,
+    calls: [
+      {
+        method: "withdraw_token",
+        args: { token_id: card.token_id, token },
+        deposit: 1n,
+        gasTgas: 40n,
+      },
+    ],
+  });
+  return send(txs);
+}
 
 export const rpcUrl = rpcConfig.rpc;
 

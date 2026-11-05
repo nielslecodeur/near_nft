@@ -42,6 +42,10 @@ export function shortAccount(id: string) {
   return id.length > 26 ? `${id.slice(0, 12)}…${id.slice(-12)}` : id;
 }
 
+/** Number of tokens the card actually holds (non-empty basket slots). */
+export const basketCount = (card: Card) =>
+  (card.inventory ?? []).filter((i) => i.amount !== "0").length;
+
 export function KeeperTile({
   card,
   account,
@@ -67,7 +71,10 @@ export function KeeperTile({
       <KeeperFrame card={card} />
       <div className="kp-tile-body">
         <div className="kp-tile-head">
-          <strong>Keeper #{card.token_id}</strong>
+          <strong>
+            Keeper #{card.token_id}
+            {card.version === "v1" && <span className="kp-version">v1</span>}
+          </strong>
           <TierBadge card={card} />
         </div>
         <dl className="kp-tile-stats">
@@ -76,8 +83,12 @@ export function KeeperTile({
             <dd className="kp-num">{formatNear(card.balance)} NEAR</dd>
           </div>
           <div>
-            <dt>Trades</dt>
-            <dd className="kp-num">{card.trades}</dd>
+            <dt>{card.version === "v1" ? "Trades" : "Basket"}</dt>
+            <dd className="kp-num">
+              {card.version === "v1"
+                ? card.trades
+                : `${basketCount(card)} token${basketCount(card) === 1 ? "" : "s"}`}
+            </dd>
           </div>
         </dl>
         <div className="kp-tile-foot">

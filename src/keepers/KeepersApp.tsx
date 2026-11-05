@@ -6,17 +6,23 @@ import { CollectionPage } from "./CollectionPage";
 import { KeeperPage } from "./KeeperPage";
 import { VaultPage } from "./VaultPage";
 import { shortAccount } from "./KeeperCard";
-import { EXPLORER, KEEPERS_CONTRACT } from "./chain";
+import { EXPLORER, KEEPERS_CONTRACT, type Version } from "./chain";
 import "./keepers.css";
 
 export type Route =
-  { page: "collection" } | { page: "keeper"; id: string } | { page: "vault" };
+  | { page: "collection"; version: Version }
+  | { page: "keeper"; id: string; version: Version }
+  | { page: "vault" };
 
+/** /keepers and /keepers/:id are v2; /keepers/v1[/:id] keep v1 cards reachable. */
 export function parseRoute(path: string): Route {
-  const keeper = path.match(/^\/keepers\/(\d+)\/?$/);
-  if (keeper) return { page: "keeper", id: keeper[1] };
+  const keeper = path.match(/^\/keepers\/(?:(v1)\/)?(\d+)\/?$/);
+  if (keeper)
+    return { page: "keeper", id: keeper[2], version: keeper[1] ? "v1" : "v2" };
   if (/^\/vault\/?$/.test(path)) return { page: "vault" };
-  return { page: "collection" };
+  if (/^\/keepers\/v1\/?$/.test(path))
+    return { page: "collection", version: "v1" };
+  return { page: "collection", version: "v2" };
 }
 
 export type Wallet = {
@@ -199,11 +205,22 @@ export function KeepersApp() {
           </Notice>
         )}
         {route.page === "keeper" ? (
-          <KeeperPage id={route.id} wallet={api} navigate={navigate} />
+          <KeeperPage
+            key={`${route.version}-${route.id}`}
+            id={route.id}
+            version={route.version}
+            wallet={api}
+            navigate={navigate}
+          />
         ) : route.page === "vault" ? (
           <VaultPage wallet={api} navigate={navigate} />
         ) : (
-          <CollectionPage wallet={api} navigate={navigate} />
+          <CollectionPage
+            key={route.version}
+            version={route.version}
+            wallet={api}
+            navigate={navigate}
+          />
         )}
       </main>
       <footer className="kp-footer">
@@ -215,6 +232,16 @@ export function KeepersApp() {
             rel="noreferrer"
           >
             {KEEPERS_CONTRACT}
+          </a>
+          {" · "}
+          <a
+            href="/keepers/v1"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/keepers/v1");
+            }}
+          >
+            v1 collection (legacy)
           </a>
         </span>
         <span>Testnet only · test NEAR has no monetary value</span>

@@ -9,10 +9,12 @@ import {
   Wallet as WalletIcon,
 } from "lucide-react";
 import { Button, Notice, Skeleton } from "../terminal/primitives";
-import { KeeperTile, shortAccount } from "./KeeperCard";
+import { KeeperTile, basketCount, shortAccount } from "./KeeperCard";
 import { TIER_LABELS } from "./art";
 import {
   KEEPERS_CONTRACT,
+  KEEPERS_V1,
+  cardHref,
   cardsForOwner,
   formatNear,
   isHolder,
@@ -79,10 +81,15 @@ export function VaultPage({
 
   const check = useCallback(async (account: string) => {
     try {
-      const [holder, cards] = await Promise.all([
-        isHolder(account),
-        cardsForOwner(account),
+      // A holder of either collection (v2, or legacy v1) opens the Vault.
+      const [h2, h1, c2, c1] = await Promise.all([
+        isHolder(account, "v2"),
+        isHolder(account, "v1"),
+        cardsForOwner(account, "v2"),
+        cardsForOwner(account, "v1"),
       ]);
+      const holder = h2 || h1;
+      const cards = [...c2, ...c1];
       const checkedAt = Date.now();
       if (holder) {
         wasHolder.current = true;
@@ -161,7 +168,8 @@ export function VaultPage({
             <li>
               <strong>Ownership check on chain</strong>
               <span>
-                <code>is_holder</code> on {KEEPERS_CONTRACT}
+                <code>is_holder</code> on {KEEPERS_CONTRACT} (or the legacy{" "}
+                {KEEPERS_V1})
               </span>
             </li>
           </ol>
@@ -289,21 +297,25 @@ export function VaultPage({
                 <th scope="col">Deposited</th>
                 <th scope="col">Withdrawn</th>
                 <th scope="col">Resales</th>
+                <th scope="col">Basket</th>
               </tr>
             </thead>
             <tbody>
               {cards.map((c) => (
-                <tr key={c.token_id}>
+                <tr key={`${c.version}-${c.token_id}`}>
                   <th scope="row">
                     <a
-                      href={`/keepers/${c.token_id}`}
+                      href={cardHref(c)}
                       onClick={(e) => {
                         e.preventDefault();
-                        navigate(`/keepers/${c.token_id}`);
+                        navigate(cardHref(c));
                       }}
                     >
                       #{c.token_id}
                     </a>
+                    {c.version === "v1" && (
+                      <span className="kp-version">v1</span>
+                    )}
                   </th>
                   <td>
                     <span className={`kp-tier kp-tier--${c.tier}`}>
@@ -315,6 +327,9 @@ export function VaultPage({
                   <td className="kp-num">{formatNear(c.deposited_total)}</td>
                   <td className="kp-num">{formatNear(c.withdrawn_total)}</td>
                   <td className="kp-num">{c.trades}</td>
+                  <td className="kp-num">
+                    {c.version === "v1" ? "—" : basketCount(c)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -327,11 +342,11 @@ export function VaultPage({
         <div className="kp-grid">
           {cards.map((card) => (
             <KeeperTile
-              key={card.token_id}
+              key={`${card.version}-${card.token_id}`}
               card={card}
               account={wallet.account}
-              href={`/keepers/${card.token_id}`}
-              onOpen={() => navigate(`/keepers/${card.token_id}`)}
+              href={cardHref(card)}
+              onOpen={() => navigate(cardHref(card))}
             />
           ))}
         </div>
