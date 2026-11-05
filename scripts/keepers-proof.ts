@@ -31,6 +31,8 @@ type Card = {
   royalties_earned: string;
   withdrawn_total: string;
   list_price: string | null;
+  listing_id: string | null;
+  inventory: { token: string; amount: string }[];
 };
 
 const chain = await startChain();
@@ -51,10 +53,58 @@ try {
   });
   const dave = await root.createSubAccount("dave", { initialBalance: 5n * N }); // no contract code
 
+  // Real NEP-141 contracts (the repo's demo-token) standing in for wNEAR and USDC,
+  // plus one token that is NOT on the allowlist. Alice holds the whole supply.
+  const tokens: SandboxAccount[] = [];
+  for (const name of ["tok-a", "tok-b", "tok-c"]) {
+    const t = await root.createSubAccount(name, { initialBalance: 10n * N });
+    assert.ok((await t.deploy("artifacts/demo_token.wasm")).succeeded);
+    await t.call(t, "new", {
+      owner_id: alice.accountId,
+      total_supply: "1000000",
+    });
+    tokens.push(t);
+  }
+  const [tokA, tokB, tokC] = tokens;
+  const register = (token: SandboxAccount, account: string) =>
+    root.call(
+      token,
+      "storage_deposit",
+      { account_id: account, registration_only: true },
+      { attachedDeposit: N / 100n },
+    );
+  // Carol is deliberately NOT registered on tok-b (used for the failed-withdraw check).
+  for (const [t, who] of [
+    [tokA, "keepers"],
+    [tokB, "keepers"],
+    [tokC, "keepers"],
+    [tokA, "bob"],
+    [tokB, "bob"],
+    [tokA, "carol"],
+  ] as const)
+    await register(t, `${who}.${root.accountId}`);
+  const ftBalance = async (token: SandboxAccount, account: string) =>
+    BigInt(await token.view<string>("ft_balance_of", { account_id: account }));
+  const fill = (token: SandboxAccount, cardId: string, amount: bigint) =>
+    alice.callRaw(
+      token,
+      "ft_transfer_call",
+      {
+        receiver_id: keepers.accountId,
+        amount: amount.toString(),
+        msg: JSON.stringify({ token_id: cardId }),
+      },
+      { gas: GAS, attachedDeposit: 1n },
+    );
+
   const deployed = await keepers.deploy("artifacts/keepers.wasm");
   assert.ok(deployed.succeeded, "deploy");
-  await keepers.call(keepers, "new", { creator: creator.accountId });
+  await keepers.call(keepers, "new", {
+    creator: creator.accountId,
+    tokens: [tokA.accountId, tokB.accountId],
+  });
   const card = (id: string) => keepers.view<Card>("card", { token_id: id });
+  const listingId = async (id: string) => (await card(id)).listing_id;
   const stats = () => keepers.view<Record<string, string | number>>("stats");
   const solvent = async () => {
     const s = await stats();
@@ -110,7 +160,7 @@ try {
   const buy = await bob.callRaw(
     keepers,
     "buy",
-    { token_id: "1", min_card_balance: "0" },
+    { token_id: "1", listing_id: await listingId("1") },
     { gas: GAS, attachedDeposit: price },
   );
   assert.ok(
@@ -202,13 +252,14 @@ try {
     "withdraw: previous owner refused, private callback refused, owner receives 2 NEAR, tier holographic → brushed",
   );
 
-  // Listed cards cannot be emptied; the buyer's min_card_balance protects them.
+  // Listed cards cannot be emptied; a buyer naming a stale listing is refused.
   await bob.call(
     keepers,
     "list",
     { token_id: "1", price: N.toString() },
     { attachedDeposit: 1n },
   );
+  const reviewed = await listingId("1");
   const listedWithdraw = await bob.callRaw(
     keepers,
     "withdraw",
@@ -216,15 +267,22 @@ try {
     { gas: GAS, attachedDeposit: 1n },
   );
   assert.ok(listedWithdraw.failed, "withdraw refused while listed");
-  const tooLow = await carol.callRaw(
+  await bob.call(keepers, "delist", { token_id: "1" }, { attachedDeposit: 1n });
+  await bob.call(
+    keepers,
+    "list",
+    { token_id: "1", price: N.toString() },
+    { attachedDeposit: 1n },
+  );
+  const stale = await carol.callRaw(
     keepers,
     "buy",
-    { token_id: "1", min_card_balance: N.toString() },
+    { token_id: "1", listing_id: reviewed },
     { gas: GAS, attachedDeposit: N },
   );
-  assert.ok(tooLow.failed, "buy refused when card holds less than expected");
+  assert.ok(stale.failed, "buy refused when the listing changed");
   pass(
-    "seller cannot empty a listed card; buyer's min_card_balance guard works",
+    "seller cannot empty a listed card; a buy naming a stale listing_id is refused",
   );
 
   // One transaction runs withdraw, then list; Carol's buy is sent concurrently
@@ -253,10 +311,15 @@ try {
   ]);
   let sale;
   for (let attempt = 0; attempt < 40; attempt++) {
+    const lid = await listingId("1");
+    if (!lid) {
+      await new Promise((r) => setTimeout(r, 150));
+      continue;
+    }
     sale = await carol.callRaw(
       keepers,
       "buy",
-      { token_id: "1", min_card_balance: (N / 2n).toString() },
+      { token_id: "1", listing_id: lid },
       { gas: GAS, attachedDeposit: N },
     );
     if (sale.succeeded && !sale.receiptFailures.length) break;
@@ -350,8 +413,146 @@ try {
   );
   pass("NEP-178 approval transfer works; approvals cleared after transfer");
 
+  // ---------------------------------------------------------------------
+  // v2 inventory with real NEP-141 transfers
+  // ---------------------------------------------------------------------
+  await alice.call(
+    keepers,
+    "mint",
+    {},
+    { gas: GAS, attachedDeposit: MINT_COST },
+  );
+  const fa = await fill(tokA, "2", 1_000n);
+  const fb = await fill(tokB, "2", 500n);
+  assert.ok(
+    fa.succeeded && !fa.receiptFailures.length,
+    fa.receiptFailureMessages.join(),
+  );
+  assert.ok(
+    fb.succeeded && !fb.receiptFailures.length,
+    fb.receiptFailureMessages.join(),
+  );
+  gas.ft_transfer_call = fa.gas_burnt;
+  c = await card("2");
+  assert.deepEqual(
+    c.inventory.map((i) => i.amount),
+    ["1000", "500"],
+  );
+  assert.equal(await ftBalance(tokA, keepers.accountId), 1_000n);
+  assert.equal(await ftBalance(tokB, keepers.accountId), 500n);
+  pass(
+    "ft_transfer_call fills card #2 with 1000 tok-a + 500 tok-b; contract balances match",
+  );
+
+  // Wrong token, bad message, unknown card: everything comes back to the sender.
+  const aliceC = await ftBalance(tokC, alice.accountId);
+  await fill(tokC, "2", 77n);
+  const aliceA = await ftBalance(tokA, alice.accountId);
+  await alice.call(
+    tokA,
+    "ft_transfer_call",
+    { receiver_id: keepers.accountId, amount: "9", msg: '{"token_id":"99"}' },
+    { gas: GAS, attachedDeposit: 1n },
+  );
+  assert.equal(
+    await ftBalance(tokC, alice.accountId),
+    aliceC,
+    "non-allowlisted refunded",
+  );
+  assert.equal(
+    await ftBalance(tokA, alice.accountId),
+    aliceA,
+    "unknown card refunded",
+  );
+  assert.equal(await ftBalance(tokC, keepers.accountId), 0n);
+  pass(
+    "non-allowlisted token and unknown card id are fully refunded by ft_resolve_transfer",
+  );
+
+  // Sale moves the basket; the buyer withdraws it.
+  await alice.call(
+    keepers,
+    "list",
+    { token_id: "2", price: N.toString() },
+    { attachedDeposit: 1n },
+  );
+  const listedTokenWithdraw = await alice.callRaw(
+    keepers,
+    "withdraw_token",
+    { token_id: "2", token: tokA.accountId },
+    { gas: GAS, attachedDeposit: 1n },
+  );
+  assert.ok(listedTokenWithdraw.failed, "token withdraw refused while listed");
+  await bob.call(
+    keepers,
+    "buy",
+    { token_id: "2", listing_id: await listingId("2") },
+    { gas: GAS, attachedDeposit: N },
+  );
+  const bobA = await ftBalance(tokA, bob.accountId);
+  const wt = await bob.callRaw(
+    keepers,
+    "withdraw_token",
+    { token_id: "2", token: tokA.accountId, amount: "600" },
+    { gas: GAS, attachedDeposit: 1n },
+  );
+  assert.ok(
+    wt.succeeded && !wt.receiptFailures.length,
+    wt.receiptFailureMessages.join(),
+  );
+  gas.withdraw_token = wt.gas_burnt;
+  assert.equal((await ftBalance(tokA, bob.accountId)) - bobA, 600n);
+  c = await card("2");
+  assert.deepEqual(
+    c.inventory.map((i) => i.amount),
+    ["400", "500"],
+  );
+  pass(
+    "sale moves the basket to the buyer, who withdraws 600 tok-a; token withdraw refused while listed",
+  );
+
+  // Withdraw to an owner not registered on the token: ft_transfer fails, the card is re-credited.
+  await bob.call(
+    keepers,
+    "nft_transfer",
+    { receiver_id: carol.accountId, token_id: "2" },
+    { attachedDeposit: 1n },
+  );
+  const failedWt = await carol.callRaw(
+    keepers,
+    "withdraw_token",
+    { token_id: "2", token: tokB.accountId },
+    { gas: GAS, attachedDeposit: 1n },
+  );
+  assert.ok(
+    failedWt.receiptFailures.length > 0,
+    "ft_transfer to unregistered carol failed",
+  );
+  c = await card("2");
+  assert.equal(c.inventory[1].amount, "500", "tok-b returned to the card");
+  assert.equal(await ftBalance(tokB, keepers.accountId), 500n);
+  pass(
+    "withdraw to an unregistered account: ft_transfer fails, the card is re-credited",
+  );
+
+  // Token books: what the contract owes equals what it holds on each token.
+  const s = await stats();
+  const totals = s.token_totals as unknown as {
+    token: string;
+    amount: string;
+  }[];
+  assert.equal(
+    BigInt(totals[0].amount),
+    await ftBalance(tokA, keepers.accountId),
+  );
+  assert.equal(
+    BigInt(totals[1].amount),
+    await ftBalance(tokB, keepers.accountId),
+  );
+  pass("token_totals equal ft_balance_of(keepers) on every allowlisted token");
+
   // Standard views.
-  assert.equal(await keepers.view("nft_total_supply"), "1");
+  assert.equal(await keepers.view("nft_total_supply"), "2");
   assert.equal((await keepers.view<any>("nft_metadata")).symbol, "KEEPER");
   assert.equal(
     (

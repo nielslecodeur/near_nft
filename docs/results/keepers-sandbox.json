@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-05T20:28:23.441Z",
+  "at": "2026-11-05T21:27:04.554Z",
   "wasm": "artifacts/keepers.wasm",
   "checks": [
     "deploy + init",
@@ -7,22 +7,39 @@
     "resale at 5 NEAR: 0.5 NEAR royalty to the card, 4.5 NEAR to seller, 0 to creator, tier matte → brushed, access moved",
     "deposit 2 NEAR: tier brushed → holographic, metadata title updated",
     "withdraw: previous owner refused, private callback refused, owner receives 2 NEAR, tier holographic → brushed",
-    "seller cannot empty a listed card; buyer's min_card_balance guard works",
+    "seller cannot empty a listed card; a buy naming a stale listing_id is refused",
     "buy submitted concurrently with a withdraw+relist batch: withdrawn NEAR paid once, royalty credited to the card, books balanced",
     "nft_transfer_call returned by receiver; nft_transfer moves balance, tier and access",
     "NEP-178 approval transfer works; approvals cleared after transfer",
+    "ft_transfer_call fills card #2 with 1000 tok-a + 500 tok-b; contract balances match",
+    "non-allowlisted token and unknown card id are fully refunded by ft_resolve_transfer",
+    "sale moves the basket to the buyer, who withdraws 600 tok-a; token withdraw refused while listed",
+    "withdraw to an unregistered account: ft_transfer fails, the card is re-credited",
+    "token_totals equal ft_balance_of(keepers) on every allowlisted token",
     "NEP-171/177/181 views; final solvency check"
   ],
   "gas_burnt": {
-    "mint": "4572376400322",
-    "buy": "6638830782165",
-    "withdraw": "5247744444197"
+    "mint": "4690880630548",
+    "buy": "6765815020034",
+    "withdraw": "5356416612756",
+    "ft_transfer_call": "6549818539832",
+    "withdraw_token": "6848421664802"
   },
   "final_stats": {
-    "minted": 1,
-    "total_card_balances": "600000000000000000000000",
+    "minted": 2,
+    "total_card_balances": "700000000000000000000000",
     "total_pending_payouts": "0",
-    "storage_cost": "2942800000000000000000000",
-    "account_balance": "10617740027910932100000009"
+    "storage_cost": "3253470000000000000000000",
+    "account_balance": "10737517629770462100000014",
+    "token_totals": [
+      {
+        "token": "tok-a.sandbox",
+        "amount": "400"
+      },
+      {
+        "token": "tok-b.sandbox",
+        "amount": "500"
+      }
+    ]
   }
 }

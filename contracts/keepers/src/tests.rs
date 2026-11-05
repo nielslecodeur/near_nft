@@ -9,6 +9,10 @@ const ALICE: &str = "alice.testnet";
 const BOB: &str = "bob.testnet";
 const CAROL: &str = "carol.testnet";
 const MINT_COST: u128 = MINT_PRICE + STORAGE_RESERVE;
+/// Two allowlisted NEP-141 tokens (inventory slots 0 and 1).
+const TOKEN_A: &str = "wrap.testnet";
+const TOKEN_B: &str = "usdc.testnet";
+const FAKE_TOKEN: &str = "fake-usdc.testnet";
 
 fn id(s: &str) -> AccountId {
     s.parse().unwrap()
@@ -39,7 +43,52 @@ fn ctx(predecessor: &str, deposit: u128) {
 
 fn setup() -> Contract {
     ctx(CREATOR, 0);
-    Contract::new(id(CREATOR), None)
+    Contract::new(id(CREATOR), vec![id(TOKEN_A), id(TOKEN_B)], None)
+}
+
+/// The listing id a buyer sees right now (0 when not listed).
+fn listing(c: &Contract, token: &str) -> U64 {
+    card(c, token).listing_id.unwrap_or(U64(0))
+}
+
+/// Simulates `ft_transfer_call` on token slot `slot` crediting card `token`.
+fn fill(c: &mut Contract, token: &str, slot: usize, amount: u128) -> U128 {
+    ctx([TOKEN_A, TOKEN_B][slot], 0);
+    match c.ft_on_transfer(
+        id(CAROL),
+        U128(amount),
+        format!("{{\"token_id\":\"{token}\"}}"),
+    ) {
+        PromiseOrValue::Value(refund) => refund,
+        PromiseOrValue::Promise(_) => panic!("unexpected promise"),
+    }
+}
+
+/// ft_transfer calls created by the last call, as (token contract, receiver, amount).
+fn ft_transfers() -> Vec<(String, String, u128)> {
+    get_created_receipts()
+        .into_iter()
+        .flat_map(|r| {
+            let to = r.receiver_id.to_string();
+            r.actions.into_iter().filter_map(move |a| match a {
+                MockAction::FunctionCallWeight {
+                    method_name, args, ..
+                } if method_name == b"ft_transfer" => {
+                    let v: serde_json::Value = serde_json::from_slice(&args).unwrap();
+                    Some((
+                        to.clone(),
+                        v["receiver_id"].as_str().unwrap().to_string(),
+                        v["amount"].as_str().unwrap().parse().unwrap(),
+                    ))
+                }
+                _ => None,
+            })
+        })
+        .collect()
+}
+
+fn slot(c: &Contract, token: &str, slot: usize) -> u128 {
+    card(c, token).inventory[slot].amount.0
 }
 
 fn mint_to(c: &mut Contract, who: &str) -> TokenId {
@@ -76,10 +125,15 @@ fn card(c: &Contract, token: &str) -> CardView {
     c.card(token.to_string()).expect("card exists")
 }
 
-/// The contract's books always match the sum of the card balances.
+/// The contract's books always match the sum of the card balances, in NEAR and per token.
 fn assert_books(c: &Contract) {
-    let sum: u128 = c.cards(None, None).iter().map(|v| v.balance.0).sum();
+    let cards = c.cards(None, None);
+    let sum: u128 = cards.iter().map(|v| v.balance.0).sum();
     assert_eq!(sum, c.total_card_balances, "total_card_balances drifted");
+    for (i, total) in c.token_totals.iter().enumerate() {
+        let sum: u128 = cards.iter().map(|v| v.inventory[i].amount.0).sum();
+        assert_eq!(sum, *total, "token_totals[{i}] drifted");
+    }
 }
 
 fn deposit(c: &mut Contract, token: &str, amount: u128) {
@@ -87,9 +141,9 @@ fn deposit(c: &mut Contract, token: &str, amount: u128) {
     c.deposit(token.to_string());
 }
 
-fn list(c: &mut Contract, owner: &str, token: &str, price: u128) {
+fn list(c: &mut Contract, owner: &str, token: &str, price: u128) -> U64 {
     ctx(owner, 1);
-    c.list(token.to_string(), U128(price));
+    c.list(token.to_string(), U128(price))
 }
 
 // ---------------------------------------------------------------------------
@@ -334,7 +388,7 @@ fn resale_credits_royalty_to_the_card_and_rest_to_seller() {
     assert_eq!(c.listings(None, None).len(), 1);
 
     ctx_full(BOB, 5 * ONE_NEAR, 5_000, None);
-    let _ = c.buy(t.clone(), U128(0));
+    let _ = c.buy(t.clone(), listing(&c, &t));
     let royalty = 5 * ONE_NEAR / 10;
     // Seller is paid price - royalty; the creator receives nothing on resale.
     assert_eq!(
@@ -365,10 +419,10 @@ fn royalty_accumulates_over_several_sales() {
     let t = mint_to(&mut c, ALICE);
     list(&mut c, ALICE, &t, 10 * ONE_NEAR);
     ctx(BOB, 10 * ONE_NEAR);
-    let _ = c.buy(t.clone(), U128(0));
+    let _ = c.buy(t.clone(), listing(&c, &t));
     list(&mut c, BOB, &t, 20 * ONE_NEAR);
     ctx(CAROL, 20 * ONE_NEAR);
-    let _ = c.buy(t.clone(), U128(ONE_NEAR));
+    let _ = c.buy(t.clone(), listing(&c, &t));
     let v = card(&c, &t);
     assert_eq!(
         (v.balance.0, v.trades, v.owner_id),
@@ -385,7 +439,7 @@ fn royalty_rounds_down_and_split_is_exact() {
     let price = MIN_LIST_PRICE + 7; // not divisible by 10
     list(&mut c, ALICE, &t, price);
     ctx(BOB, price);
-    let _ = c.buy(t.clone(), U128(0));
+    let _ = c.buy(t.clone(), listing(&c, &t));
     let royalty = card(&c, &t).balance.0;
     assert_eq!(royalty, price * ROYALTY_BPS / BPS_DENOMINATOR);
     assert_eq!(transfers(), vec![(ALICE.to_string(), price - royalty)]);
@@ -398,7 +452,7 @@ fn buy_requires_exact_price() {
     let t = mint_to(&mut c, ALICE);
     list(&mut c, ALICE, &t, ONE_NEAR);
     ctx(BOB, ONE_NEAR - 1);
-    let _ = c.buy(t, U128(0));
+    let _ = c.buy(t.clone(), listing(&c, &t));
 }
 
 #[test]
@@ -407,7 +461,7 @@ fn buy_requires_listing() {
     let mut c = setup();
     let t = mint_to(&mut c, ALICE);
     ctx(BOB, ONE_NEAR);
-    let _ = c.buy(t, U128(0));
+    let _ = c.buy(t.clone(), listing(&c, &t));
 }
 
 #[test]
@@ -417,25 +471,29 @@ fn owner_cannot_buy_own_card() {
     let t = mint_to(&mut c, ALICE);
     list(&mut c, ALICE, &t, ONE_NEAR);
     ctx(ALICE, ONE_NEAR);
-    let _ = c.buy(t, U128(0));
+    let _ = c.buy(t.clone(), listing(&c, &t));
 }
 
 #[test]
-#[should_panic(expected = "Card balance is lower than expected")]
-fn buyer_is_protected_by_min_card_balance() {
+#[should_panic(expected = "Listing changed since you reviewed it")]
+fn buyer_is_protected_by_listing_id() {
     let mut c = setup();
     let t = mint_to(&mut c, ALICE);
     deposit(&mut c, &t, 2 * ONE_NEAR);
-    // Seller delists, withdraws, relists at the same price.
+    fill(&mut c, &t, 0, 500);
+    // The buyer reviews listing #1 (2 NEAR + 500 token units)…
     list(&mut c, ALICE, &t, ONE_NEAR);
+    let reviewed = listing(&c, &t);
+    // …the seller delists, empties the card, relists at the same price.
     ctx(ALICE, 1);
     c.delist(t.clone());
     ctx(ALICE, 1);
     let _ = c.withdraw(t.clone(), None);
+    ctx(ALICE, 1);
+    let _ = c.withdraw_token(t.clone(), id(TOKEN_A), None);
     list(&mut c, ALICE, &t, ONE_NEAR);
-    // The buyer still expects the 2 NEAR they saw.
     ctx(BOB, ONE_NEAR);
-    let _ = c.buy(t, U128(2 * ONE_NEAR));
+    let _ = c.buy(t, reviewed);
 }
 
 #[test]
@@ -460,7 +518,7 @@ fn failed_seller_payout_becomes_claimable() {
     let t = mint_to(&mut c, ALICE);
     list(&mut c, ALICE, &t, ONE_NEAR);
     ctx(BOB, ONE_NEAR);
-    let _ = c.buy(t.clone(), U128(0));
+    let _ = c.buy(t.clone(), listing(&c, &t));
     let proceeds = ONE_NEAR - ONE_NEAR / 10;
 
     ctx_full(CONTRACT, 0, 1_000, Some(PromiseResult::Failed));
@@ -571,7 +629,7 @@ fn approvals_are_cleared_by_a_sale() {
     let _ = c.nft_approve(t.clone(), id(CAROL), None);
     list(&mut c, ALICE, &t, ONE_NEAR);
     ctx(BOB, ONE_NEAR);
-    let _ = c.buy(t.clone(), U128(0));
+    let _ = c.buy(t.clone(), listing(&c, &t));
     assert!(
         !c.nft_is_approved(t, id(CAROL), None),
         "the seller's approvals die with the sale"
@@ -646,4 +704,267 @@ fn every_dna_and_tier_renders_valid_looking_svg() {
             assert!(!s.contains('"'), "attributes use single quotes");
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// v2 inventory: the card holds NEP-141 tokens
+// ---------------------------------------------------------------------------
+
+#[test]
+fn allowlisted_token_deposit_credits_the_card() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    assert_eq!(fill(&mut c, &t, 0, 700).0, 0, "nothing refunded");
+    assert_eq!(fill(&mut c, &t, 1, 50).0, 0);
+    assert_eq!(fill(&mut c, &t, 0, 300).0, 0);
+    assert_eq!((slot(&c, &t, 0), slot(&c, &t, 1)), (1_000, 50));
+    let e = &events("card_token_deposit")[0]["data"][0];
+    assert_eq!(e["token"], TOKEN_A);
+    assert_eq!(e["balance"], "1000");
+    assert_eq!(c.inventory(t.clone())[1].token, id(TOKEN_B));
+    assert_eq!(
+        card(&c, &t).tier,
+        0,
+        "tokens never change the NEAR-based tier"
+    );
+    assert_books(&c);
+}
+
+#[test]
+fn non_allowlisted_token_is_fully_refunded() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    ctx(FAKE_TOKEN, 0);
+    let refund = c.ft_on_transfer(id(CAROL), U128(1_000), format!("{{\"token_id\":\"{t}\"}}"));
+    assert!(matches!(refund, PromiseOrValue::Value(U128(1_000))));
+    assert_eq!(slot(&c, &t, 0) + slot(&c, &t, 1), 0);
+    assert_books(&c);
+}
+
+#[test]
+fn bad_message_or_unknown_card_is_fully_refunded() {
+    let mut c = setup();
+    mint_to(&mut c, ALICE);
+    for msg in ["", "not json", "{\"token_id\":\"99\"}", "{\"card\":\"1\"}"] {
+        ctx(TOKEN_A, 0);
+        let refund = c.ft_on_transfer(id(CAROL), U128(42), msg.into());
+        assert!(
+            matches!(refund, PromiseOrValue::Value(U128(42))),
+            "msg {msg:?}"
+        );
+    }
+    assert_eq!(c.token_totals, vec![0, 0]);
+}
+
+#[test]
+fn owner_withdraws_a_token() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    fill(&mut c, &t, 1, 900);
+    ctx(ALICE, 1);
+    let _ = c.withdraw_token(t.clone(), id(TOKEN_B), Some(U128(400)));
+    assert_eq!(
+        ft_transfers(),
+        vec![(TOKEN_B.to_string(), ALICE.to_string(), 400)]
+    );
+    assert_eq!(slot(&c, &t, 1), 500);
+    ctx(ALICE, 1);
+    let _ = c.withdraw_token(t.clone(), id(TOKEN_B), None);
+    assert_eq!(ft_transfers()[0].2, 500, "None withdraws the whole slot");
+    assert_eq!(slot(&c, &t, 1), 0);
+    assert_books(&c);
+}
+
+#[test]
+#[should_panic(expected = "Only the owner can withdraw")]
+fn token_withdraw_is_owner_only() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    fill(&mut c, &t, 0, 10);
+    ctx(BOB, 1);
+    let _ = c.withdraw_token(t, id(TOKEN_A), None);
+}
+
+#[test]
+#[should_panic(expected = "Delist the card before withdrawing")]
+fn token_withdraw_is_refused_while_listed() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    fill(&mut c, &t, 0, 10);
+    list(&mut c, ALICE, &t, ONE_NEAR);
+    ctx(ALICE, 1);
+    let _ = c.withdraw_token(t, id(TOKEN_A), None);
+}
+
+#[test]
+#[should_panic(expected = "Invalid amount")]
+fn token_withdraw_cannot_exceed_slot() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    fill(&mut c, &t, 0, 10);
+    ctx(ALICE, 1);
+    let _ = c.withdraw_token(t, id(TOKEN_A), Some(U128(11)));
+}
+
+#[test]
+#[should_panic(expected = "Token not in the allowlist")]
+fn token_withdraw_rejects_unknown_token() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    ctx(ALICE, 1);
+    let _ = c.withdraw_token(t, id(FAKE_TOKEN), None);
+}
+
+#[test]
+#[should_panic(expected = "Requires attached deposit of exactly 1 yoctoNEAR")]
+fn token_withdraw_requires_one_yocto() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    fill(&mut c, &t, 0, 10);
+    ctx(ALICE, 0);
+    let _ = c.withdraw_token(t, id(TOKEN_A), None);
+}
+
+#[test]
+fn failed_token_withdraw_recredits_the_card_even_after_a_sale() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    fill(&mut c, &t, 1, 900);
+    ctx(ALICE, 1);
+    let _ = c.withdraw_token(t.clone(), id(TOKEN_B), None);
+    // For example the owner is not registered on the token: ft_transfer fails,
+    list(&mut c, ALICE, &t, ONE_NEAR);
+    ctx(BOB, ONE_NEAR);
+    let _ = c.buy(t.clone(), listing(&c, &t));
+    // and the callback lands after Bob bought the card.
+    ctx_full(CONTRACT, 0, 1_000, Some(PromiseResult::Failed));
+    assert!(!c.on_token_withdraw(t.clone(), id(TOKEN_B), U128(900)));
+    assert_eq!(slot(&c, &t, 1), 900, "tokens return to the card");
+    assert_eq!(
+        card(&c, &t).owner_id,
+        id(BOB),
+        "so they belong to the new owner"
+    );
+    assert_eq!(events("card_token_withdraw_refunded").len(), 1);
+    assert_books(&c);
+}
+
+#[test]
+fn successful_token_withdraw_callback_changes_nothing() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    fill(&mut c, &t, 0, 5);
+    ctx(ALICE, 1);
+    let _ = c.withdraw_token(t.clone(), id(TOKEN_A), None);
+    ctx_full(CONTRACT, 0, 1_000, Some(PromiseResult::Successful(vec![])));
+    assert!(c.on_token_withdraw(t.clone(), id(TOKEN_A), U128(5)));
+    assert_eq!(slot(&c, &t, 0), 0);
+    assert_books(&c);
+}
+
+#[test]
+fn sale_moves_the_whole_inventory() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    deposit(&mut c, &t, ONE_NEAR);
+    fill(&mut c, &t, 0, 2_000);
+    fill(&mut c, &t, 1, 75);
+    let lid = list(&mut c, ALICE, &t, 2 * ONE_NEAR);
+    assert_eq!(listing(&c, &t), lid);
+    assert!(events("card_listed")[0]["data"][0]["listing_id"].is_string());
+    ctx(BOB, 2 * ONE_NEAR);
+    let _ = c.buy(t.clone(), lid);
+    let v = card(&c, &t);
+    assert_eq!(v.owner_id, id(BOB));
+    assert_eq!(v.balance.0, ONE_NEAR + 2 * ONE_NEAR / 10);
+    assert_eq!(
+        (v.inventory[0].amount.0, v.inventory[1].amount.0),
+        (2_000, 75)
+    );
+    assert_eq!(v.listing_id, None);
+    // The buyer can now withdraw what the seller put in.
+    ctx(BOB, 1);
+    let _ = c.withdraw_token(t.clone(), id(TOKEN_A), None);
+    assert_eq!(
+        ft_transfers(),
+        vec![(TOKEN_A.to_string(), BOB.to_string(), 2_000)]
+    );
+    assert_books(&c);
+}
+
+#[test]
+fn every_listing_gets_a_new_id_and_transfers_clear_it() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    let first = list(&mut c, ALICE, &t, ONE_NEAR);
+    ctx(ALICE, 1);
+    c.delist(t.clone());
+    assert_eq!(card(&c, &t).listing_id, None);
+    let second = list(&mut c, ALICE, &t, ONE_NEAR);
+    assert_ne!(first, second);
+    ctx(ALICE, 1);
+    c.nft_transfer(id(BOB), t.clone(), None, None);
+    assert_eq!(card(&c, &t).listing_id, None);
+}
+
+#[test]
+fn nft_transfer_moves_the_inventory() {
+    let mut c = setup();
+    let t = mint_to(&mut c, ALICE);
+    fill(&mut c, &t, 1, 33);
+    ctx(ALICE, 1);
+    c.nft_transfer(id(BOB), t.clone(), None, None);
+    assert_eq!(card(&c, &t).owner_id, id(BOB));
+    assert_eq!(slot(&c, &t, 1), 33);
+    let extra: CardView =
+        serde_json::from_str(&c.nft_token(t).unwrap().metadata.unwrap().extra.unwrap()).unwrap();
+    assert_eq!(extra.inventory[1].amount.0, 33);
+}
+
+#[test]
+fn mint_with_four_tokens_fits_the_reserve() {
+    ctx(CREATOR, 0);
+    let mut c = Contract::new(
+        id(CREATOR),
+        ["a.testnet", "b.testnet", "c.testnet", "d.testnet"]
+            .map(id)
+            .to_vec(),
+        None,
+    );
+    mint_to(&mut c, ALICE);
+    ctx(BOB, MINT_COST);
+    let before = env::storage_usage();
+    c.mint();
+    let used = (env::storage_usage() - before) as u128 * env::storage_byte_cost().as_yoctonear();
+    assert!(
+        used * 100 <= STORAGE_RESERVE * 40,
+        "mint used {used} yocto of storage"
+    );
+    assert_eq!(card(&c, "2").inventory.len(), 4);
+}
+
+#[test]
+#[should_panic(expected = "At most 4 tokens")]
+fn init_rejects_more_than_four_tokens() {
+    ctx(CREATOR, 0);
+    Contract::new(
+        id(CREATOR),
+        [
+            "a.testnet",
+            "b.testnet",
+            "c.testnet",
+            "d.testnet",
+            "e.testnet",
+        ]
+        .map(id)
+        .to_vec(),
+        None,
+    );
+}
+
+#[test]
+#[should_panic(expected = "Duplicate token")]
+fn init_rejects_duplicate_tokens() {
+    ctx(CREATOR, 0);
+    Contract::new(id(CREATOR), vec![id(TOKEN_A), id(TOKEN_A)], None);
 }

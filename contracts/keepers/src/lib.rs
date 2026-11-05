@@ -12,9 +12,15 @@
 //!   function of the token's balance ([`tier_for`]). The on-chain SVG art changes with it.
 //! * **Grants access** — [`Contract::is_holder`] is the credential checked by the
 //!   holder-only `/vault` page.
+//! * **Holds an inventory** (v2) — each card also holds up to [`MAX_TOKENS`]
+//!   NEP-141 tokens from an allowlist fixed at deploy. Tokens arrive with
+//!   `ft_transfer_call(msg = {"token_id": …})`, leave with
+//!   [`Contract::withdraw_token`], and move with the card on every sale or transfer.
 //!
-//! Design, storage costs and threat model: `docs/keepers-contract.md`.
+//! Design, storage costs and threat model: `docs/keepers-contract.md` (v1) and
+//! `docs/keepers-inventory.md` (v2).
 
+use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
 use near_contract_standards::non_fungible_token::approval::NonFungibleTokenApproval;
 use near_contract_standards::non_fungible_token::core::{
     NonFungibleTokenCore, NonFungibleTokenResolver,
@@ -63,7 +69,10 @@ pub const TIER_THRESHOLDS: [u128; 3] = [ONE_NEAR / 2, 2 * ONE_NEAR, 10 * ONE_NEA
 pub const TIER_NAMES: [&str; 4] = ["matte", "brushed", "holographic", "animated"];
 /// Upper bound on token ids scanned by paginated card views.
 const MAX_PAGE: u64 = 50;
+/// Maximum number of NEP-141 tokens a card can hold (one inventory slot each).
+pub const MAX_TOKENS: usize = 4;
 const GAS_FOR_CALLBACK: Gas = Gas::from_tgas(10);
+const GAS_FOR_FT_TRANSFER: Gas = Gas::from_tgas(15);
 
 /// Tier of a card, computed only from its on-chain balance.
 pub fn tier_for(balance: u128) -> u8 {
@@ -104,6 +113,23 @@ pub struct Card {
     pub withdrawn_total: u128,
     /// `Some(price)` while listed on the built-in market.
     pub list_price: Option<u128>,
+    /// `Some(id)` while listed; a new id for every listing, named by the buyer in `buy`.
+    pub listing_id: Option<u64>,
+    /// One amount per allowlisted token (same order as `tokens_allowed`), allocated at
+    /// mint so a token deposit never grows storage.
+    pub inventory: Vec<u128>,
+}
+
+#[near(serializers = [json])]
+#[derive(Debug, PartialEq)]
+pub struct TokenAmount {
+    pub token: AccountId,
+    pub amount: U128,
+}
+
+#[near(serializers = [json])]
+struct DepositMsg {
+    token_id: TokenId,
 }
 
 /// JSON view of a card, returned by every card view and in `metadata.extra`.
@@ -124,6 +150,8 @@ pub struct CardView {
     pub deposited_total: U128,
     pub withdrawn_total: U128,
     pub list_price: Option<U128>,
+    pub listing_id: Option<U64>,
+    pub inventory: Vec<TokenAmount>,
 }
 
 #[near(contract_state)]
@@ -139,12 +167,17 @@ pub struct Contract {
     /// Seller proceeds whose transfer failed, claimable with `claim_payout`.
     pending_payouts: LookupMap<AccountId, u128>,
     total_pending_payouts: u128,
+    /// NEP-141 tokens cards can hold, fixed at init (≤ MAX_TOKENS).
+    tokens_allowed: Vec<AccountId>,
+    /// Σ card.inventory[i] — what this contract owes its cards in each token.
+    token_totals: Vec<u128>,
+    listing_seq: u64,
 }
 
 fn emit(event: &str, data: serde_json::Value) {
     env::log_str(&format!(
         "EVENT_JSON:{}",
-        json!({"standard": "keepers", "version": "1.0.0", "event": event, "data": [data]})
+        json!({"standard": "keepers", "version": "2.0.0", "event": event, "data": [data]})
     ));
 }
 
@@ -154,8 +187,13 @@ fn yocto(amount: u128) -> NearToken {
 
 #[near]
 impl Contract {
+    /// `tokens`: the NEP-141 contracts cards may hold, at most `MAX_TOKENS`, fixed forever.
     #[init]
-    pub fn new(creator: AccountId, base_uri: Option<String>) -> Self {
+    pub fn new(creator: AccountId, tokens: Vec<AccountId>, base_uri: Option<String>) -> Self {
+        require!(tokens.len() <= MAX_TOKENS, "At most 4 tokens");
+        for (i, t) in tokens.iter().enumerate() {
+            require!(!tokens[..i].contains(t), "Duplicate token");
+        }
         let metadata = NFTContractMetadata {
             spec: NFT_METADATA_SPEC.to_string(),
             name: "Everkeep Keepers".to_string(),
@@ -181,6 +219,9 @@ impl Contract {
             total_card_balances: 0,
             pending_payouts: LookupMap::new(StorageKey::PendingPayouts),
             total_pending_payouts: 0,
+            token_totals: vec![0; tokens.len()],
+            tokens_allowed: tokens,
+            listing_seq: 0,
         }
     }
 
@@ -244,6 +285,8 @@ impl Contract {
                 deposited_total: 0,
                 withdrawn_total: 0,
                 list_price: None,
+                listing_id: None,
+                inventory: vec![0; self.tokens_allowed.len()],
             },
         );
         self.cards.flush();
@@ -355,12 +398,92 @@ impl Contract {
     }
 
     // -----------------------------------------------------------------------
+    // A′. The card holds an inventory of NEP-141 tokens (v2)
+    // -----------------------------------------------------------------------
+
+    /// Sends `amount` (default: all) of an inventory `token` from the card to its owner.
+    /// Owner only, exactly 1 yoctoNEAR attached, refused while listed. The owner must be
+    /// registered on the token contract; if `ft_transfer` fails, the card is re-credited.
+    #[payable]
+    pub fn withdraw_token(
+        &mut self,
+        token_id: TokenId,
+        token: AccountId,
+        amount: Option<U128>,
+    ) -> Promise {
+        assert_one_yocto();
+        let owner_id = self.owner_of(&token_id);
+        require!(
+            env::predecessor_account_id() == owner_id,
+            "Only the owner can withdraw"
+        );
+        let slot = self.slot_of(&token);
+        let mut card = self.card_state(&token_id);
+        require!(
+            card.list_price.is_none(),
+            "Delist the card before withdrawing"
+        );
+        let amount = amount.map(|a| a.0).unwrap_or(card.inventory[slot]);
+        require!(
+            amount > 0 && amount <= card.inventory[slot],
+            "Invalid amount"
+        );
+
+        card.inventory[slot] -= amount;
+        self.token_totals[slot] -= amount;
+        emit(
+            "card_token_withdraw",
+            json!({"token_id": token_id, "token": token, "owner_id": owner_id,
+                   "amount": U128(amount), "balance": U128(card.inventory[slot])}),
+        );
+        self.cards.insert(token_id.clone(), card);
+
+        Promise::new(token.clone())
+            .function_call(
+                "ft_transfer".to_string(),
+                serde_json::to_vec(&json!({
+                    "receiver_id": owner_id,
+                    "amount": U128(amount),
+                    "memo": format!("Keeper #{token_id}"),
+                }))
+                .unwrap(),
+                yocto(1),
+                GAS_FOR_FT_TRANSFER,
+            )
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(GAS_FOR_CALLBACK)
+                    .on_token_withdraw(token_id, token, U128(amount)),
+            )
+    }
+
+    /// Token withdraw callback: a failed `ft_transfer` re-credits the card, not the caller.
+    #[private]
+    pub fn on_token_withdraw(&mut self, token_id: TokenId, token: AccountId, amount: U128) -> bool {
+        if env::promise_result_checked(0, 64).is_ok() {
+            return true;
+        }
+        let slot = self.slot_of(&token);
+        let mut card = self.card_state(&token_id);
+        card.inventory[slot] += amount.0;
+        self.token_totals[slot] += amount.0;
+        emit(
+            "card_token_withdraw_refunded",
+            json!({"token_id": token_id, "token": token, "amount": amount,
+                   "balance": U128(card.inventory[slot])}),
+        );
+        self.cards.insert(token_id, card);
+        false
+    }
+
+    // -----------------------------------------------------------------------
     // B. Built-in market: the card earns its own royalties
     // -----------------------------------------------------------------------
 
     /// Lists the card for `price` yoctoNEAR. Owner only, exactly 1 yoctoNEAR attached.
+    /// Every listing gets a new `listing_id`; the buyer must name it in [`Contract::buy`].
     #[payable]
-    pub fn list(&mut self, token_id: TokenId, price: U128) {
+    pub fn list(&mut self, token_id: TokenId, price: U128) -> U64 {
         assert_one_yocto();
         require!(
             env::predecessor_account_id() == self.owner_of(&token_id),
@@ -368,9 +491,15 @@ impl Contract {
         );
         require!(price.0 >= MIN_LIST_PRICE, "Minimum price is 0.1 NEAR");
         let mut card = self.card_state(&token_id);
+        self.listing_seq += 1;
         card.list_price = Some(price.0);
+        card.listing_id = Some(self.listing_seq);
         self.cards.insert(token_id.clone(), card);
-        emit("card_listed", json!({"token_id": token_id, "price": price}));
+        emit(
+            "card_listed",
+            json!({"token_id": token_id, "price": price, "listing_id": U64(self.listing_seq)}),
+        );
+        U64(self.listing_seq)
     }
 
     /// Removes the listing. Owner only, exactly 1 yoctoNEAR attached.
@@ -384,6 +513,7 @@ impl Contract {
         let mut card = self.card_state(&token_id);
         let price = card.list_price.take();
         require!(price.is_some(), "Not listed");
+        card.listing_id = None;
         self.cards.insert(token_id.clone(), card);
         emit(
             "card_delisted",
@@ -391,11 +521,12 @@ impl Contract {
         );
     }
 
-    /// Buys a listed card. Attach exactly the list price.
-    /// `min_card_balance` is the balance the buyer saw: the purchase fails if the card holds less.
+    /// Buys a listed card with its NEAR balance and whole inventory. Attach exactly the
+    /// list price. `listing_id` is the listing the buyer reviewed: any delist/relist since
+    /// (e.g. to empty the card) changes it and the purchase fails.
     /// The royalty (`ROYALTY_BPS`) is credited to the card, the rest is paid to the seller.
     #[payable]
-    pub fn buy(&mut self, token_id: TokenId, min_card_balance: U128) -> Promise {
+    pub fn buy(&mut self, token_id: TokenId, listing_id: U64) -> Promise {
         let buyer = env::predecessor_account_id();
         let seller = self.owner_of(&token_id);
         require!(buyer != seller, "You already own this card");
@@ -404,12 +535,12 @@ impl Contract {
             .list_price
             .unwrap_or_else(|| env::panic_str("Not listed"));
         require!(
-            env::attached_deposit().as_yoctonear() == price,
-            "Attach exactly the list price"
+            card.listing_id == Some(listing_id.0),
+            "Listing changed since you reviewed it"
         );
         require!(
-            card.balance >= min_card_balance.0,
-            "Card balance is lower than expected"
+            env::attached_deposit().as_yoctonear() == price,
+            "Attach exactly the list price"
         );
 
         let royalty = price * ROYALTY_BPS / BPS_DENOMINATOR;
@@ -419,6 +550,7 @@ impl Contract {
         card.royalties_earned += royalty;
         card.trades += 1;
         card.list_price = None;
+        card.listing_id = None;
         card.held_since = env::block_timestamp();
         self.total_card_balances += royalty;
         let balance = card.balance;
@@ -480,7 +612,19 @@ impl Contract {
     pub fn card(&self, token_id: TokenId) -> Option<CardView> {
         let owner_id = self.tokens.owner_by_id.get(&token_id)?;
         let card = self.cards.get(&token_id)?;
-        Some(Self::view_of(token_id, owner_id, card))
+        Some(self.view_of(token_id, owner_id, card))
+    }
+
+    /// The allowlisted NEP-141 tokens, in inventory slot order.
+    pub fn tokens(&self) -> Vec<AccountId> {
+        self.tokens_allowed.clone()
+    }
+
+    /// What the card holds in each allowlisted token.
+    pub fn inventory(&self, token_id: TokenId) -> Vec<TokenAmount> {
+        let owner_id = self.owner_of(&token_id);
+        let card = self.card_state(&token_id);
+        self.view_of(token_id, owner_id, &card).inventory
     }
 
     /// Cards by token id, starting after `from_index` (0 = from the first).
@@ -544,6 +688,7 @@ impl Contract {
             "max_supply": MAX_SUPPLY,
             "tier_names": TIER_NAMES,
             "tier_thresholds": TIER_THRESHOLDS.map(U128),
+            "tokens": self.tokens_allowed,
         })
     }
 
@@ -556,6 +701,10 @@ impl Contract {
             "total_pending_payouts": U128(self.total_pending_payouts),
             "storage_cost": U128(storage_cost),
             "account_balance": U128(env::account_balance().as_yoctonear()),
+            // Compare each with ft_balance_of(this contract) on the token contract.
+            "token_totals": self.tokens_allowed.iter().zip(self.token_totals.iter())
+                .map(|(token, amount)| TokenAmount { token: token.clone(), amount: U128(*amount) })
+                .collect::<Vec<_>>(),
         })
     }
 
@@ -597,6 +746,7 @@ impl Contract {
                 json!({"token_id": token_id, "price": U128(price)}),
             );
         }
+        card.listing_id = None;
         card.held_since = env::block_timestamp();
         self.cards.insert(token_id.clone(), card);
     }
@@ -612,8 +762,17 @@ impl Contract {
         }
     }
 
-    fn view_of(token_id: TokenId, owner_id: AccountId, card: &Card) -> CardView {
+    fn view_of(&self, token_id: TokenId, owner_id: AccountId, card: &Card) -> CardView {
         let tier = tier_for(card.balance);
+        let inventory = self
+            .tokens_allowed
+            .iter()
+            .zip(card.inventory.iter())
+            .map(|(token, amount)| TokenAmount {
+                token: token.clone(),
+                amount: U128(*amount),
+            })
+            .collect();
         CardView {
             token_id,
             owner_id,
@@ -629,7 +788,16 @@ impl Contract {
             deposited_total: U128(card.deposited_total),
             withdrawn_total: U128(card.withdrawn_total),
             list_price: card.list_price.map(U128),
+            listing_id: card.listing_id.map(U64),
+            inventory,
         }
+    }
+
+    fn slot_of(&self, token: &AccountId) -> usize {
+        self.tokens_allowed
+            .iter()
+            .position(|t| t == token)
+            .unwrap_or_else(|| env::panic_str("Token not in the allowlist"))
     }
 
     /// Adds the dynamic part of NEP-177 metadata: tier in the title, on-chain SVG
@@ -638,7 +806,7 @@ impl Contract {
         let Some(card) = self.cards.get(&token.token_id) else {
             return token;
         };
-        let view = Self::view_of(token.token_id.clone(), token.owner_id.clone(), card);
+        let view = self.view_of(token.token_id.clone(), token.owner_id.clone(), card);
         if let Some(m) = token.metadata.as_mut() {
             m.title = Some(format!(
                 "Keeper #{} · {}",
@@ -646,8 +814,8 @@ impl Contract {
                 art::TIER_LABELS[view.tier as usize]
             ));
             m.description = Some(
-                "A Keeper holds its own NEAR balance, earns 10% of every resale and evolves \
-                 from matte to animated as its balance grows."
+                "A Keeper holds its own NEAR balance and a basket of tokens, earns 10% of \
+                 every resale and evolves from matte to animated as its NEAR balance grows."
                     .into(),
             );
             m.media = Some(art::svg_data_uri(card.dna, view.tier));
@@ -795,5 +963,46 @@ impl NonFungibleTokenEnumeration for Contract {
 impl NonFungibleTokenMetadataProvider for Contract {
     fn nft_metadata(&self) -> NFTContractMetadata {
         self.metadata.get().unwrap()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// NEP-141 receiver: tokens enter a card's inventory through ft_transfer_call.
+// ---------------------------------------------------------------------------
+
+#[near]
+impl FungibleTokenReceiver for Contract {
+    /// Called by a token contract after `ft_transfer_call(receiver_id = this, msg)`.
+    /// `msg` must be `{"token_id": "<card id>"}`. Returns the amount to refund:
+    /// everything when the caller is not an allowlisted token, the message is not a
+    /// valid card id, or the card does not exist; nothing when the card is credited.
+    fn ft_on_transfer(
+        &mut self,
+        sender_id: AccountId,
+        amount: U128,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
+        let token = env::predecessor_account_id();
+        let Some(slot) = self.tokens_allowed.iter().position(|t| *t == token) else {
+            return PromiseOrValue::Value(amount);
+        };
+        let Ok(DepositMsg { token_id }) = serde_json::from_str::<DepositMsg>(&msg) else {
+            return PromiseOrValue::Value(amount);
+        };
+        let Some(mut card) = self.cards.get(&token_id).cloned() else {
+            return PromiseOrValue::Value(amount);
+        };
+        if amount.0 == 0 {
+            return PromiseOrValue::Value(amount);
+        }
+        card.inventory[slot] += amount.0;
+        self.token_totals[slot] += amount.0;
+        emit(
+            "card_token_deposit",
+            json!({"token_id": token_id, "token": token, "from": sender_id,
+                   "amount": amount, "balance": U128(card.inventory[slot])}),
+        );
+        self.cards.insert(token_id, card);
+        PromiseOrValue::Value(U128(0))
     }
 }

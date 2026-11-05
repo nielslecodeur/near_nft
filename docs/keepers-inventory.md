@@ -152,3 +152,38 @@ The receiving owner must be registered on the token, or `ft_transfer` fails and 
 3. **v1 in the UI:** keep a "v1 legacy" link, or point only to v2 (after you withdraw the NEAR from Keeper #1)?
 
 **Estimate:** about 2–3 days in total (B′ contract and tests, C′ deploy, D′ UI), out of the roughly 9 days left.
+
+## 11. Checkpoint B′ results (2026-11-06)
+
+**Code:** `contracts/keepers` now builds v2. v1 is preserved by the git tag `keepers-v1` and by `artifacts/keepers-v1.wasm`, whose hash `B4W6Dai…` matches the testnet deployment.
+
+**API changes compared with v1:**
+- `new` takes `tokens`.
+- `buy` takes `listing_id` instead of `min_card_balance`.
+- `list` returns the new `listing_id`.
+- New: `ft_on_transfer`, `withdraw_token`, `on_token_withdraw`, `tokens`, `inventory`.
+- `card`, `config` and `stats` gain the inventory, listing and token-total fields.
+
+**Unit tests:** 54/54 pass (`npm run test:contracts`). The 37 v1 tests are adapted (the `min_card_balance` test became the stale-`listing_id` attack, now including a token withdraw), and 17 are new:
+- deposit credited;
+- full refund for a non-allowlisted token, a bad `msg` or an unknown card;
+- token withdraw: owner-only, 1 yocto, bounds, refused while listed, unknown token rejected;
+- a failed `ft_transfer` re-credits the card even after a sale;
+- a sale or transfer moves the whole inventory;
+- new `listing_id` on every listing;
+- storage for a mint with 4 token slots stays ≤ 40% of the reserve;
+- init validation (at most 4 tokens, no duplicates).
+
+**Sandbox:** 15/15 checks pass (`npm run test:keepers`), including 6 with real NEP-141 contracts (two `demo-token` deployments on the allowlist and a third one off it). Results are in `docs/results/keepers-sandbox.json`.
+
+**Measured gas (sandbox):**
+
+| Call | Gas burnt |
+|---|---|
+| `mint` | 4.7 Tgas |
+| `buy` | 6.8 Tgas |
+| `withdraw` | 5.4 Tgas |
+| `ft_transfer_call` (token deposit) | 6.5 Tgas |
+| `withdraw_token` | 6.8 Tgas |
+
+**Size and storage:** the WASM is 323 KB (v1: 293 KB). The contract with 2 cards uses about 3.25 NEAR of storage.
