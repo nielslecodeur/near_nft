@@ -187,3 +187,25 @@ The receiving owner must be registered on the token, or `ft_transfer` fails and 
 | `withdraw_token` | 6.8 Tgas |
 
 **Size and storage:** the WASM is 323 KB (v1: 293 KB). The contract with 2 cards uses about 3.25 NEAR of storage.
+
+## 12. Checkpoint C′ results (2026-11-05)
+
+`keepers-v2.everkeep-dev-mw0weth5.testnet` is **live and keyless**:
+- **Code:** hash `D5iY3Vaqqy7GG3AhTRvLf77C9KFN4FbMsoW42eYGWAEy`, the same as the build tested in B′.
+- **Init and creator:** created, funded with 3.6 NEAR, deployed and initialised in one transaction (`949EfkiTmnTEHfJU2ruVAKjKvaPw4GtDsjhfSFLDiDo7`), with `creator = everkeep-dev-mw0weth5.testnet`.
+- **Allowlist:** fixed forever, in this slot order: `wrap.testnet` (wNEAR), `3e2210e1…f8af` (Circle USDC testnet), `demousd-v3.everkeep-dev-mw0weth5.testnet` (demoUSD), `usdt.fakes.testnet` (USDT.e).
+- **Token registration:** the contract is registered on all four tokens (`storage_deposit`, one transaction each, listed in `docs/results/keepers-v2-testnet-deployment.json`).
+
+**Post-deploy checks (read-only):**
+- no access key;
+- code hash;
+- `config` (creator, 10% royalty);
+- `nft_metadata`;
+- `tokens()` matches the allowlist;
+- `storage_balance_of(contract)` is set on every token.
+
+**Records:**
+- `public/testnet.json` → `keepers` now points to v2.
+- v1 is kept as `keepers_v1` and still serves its cards (Keeper #1 of v1).
+- The v1 deployment record stays in `docs/results/keepers-testnet-deployment.json`.
+- Redeploy (new name): `KEEPERS_VERSION=v3 npm run testnet:keepers -- --execute`.

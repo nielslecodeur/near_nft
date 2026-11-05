@@ -1,0 +1,48 @@
+{
+  "network": "testnet",
+  "contract": "keepers-v2.everkeep-dev-mw0weth5.testnet",
+  "creator": "everkeep-dev-mw0weth5.testnet",
+  "code_hash": "D5iY3Vaqqy7GG3AhTRvLf77C9KFN4FbMsoW42eYGWAEy",
+  "keyless": true,
+  "tokens": [
+    "wrap.testnet",
+    "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+    "demousd-v3.everkeep-dev-mw0weth5.testnet",
+    "usdt.fakes.testnet"
+  ],
+  "tokens_registered": true,
+  "deployed_at": "2026-11-05T21:32:04.286Z",
+  "transactions": [
+    "949EfkiTmnTEHfJU2ruVAKjKvaPw4GtDsjhfSFLDiDo7",
+    "CyFosSMycLednsbN5TtsQbigCRidYjzdpzhFu3ssVidQ",
+    "FxTovaT1Q5mYFe92bhPyfayuJWTr2yV2iTg25P2qbvvs",
+    "BgCe2ZT9Mmi9QqyrN7GuutsuRwbYouLvmZhLn788w8z3",
+    "AfQT4FFMvfbrKRtaaYH2NYrJBjajUUUW8ZDBs4crHU6n"
+  ],
+  "config": {
+    "creator": "everkeep-dev-mw0weth5.testnet",
+    "mint_price": "1000000000000000000000000",
+    "storage_reserve": "20000000000000000000000",
+    "royalty_bps": 1000,
+    "min_list_price": "100000000000000000000000",
+    "max_supply": 1000,
+    "tier_names": [
+      "matte",
+      "brushed",
+      "holographic",
+      "animated"
+    ],
+    "tier_thresholds": [
+      "500000000000000000000000",
+      "2000000000000000000000000",
+      "10000000000000000000000000"
+    ],
+    "tokens": [
+      "wrap.testnet",
+      "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+      "demousd-v3.everkeep-dev-mw0weth5.testnet",
+      "usdt.fakes.testnet"
+    ]
+  },
+  "nft_total_supply": "0"
+}
