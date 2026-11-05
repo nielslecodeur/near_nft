@@ -13,6 +13,12 @@ export const categories: Record<Category, string> = {
   liquidity: "Liquidité",
 };
 export type Deployment = {
+  baskets?: {
+    collection: string;
+    code_hash: string;
+    wallet_code_hash: string;
+    protocol: "everkeep-fictional-v1";
+  };
   network: "testnet";
   rpc: string;
   parent: string;

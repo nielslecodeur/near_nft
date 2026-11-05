@@ -44,6 +44,8 @@ import "./testnet-ui.css";
 import "./conversation.css";
 import "./guided-ux.css";
 import "./terminal/pages.css";
+import { ThematicAssistant } from "./ThematicAssistant";
+import { baskets } from "../packages/shared/baskets";
 import "./terminal/workspace.css";
 
 type Command = {
@@ -89,6 +91,7 @@ const labels: Record<string, string> = {
   cancel: "Annuler l’annonce",
   buy: "Acheter la position",
   withdraw: "Retirer les fonds",
+  close_basket: "Clôturer l’exposition simulée",
   maturity: "Atteindre l’échéance",
   expire: "Libérer l’annonce expirée",
   resume: "Reprendre le règlement",
@@ -336,6 +339,11 @@ export function SeriesApp() {
         page={page}
         networkLabel={local ? "NEAR sandbox" : "NEAR testnet"}
         records={[
+          ...baskets.map((b) => ({
+            id: "model:" + b.id,
+            name: b.name,
+            collection: "Actions thématiques · simulation",
+          })),
           ...officialModels(local ? null : currentDeployment()).map(
             (model) => ({
               id: "model:" + model.id,
@@ -466,10 +474,8 @@ export function SeriesApp() {
             aria-label="État du catalogue"
           >
             <div role="listitem">
-              <span>Modèles officiels</span>
-              <NumberText>
-                {officialModels(local ? null : currentDeployment()).length}
-              </NumberText>
+              <span>Paniers d’actions</span>
+              <NumberText>3</NumberText>
             </div>
             <div role="listitem">
               <span>Annonces vérifiées</span>
@@ -482,8 +488,8 @@ export function SeriesApp() {
               </NumberText>
             </div>
             <div role="listitem">
-              <span>Historique des prix</span>
-              <span>Non indexé</span>
+              <span>Prix des paniers</span>
+              <span>Fictifs · quotidiens UTC</span>
             </div>
           </div>
         )}
@@ -495,45 +501,51 @@ export function SeriesApp() {
         {!local && (
           <TransactionTracker owner={wallet} onRefresh={() => void reload()} />
         )}
-        {!loading &&
-          data &&
-          page === "agent" &&
-          (!local ? (
-            <AgentMissions
-              key={network + who}
-              api={TESTNET_WORKER}
-              actor={who || ""}
-              owner={who || ""}
-              now={now}
-              onWorking={setWorking}
-              onPositionsChanged={() => void reload()}
-              transport={testnetMissionCommand}
-              loadCatalogue={testnetMissionCatalogue}
-              testnet
-            />
-          ) : data.capabilities?.includes("paid-missions-v1") ? (
-            <AgentMissions
-              key={network + who}
-              api={api}
-              actor={actor}
-              owner={who || ""}
-              now={now}
-              onWorking={setWorking}
-              onPositionsChanged={() => void reload()}
-            />
-          ) : (
-            <InvestmentAgent
-              now={now}
-              key={network + who}
-              data={data}
-              owner={who || ""}
-              local={
-                local && !!data.capabilities?.includes("agent-subscription-v1")
-              }
-              working={working}
-              ask={ask}
-            />
-          ))}
+        {!loading && data && page === "agent" && (
+          <ThematicAssistant now={now} />
+        )}
+        {!loading && data && page === "agent" && (
+          <details className="ek-legacy-missions">
+            <summary>Analyses payantes des modèles historiques</summary>
+            {!local ? (
+              <AgentMissions
+                key={network + who}
+                api={TESTNET_WORKER}
+                actor={who || ""}
+                owner={who || ""}
+                now={now}
+                onWorking={setWorking}
+                onPositionsChanged={() => void reload()}
+                transport={testnetMissionCommand}
+                loadCatalogue={testnetMissionCatalogue}
+                testnet
+              />
+            ) : data.capabilities?.includes("paid-missions-v1") ? (
+              <AgentMissions
+                key={network + who}
+                api={api}
+                actor={actor}
+                owner={who || ""}
+                now={now}
+                onWorking={setWorking}
+                onPositionsChanged={() => void reload()}
+              />
+            ) : (
+              <InvestmentAgent
+                now={now}
+                key={network + who}
+                data={data}
+                owner={who || ""}
+                local={
+                  local &&
+                  !!data.capabilities?.includes("agent-subscription-v1")
+                }
+                working={working}
+                ask={ask}
+              />
+            )}
+          </details>
+        )}
         {notice && (
           <p className="feedback success" role="status">
             {notice}

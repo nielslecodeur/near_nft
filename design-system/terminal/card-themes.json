@@ -1,4 +1,11 @@
 {
+  "special": {
+    "rarity": "epic",
+    "frame": "holo",
+    "palette": { "accent": "brand", "surface": "s1" },
+    "layers": [{ "src": "$art", "depth": "background", "opacity": 1 }],
+    "liveFeed": false
+  },
   "matte": {
     "rarity": "standard",
     "frame": "matte",

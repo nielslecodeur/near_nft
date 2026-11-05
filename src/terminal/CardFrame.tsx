@@ -134,7 +134,10 @@ export function CardFrame({
                   alt={i === 0 ? alt : ""}
                   aria-hidden={i !== 0 || undefined}
                   className={`ek-art-layer ek-art-layer--${l.depth}`}
-                  style={{ opacity: l.opacity }}
+                  style={{
+                    opacity: l.opacity,
+                    objectPosition: "var(--ek-art-crop, 50% 50%)",
+                  }}
                   width={960}
                   height={720}
                   decoding="async"

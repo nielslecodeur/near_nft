@@ -195,18 +195,18 @@ try {
       .click();
     await shot(p, "position-sale", width);
     await p.getByRole("tab", { name: /Collection/ }).click();
-    await p.locator(".ek-owned-card").first().waitFor();
-    assert.equal(await p.locator(".ek-owned-card").count(), owned);
+    await p.locator(".ek-owned-card-grid .ek-position-card").first().waitFor();
+    assert.equal(await p.locator(".ek-owned-card-grid .ek-position-card").count(), owned);
     await shot(p, "collection", width);
     await p
       .getByRole("searchbox", { name: "Rechercher dans mes cartes" })
       .fill("absent-nft-zzzz");
-    assert.equal(await p.locator(".ek-owned-card").count(), 0);
+    assert.equal(await p.locator(".ek-owned-card-grid .ek-position-card").count(), 0);
     await shot(p, "collection-empty-filter", width);
     await p
       .getByRole("button", { name: "Réinitialiser la collection", exact: true })
       .click();
-    await p.locator(".ek-owned-art").first().click();
+    await p.locator(".ek-owned-card-grid .ek-position-art").first().click();
     await p.locator(".owned-detail").waitFor();
     await p.waitForFunction(() =>
       document.activeElement?.matches(".owned-position"),
@@ -221,6 +221,7 @@ try {
       "true",
     );
     await p.getByRole("link", { name: "Agents", exact: true }).click();
+    await p.getByText("Analyses payantes des modèles historiques", { exact: true }).click();
     await p.locator(".ek-expert-option").first().waitFor({ timeout: 60000 });
     assert.equal(await p.locator(".ek-expert-option").count(), 3);
     await shot(p, "agents", width);

@@ -33,9 +33,13 @@ export function positionPresentation(position: Snapshot, data: SeriesState) {
         ? "Opération en attente"
         : position.status !== "Active"
           ? "Compte gelé"
-          : mature
-            ? "Échéance atteinte"
-            : "À échéance",
+          : position.basket
+            ? position.basket.closed_day === null
+              ? "Simulation ouverte"
+              : "Exposition clôturée"
+            : mature
+              ? "Échéance atteinte"
+              : "À échéance",
   };
 }
 // Group by token contract. Unknown assets never acquire demoUSD decimals or pricing.

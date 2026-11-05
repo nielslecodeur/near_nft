@@ -10,6 +10,7 @@ import {
   filterCatalogue,
   listingCatalogueItem,
   modelCatalogueItem,
+  basketCatalogueItem,
   type CatalogueItem,
 } from "../packages/shared/catalogue";
 import type { SeriesState } from "../packages/shared/series-state";
@@ -36,9 +37,13 @@ import {
 } from "./terminal/primitives";
 import { LayoutGrid, List, SlidersHorizontal, RefreshCw } from "lucide-react";
 import { presentCatalogueItem } from "./terminal/catalogue-presentation";
+import { PositionFacts } from "./terminal/PositionCard";
+import { positionCardFacts } from "./terminal/position-card-data";
 import terminalTokens from "../design-system/terminal/tokens.json";
 import { requestWallet, usePublicChoice } from "./ux-intent";
 import "./catalogue.css";
+import { baskets } from "../packages/shared/baskets";
+import { BasketComposition, BasketCreation } from "./BasketExperience";
 type Command = {
   action: string;
   position?: string;
@@ -78,10 +83,10 @@ export function NftMarketplace({
     location.hash === "#market" ? "community" : "official",
     (v) => ["official", "community"].includes(v),
   );
-  const [category, setCategory] = usePublicChoice<Category | "all">(
-    "explore-category",
-    "all",
-    (v) => ["all", "diversification", "crypto", "liquidity"].includes(v),
+  const [category, setCategory] = usePublicChoice<
+    Category | "equities" | "all"
+  >("explore-category", "equities", (v) =>
+    ["all", "equities", "crypto", "liquidity"].includes(v),
   );
   const [query, setQuery] = usePublicChoice(
     "catalogue-query",
@@ -128,6 +133,10 @@ export function NftMarketplace({
       m.id === modelId ||
       (modelId === "liquidity-v1" && m.category === "liquidity"),
   );
+  const basket =
+    source === "official" ? baskets.find((b) => b.id === modelId) : undefined;
+  const basketAvailable =
+    !local && !!data?.capabilities?.includes("thematic-baskets-v1");
   const operational =
     !!model &&
     model.status === "demonstration" &&
@@ -150,7 +159,18 @@ export function NftMarketplace({
   };
   const items: CatalogueItem[] =
     source === "official"
-      ? models.map((m) => modelCatalogueItem(m, data, clock))
+      ? [
+          ...baskets.map((b) =>
+            basketCatalogueItem(
+              b,
+              clock || BigInt(Date.now()) * 1000000n,
+              basketAvailable,
+            ),
+          ),
+          ...models
+            .filter((m) => m.category !== "diversification")
+            .map((m) => modelCatalogueItem(m, data, clock)),
+        ]
       : offers.map((s) =>
           listingCatalogueItem(
             s,
@@ -190,21 +210,27 @@ export function NftMarketplace({
     p = sale
       ? data!.positions.find((p) => p.account_id === sale.position)
       : undefined;
-  const viewingModel = source === "official" && !!model,
+  const viewingModel = source === "official" && (!!model || !!basket),
     viewingSale = source === "community" && !!sale,
     viewing = viewingModel || viewingSale;
   const selectedItem =
-    viewingModel && model
-      ? modelCatalogueItem(model, data, clock)
-      : viewingSale && sale && p
-        ? listingCatalogueItem(
-            sale,
-            p,
-            offerModel(sale.position),
-            data!.now,
-            deployment?.asset,
-          )
-        : null;
+    viewingModel && basket
+      ? basketCatalogueItem(
+          basket,
+          clock || BigInt(Date.now()) * 1000000n,
+          basketAvailable,
+        )
+      : viewingModel && model
+        ? modelCatalogueItem(model, data, clock)
+        : viewingSale && sale && p
+          ? listingCatalogueItem(
+              sale,
+              p,
+              offerModel(sale.position),
+              data!.now,
+              deployment?.asset,
+            )
+          : null;
   useEffect(() => {
     if (!selection) return;
     focusDetail.current = true;
@@ -330,16 +356,16 @@ export function NftMarketplace({
       <div className="catalogue-toolbar" hidden={viewing}>
         <div className="ek-market-intro">
           <h1>
-            Des positions.
+            Choisissez un thème.
             <br />
-            Vos prochaines possibilités.
+            Créez votre position.
           </h1>
           <p>
-            Créez une position NFT ou reprenez celle d’un autre détenteur. Les
-            actifs, les règles et l’échéance restent ensemble.
+            Découvrez les entreprises d’un panier, souscrivez en demoUSD et
+            suivez votre position NFT individuelle.
           </p>
           <span className="ek-small ek-muted">
-            NEAR testnet · demoUSD sans valeur réelle
+            Simulation sur testnet — aucune action réelle détenue.
           </span>
         </div>
         <form
@@ -466,17 +492,15 @@ export function NftMarketplace({
       {!viewing && filtersOpen && (
         <div className="catalogue-filters" id="catalogue-filters">
           <div role="group" aria-label="Catégorie">
-            {(["all", "diversification", "crypto", "liquidity"] as const).map(
-              (c) => (
-                <button
-                  key={c}
-                  aria-pressed={category === c}
-                  onClick={() => setCategory(c)}
-                >
-                  {c === "all" ? "Toutes" : categoryLabels[c]}
-                </button>
-              ),
-            )}
+            {(["all", "equities", "crypto", "liquidity"] as const).map((c) => (
+              <button
+                key={c}
+                aria-pressed={category === c}
+                onClick={() => setCategory(c)}
+              >
+                {c === "all" ? "Toutes" : categoryLabels[c]}
+              </button>
+            ))}
           </div>
           <Checkbox
             label="Disponibles uniquement"
@@ -541,13 +565,42 @@ export function NftMarketplace({
                       value: local ? "NEAR sandbox" : "NEAR testnet",
                     },
                     {
-                      label: "Données financières",
-                      value:
-                        selectedItem.sources.financial === "verified-chain"
+                      label: basket ? "Prix du panier" : "Données financières",
+                      value: basket
+                        ? "Fictifs · quotidiens UTC"
+                        : selectedItem.sources.financial === "verified-chain"
                           ? "Lues sur chaîne"
                           : "Non disponibles",
                     },
                   ]}
+                />
+              </div>
+            )}
+            {viewingModel && basket && (
+              <div className="model-detail catalogue-model-detail ek-basket-detail">
+                <div>
+                  <CardFrame
+                    theme={presentCatalogueItem(selectedItem!).theme}
+                    art={basket.art}
+                    alt={selectedItem!.visual.alt}
+                  />
+                  <p>{basket.description}</p>
+                  <BasketComposition
+                    model={basket}
+                    now={clock || BigInt(Date.now()) * 1000000n}
+                  />
+                  <p>
+                    <strong>Risques.</strong> {basket.risks.join(" ")}
+                  </p>
+                </div>
+                <BasketCreation
+                  key={basket.id + owner}
+                  model={basket}
+                  owner={owner}
+                  now={clock || BigInt(Date.now()) * 1000000n}
+                  available={basketAvailable}
+                  onChanged={onChanged}
+                  onWorking={onWorking}
                 />
               </div>
             )}
@@ -719,6 +772,9 @@ export function NftMarketplace({
                     alt={selectedItem!.visual.alt}
                   />
                   <p className="wallet-address">NFT : {p.account_id}</p>
+                  <PositionFacts
+                    facts={positionCardFacts(p, data!, deployment?.asset)}
+                  />
                   <h3>Composition réelle</h3>
                   <dl>
                     {listingCatalogueItem(
@@ -857,7 +913,7 @@ export function NftMarketplace({
                 </div>
               </div>
             )}
-            {selectedItem && (
+            {selectedItem && !basket && (
               <div className="ek-detail-tabs">
                 <Tabs
                   label="Informations sur la position"

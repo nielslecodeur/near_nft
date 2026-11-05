@@ -12,6 +12,15 @@ import {
   OwnedCollection,
 } from "./terminal/PositionsWallet";
 import { ownedPositions } from "./terminal/owned-positions";
+import { PositionFacts } from "./terminal/PositionCard";
+import {
+  positionCardFacts,
+  defaultPositionArt,
+} from "./terminal/position-card-data";
+import { CardFrame } from "./terminal/CardFrame";
+import { parseCardTheme } from "./terminal/card-theme";
+import cardThemes from "../design-system/terminal/card-themes.json";
+import { BasketOwned } from "./BasketExperience";
 type Command = {
   action: string;
   position?: string;
@@ -140,6 +149,16 @@ export function TestnetPositions({
             {mine.map((s) => {
               if (workspaceView === "collection" && selected !== s.account_id)
                 return null;
+              if (s.basket)
+                return (
+                  <BasketOwned
+                    key={s.account_id}
+                    snapshot={s}
+                    now={now}
+                    working={working}
+                    ask={ask}
+                  />
+                );
               const mature =
                   !s.series || now >= BigInt(s.series.terms.matures_at),
                 sale = data.listings.find(
@@ -175,29 +194,43 @@ export function TestnetPositions({
                             : "Échéance à venir"}
                     </span>
                   </div>
-                  <dl className="position-balances">
-                    <div>
-                      <dt>Actifs dans cette position</dt>
-                      <dd>
-                        {displayAmount(
-                          (
-                            BigInt(s.available) +
-                            BigInt(s.principal) +
-                            BigInt(s.reserved)
-                          ).toString(),
-                        )}{" "}
-                        demoUSD
-                      </dd>
+                  {workspaceView === "collection" && open && (
+                    <div className="ek-owned-position-visual">
+                      <CardFrame
+                        art={defaultPositionArt.src}
+                        alt={defaultPositionArt.alt}
+                        theme={parseCardTheme(cardThemes.special)}
+                      />
+                      <PositionFacts
+                        facts={positionCardFacts(s, data, d?.asset)}
+                      />
                     </div>
-                    <div>
-                      <dt>Disponibles au retrait</dt>
-                      <dd>{displayAmount(withdrawable)} demoUSD</dd>
-                    </div>
-                    <div>
-                      <dt>Engagés dans la stratégie</dt>
-                      <dd>{displayAmount(s.principal)} demoUSD</dd>
-                    </div>
-                  </dl>
+                  )}
+                  {(workspaceView !== "collection" || !open) && (
+                    <dl className="position-balances">
+                      <div>
+                        <dt>Actifs dans cette position</dt>
+                        <dd>
+                          {displayAmount(
+                            (
+                              BigInt(s.available) +
+                              BigInt(s.principal) +
+                              BigInt(s.reserved)
+                            ).toString(),
+                          )}{" "}
+                          demoUSD
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Disponibles au retrait</dt>
+                        <dd>{displayAmount(withdrawable)} demoUSD</dd>
+                      </div>
+                      <div>
+                        <dt>Engagés dans la stratégie</dt>
+                        <dd>{displayAmount(s.principal)} demoUSD</dd>
+                      </div>
+                    </dl>
+                  )}
                   <p>
                     {!mature && s.series
                       ? "Retrait après le " +

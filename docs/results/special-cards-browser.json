@@ -1,0 +1,36 @@
+{
+  "captures": [
+    "docs/screenshots/special-cards/explorer-special-1440.png",
+    "docs/screenshots/special-cards/composition-1440.png",
+    "docs/screenshots/special-cards/list-special-1440.png",
+    "docs/screenshots/special-cards/model-special-1440.png",
+    "docs/screenshots/special-cards/owned-special-1440.png",
+    "docs/screenshots/special-cards/owned-special-detail-1440.png",
+    "docs/screenshots/special-cards/explorer-special-768.png",
+    "docs/screenshots/special-cards/composition-768.png",
+    "docs/screenshots/special-cards/list-special-768.png",
+    "docs/screenshots/special-cards/model-special-768.png",
+    "docs/screenshots/special-cards/owned-special-768.png",
+    "docs/screenshots/special-cards/owned-special-detail-768.png",
+    "docs/screenshots/special-cards/explorer-special-390.png",
+    "docs/screenshots/special-cards/composition-390.png",
+    "docs/screenshots/special-cards/list-special-390.png",
+    "docs/screenshots/special-cards/model-special-390.png",
+    "docs/screenshots/special-cards/owned-special-390.png",
+    "docs/screenshots/special-cards/owned-special-detail-390.png",
+    "docs/screenshots/special-cards/holo-pointer-1440.png",
+    "docs/screenshots/special-cards/holo-reduced-motion-1440.png"
+  ],
+  "errors": [],
+  "checks": [
+    "3 optimized generated illustrations, no baked UI",
+    "1440/768/390",
+    "shared model/owned art and holo theme",
+    "keyboard/inert/stable flip",
+    "compact list",
+    "fine-pointer tilt verified",
+    "reduced motion disables tilt",
+    "no live feed or synthetic financial figures",
+    "no signatures"
+  ]
+}

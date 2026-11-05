@@ -3,6 +3,14 @@ import type { SeriesState } from "./series-state.js";
 import type { Snapshot } from "./index.js";
 import type { Listing } from "./series.js";
 import { displayAmount } from "./ui.js";
+import {
+  baskets,
+  PRICE_MODE,
+  SIMULATION_NOTICE,
+  fictionalPrices,
+  dayLabel,
+  type Basket,
+} from "./baskets.js";
 
 export type CatalogueVisual = {
   src: string;
@@ -14,7 +22,7 @@ export type CatalogueItem = {
   key: string;
   kind: "model" | "listing";
   name: string;
-  category: Category | "historical";
+  category: Category | "equities" | "historical";
   themes: string[];
   visual: CatalogueVisual;
   description: string;
@@ -48,37 +56,90 @@ export const catalogueEditorial: Record<
   diversification: {
     themes: ["Diversification", "Allocation"],
     visual: {
-      src: "/art/catalogue/diversification.svg",
-      alt: "Trois cercles de couleurs distinctes organisés sur une orbite, illustration éditoriale de diversification.",
-      origin: "public/art/catalogue/diversification.svg",
-      credit: "Everkeep · illustration vectorielle originale",
+      src: "/art/special/orbital-strategist.webp",
+      alt: "Une grenouille stratège en costume noir devant une sculpture orbitale, dans un bureau spatial. Illustration éditoriale, pas un inventaire d’actifs.",
+      origin: "public/art/special/orbital-strategist.webp",
+      credit:
+        "Everkeep · illustration générée avec Imagegen à partir de la référence utilisateur",
     },
   },
   crypto: {
     themes: ["Crypto", "Protocoles"],
     visual: {
-      src: "/art/catalogue/crypto.svg",
-      alt: "Réseau de modules géométriques bleus et ivoire reliés entre eux, illustration éditoriale de protocoles.",
-      origin: "public/art/catalogue/crypto.svg",
-      credit: "Everkeep · illustration vectorielle originale",
+      src: "/art/special/moon-executive.webp",
+      alt: "Une grenouille PDG aux lunettes vertes dans un bureau spatial devant la Lune. Illustration éditoriale, sans promesse de performance.",
+      origin: "public/art/special/moon-executive.webp",
+      credit:
+        "Everkeep · illustration générée avec Imagegen à partir de la référence utilisateur",
     },
   },
   liquidity: {
     themes: ["Liquidité", "demoUSD"],
     visual: {
-      src: "/art/catalogue/liquidity.svg",
-      alt: "Lignes courbes et disque ivoire sur fond vert sombre, illustration éditoriale de réserve.",
-      origin: "public/art/catalogue/liquidity.svg",
-      credit: "Everkeep · illustration vectorielle originale",
+      src: "/art/special/reserve-keeper.webp",
+      alt: "Une grenouille en costume vert dans un salon spatial, près d’une porte de coffre et de sculptures de verre. Illustration éditoriale, pas une réserve d’or.",
+      origin: "public/art/special/reserve-keeper.webp",
+      credit:
+        "Everkeep · illustration générée avec Imagegen à partir de la référence utilisateur",
     },
   },
 };
 export const categoryLabels = {
+  equities: "Actions thématiques",
   diversification: "Diversification",
   crypto: "Crypto",
   liquidity: "Liquidité",
   historical: "Position historique",
 };
+export function basketCatalogueItem(
+  basket: Basket,
+  now: bigint,
+  available = false,
+): CatalogueItem {
+  const snapshot = fictionalPrices(basket, now);
+  return {
+    key: "model:" + basket.id,
+    kind: "model",
+    name: basket.name,
+    category: "equities",
+    themes: [basket.name],
+    visual: {
+      src: basket.art,
+      alt: `Univers fictif ${basket.name} : personnage Everkeep dans l’espace. Aucun partenariat représenté.`,
+      origin: basket.art.slice(1),
+      credit: "Everkeep · illustration éditoriale Imagegen, aucun partenariat",
+    },
+    description: basket.description,
+    composition: {
+      basis: "target",
+      rows: basket.components.map((c) => ({
+        label: `${c.name} · ${c.symbol}`,
+        proportion: `${c.weight_bps / 100} %`,
+      })),
+      explanation: basket.limits,
+      limits: [
+        PRICE_MODE + " · " + dayLabel(snapshot.day) + " UTC.",
+        ...basket.risks,
+        "Pondérations illustratives, pas une recommandation.",
+        SIMULATION_NOTICE,
+      ],
+    },
+    exposure: SIMULATION_NOTICE,
+    exit: "Clôturez l’exposition simulée, puis retirez les demoUSD détenus. Les variations fictives ne sont pas payables. Aucune échéance imposée.",
+    availability: available
+      ? "Simulation testnet disponible"
+      : "Catalogue prêt · activation testnet requise",
+    actionable: available,
+    money: { label: "Dépôt minimum", value: "1 demoUSD" },
+    strategyId: basket.id,
+    provenance: "editorial-configuration",
+    sources: {
+      financial: "not-available",
+      estimates: "none",
+      demonstration: true,
+    },
+  };
+}
 const when = (ns: string) =>
   new Date(Number(BigInt(ns) / 1_000_000n)).toLocaleDateString("fr-FR", {
     day: "numeric",

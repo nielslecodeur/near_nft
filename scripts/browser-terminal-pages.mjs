@@ -143,7 +143,7 @@ try {
     p.on("pageerror", (e) => errors.push(String(e)));
     await p.goto("http://127.0.0.1:5173/#explorer");
     await p
-      .getByRole("button", { name: "Examiner la création", exact: true })
+      .getByRole("button", { name: "Créer ma position", exact: true })
       .waitFor({ timeout: 60000 });
     assert.equal(await p.locator(".ek-nft-card").count(), 3);
     assert.equal(
@@ -188,7 +188,7 @@ try {
     await p
       .getByRole("checkbox", { name: "Disponibles uniquement", exact: true })
       .check();
-    assert.equal(await p.locator(".ek-nft-card").count(), 1);
+    assert.equal(await p.locator(".ek-nft-card").count(), 3);
     await p
       .getByRole("checkbox", { name: "Disponibles uniquement", exact: true })
       .uncheck();
@@ -332,6 +332,7 @@ try {
       .waitFor();
     await shot(p, "positions", width);
     await p.getByRole("link", { name: "Agents", exact: true }).click();
+    await p.getByText("Analyses payantes des modèles historiques", { exact: true }).click();
     await p.locator(".agent-missions").waitFor({ timeout: 60000 });
     await shot(p, "agents", width);
     assert.equal(

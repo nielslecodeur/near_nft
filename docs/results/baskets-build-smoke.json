@@ -1,0 +1,39 @@
+{
+  "checks": [
+    {
+      "width": 1440,
+      "productionCatalogue": true,
+      "artDecoded": true,
+      "persistentBackAction": true,
+      "keyboardScroll": true,
+      "detail": true,
+      "freeProposal": true,
+      "historicalMissionsAccessible": true,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "productionCatalogue": true,
+      "artDecoded": true,
+      "persistentBackAction": true,
+      "keyboardScroll": true,
+      "detail": true,
+      "freeProposal": true,
+      "historicalMissionsAccessible": true,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "productionCatalogue": true,
+      "artDecoded": true,
+      "persistentBackAction": true,
+      "keyboardScroll": true,
+      "detail": true,
+      "freeProposal": true,
+      "historicalMissionsAccessible": true,
+      "overflow": false
+    }
+  ],
+  "errors": [],
+  "signatures": 0
+}

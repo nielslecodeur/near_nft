@@ -8,6 +8,7 @@ export const config = {
   collection: import.meta.env.VITE_COLLECTION_ID || "",
   asset: import.meta.env.VITE_ASSET_ID || "",
   strategy: import.meta.env.VITE_STRATEGY_ID || "",
+  basketCollection: "",
 };
 let selector: NearConnector | undefined;
 let selectorPromise: Promise<NearConnector> | undefined;
@@ -108,6 +109,17 @@ export async function verified(
   readOnly = false,
 ): Promise<Snapshot> {
   if (!config.collection) throw new Error("Collection testnet non configurée");
+  if (
+    config.basketCollection &&
+    account.endsWith("." + config.basketCollection)
+  ) {
+    const { readBasketPosition } = await import("./basket-network");
+    const block = await rpc("block", { finality: "final" }),
+      s = await readBasketPosition(account, block.header.hash);
+    if (!readOnly && s.status !== "Active")
+      throw Error("Position thématique gelée.");
+    return s;
+  }
   let reason = "Lecture non convergente";
   for (let retry = 0; retry < 3; retry++) {
     const block = await rpc("block", { finality: "final" });

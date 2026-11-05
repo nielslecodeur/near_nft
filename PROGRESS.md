@@ -1,3 +1,55 @@
+# Paniers thématiques d’actions simulées — 5 novembre 2026
+
+Trois modèles versionnés livrés : AI Infrastructure, Space & Robotics, Energy Transition ; cinq entreprises et exactement 100 % chacun. Registre : packages/shared/baskets.v1.json. Source de prix explicitement fictive, déterministe et commune à un jour UTC, sans fallback vers/depuis un fournisseur historique. Identifiants contrôlés sur les fiches Nasdaq ; API Alpha Vantage et conditions étudiées, disponibilité/licence de redistribution non validées donc cours historiques non activés.
+
+Le wallet préserve son layout Borsh et ajoute une position de simulation dans un namespace séparé. Autorisation ML-DSA BindBasket liée au modèle/version/montant/jour et aux domaines/nonce/expiration/générations existants. Prix et quantités calculés par le contrat ; quantités fixes à huit décimales, arrondis/reliquat exacts en u128/BigInt. Dépôt initial exact et unique du propriétaire ; aucun yield ni allocation autonome sur ces paniers. Clôture distincte puis retrait du disponible réel vers le propriétaire courant. **Valorisation informative : aucun gain/perte fictif réglé, aucune réserve de variation, aucune action réelle détenue.** Anciennes maturités et revente préservées.
+
+Explorer : Actions thématiques en premier, cartes avec art IA/space/énergie, cinq poids au verso, zone défilante accessible au clavier et bouton de création toujours visible. Fiches et souscription directe : deux validations Intear (compte, puis groupe enregistrement/ML-DSA/dépôt), coffre local chiffré et export facultatif. Reprise explicite avec contrôle des transactions inconnues et de la date des prix. Mes positions : capital, valeur simulée, fonds token, retrait, quantités, dates et historique séparés ; prix payé du propriétaire secondaire non indexé donc aucun résultat personnel inventé. Agent gratuit : Diversification, Analyse thématique, Liquidité ; missions payantes historiques repliables, spécialiste crypto conservé.
+
+Deux nouvelles illustrations Imagegen intégrées en WebP : public/art/special/ai-infrastructure.webp et energy-transition.webp. Le personnage spatial existant est réutilisé. Prompts exacts et origine : public/art/special/BASKETS_PROVENANCE.json. Textes/chiffres/boutons en HTML ; scan5rasters0manquants. DESIGN.md et .impeccable/design.json préservés ; PRODUCT.md, README et docs/thematic-baskets.md actualisés.
+
+Vérifications exécutées :
+
+- npm test : **64/64** ; tests prix absents/nuls/périmés/mode/date incohérents, week-end, pondérations et identifiants invalides, quantités/reliquat, hausse/baisse, version figée, absence de gain au dépôt, paramètres signés et compréhension de demande.
+- bash scripts/test-contracts.sh : **60 tests Rust réussis** (28 wallet, 20 collection, 12 missions), dont calcul Rust identique et jour sans observation.
+- Build contrats cargo-near réussi ; npm run build final (TypeScript/Vite) réussi.
+- npm run test:baskets : **20 contrôles sur vrais WASM**, signatures host ML-DSA et transferts FT : dépôt non lié/incorrect refusé avec remboursement, autorisation modifiée/rejouée refusée, conservation des quantités lors du transfert et ancien accès refusé, clôture exigée, gain arbitraire supérieur aux tokens refusé, retrait exact unique. docs/results/baskets-sandbox.json.
+- npm run test:series : **33 contrôles historiques** de souscription, gel, marché secondaire/concurrence, créance vendeur, ancienne clé/agent, maturité et retrait réussis. docs/results/series-demo.json.
+- npm run test:baskets:browser : **18 captures 1440/768/390**, chargement des trois arts réels, retournement clavier, composition, montant invalide/revue, proposition gratuite et conservation du montant, vues détenues et clôturées. **Aucune signature, aucune erreur JS ni débordement.** Les positions détenues de ces captures sont des fixtures synthétiques explicitement signalées, les lectures du catalogue sont réelles. docs/results/baskets-browser.json.
+- Build de production contrôlé aux trois largeurs : actions du verso persistantes, défilement clavier, fiches, proposition gratuite, missions historiques accessibles ; aucune erreur JS/signature. docs/results/baskets-build-smoke.json.
+- Régression des cartes illustrées : test:cards:special adapté aux cinq modèles visibles avec Toutes, puis exécuté avec succès (20 captures, aucune erreur JS ni signature), y compris liste, ancienne réserve possédée et relief au pointeur/réduction des animations. Les scripts des autres anciennes vues ont leurs sélecteurs mis à jour pour la catégorie et la section historique repliable ; ils ne sont pas revendiqués comme intégralement réexécutés ici.
+- Revue Impeccable indépendante : disposition initiale fix, deux corrections demandées puis **ship sur les deux corrections résolues** (action du verso et documentation produit). Ce n’est pas un audit financier. docs/results/baskets-review.json. Détecteur exécuté une fois avec résultat vide.
+
+Collection testnet dédiée déployée et vérifiée keyless : **baskets-v1.everkeep-dev-mw0weth5.testnet**. Code hash75cn5Nj8QybFqYD1yDApWYPnHPq6apCPiDNQHGMetehg ; wallet CLZfwzTxtY918Vbu7i47YYWxhnzrQaFogsb74Mez7pf7. Réserve historique inchangée ; seule la nouvelle propriété deployment.baskets ajoutée à public/testnet.json. Un top-up officiel de5NEAR de test a financé le déployeur ; premier envoi refusé pour solde insuffisant, second déploiement refusé pour stockage (6,5), puis création finale6,8NEAR confirmée, sans remplacement de contrat. Rapports publics : baskets-testnet-deployment.json et faucet-topup-everkeep-dev-mw0weth5.testnet.json. Credentials hors dépôt, jamais affichés.
+
+Reste à faire avec l’utilisateur : vérifier les **deux validations natives Intear** sur une nouvelle souscription testnet, puis sa clôture/retrait. Aucun dépôt, paiement de mission ou signature du wallet nifelst.testnet n’a été exécuté automatiquement. Les flux financiers modifiés sont prouvés en sandbox, pas annoncés comme déjà signés par l’utilisateur sur testnet. Fournisseur historique/licence et règlement des variations restent hors implémentation active. Aucun mainnet, aucun argent réel, aucun push Git dans cette tranche.
+
+Serveurs laissés disponibles : Vite5173, aperçu de production5174, worker testnet8793. Mode d’emploi, calculs, pouvoirs, limites et démonstration reproductible : docs/thematic-baskets.md.
+
+---
+
+# Cartes spéciales illustrées — intégration effective
+
+La livraison précédente ne contenait pas l’art mémétique attendu. Ce point est traité : trois illustrations seules générées avec l’outil Imagegen intégré, inspirées de la grenouille PDG fournie, puis optimisées en WebP 1280 × 960 (~196–211 Ko chacune). Les titres, chiffres, boutons et logo restent rendus par le site. La variante réserve finale ne contient pas de lingots ; le décor ne représente pas les avoirs du compte. Assets et prompts exacts : public/art/special/PROVENANCE.json, avec sidecars de provenance vérifiées (3 rasters, aucun manquant).
+
+Les modèles officiels, leurs annonces et les positions de réserve héritent maintenant de ces visuels. Preset JSON special : cadre holo, reflet et relief au pointeur fin, désactivation du relief en tactile/réduction des animations, sans faux flux financier. Logo, fontes, palette, calculs et parcours de signatures conservés. DESIGN.md et .impeccable/design.json inchangés : extension de la présentation des cartes dans le système approuvé.
+
+Vérifications : build TypeScript/Vite réussi, 57 tests unitaires réussis ; 20 captures Chrome à 390/768/1440, sur grilles/listes, modèles, cartes possédées, fiches et verso, plus pointeur actif et réduction des animations. Les tests vérifient le chargement des trois WebP réels et le changement de transform au pointeur, sans erreur JavaScript ni signature. Rapports : docs/results/special-cards-browser.json, special-cards-build-smoke.json et special-cards-review.json. Aucun contrat modifié, aucun push ni déploiement effectué.
+
+---
+
+# Cartes NFT : recto, composition et fiches
+
+Composant `PositionCard` commun aux modèles officiels, annonces et cartes possédées, dans l’identité Terminal existante. Illustration, nom, catégorie, identifiant et montant précisément libellé au recto ; composition cible ou actifs détenus, date de lecture et conditions de sortie au verso. Retournement volontaire au clavier/tactile avec focus transféré, face masquée inert/aria-hidden et hauteur conservée. Listes avec miniature contrainte, actions mobiles empilées et cartes de grille étirées. Les styles complètent la source canonique du design system sans nouvelle feuille globale ; logo, couleurs, fontes et tokens conservés, DESIGN.md et sa sidecar préservés.
+
+Les fiches ajoutent une grande illustration et les quantités sur chaîne, en distinguant liquidités, fonds retirable, engagements et réservations. Valeur indicative et historique affichés indisponibles : aucun rendement ni pourcentage fictif produit. Historique optionnel validé, scénarios hausse/baisse/stable seulement dans le banc de démonstration explicitement identifié. Les actifs inconnus conservent leurs unités brutes, sans conversion demoUSD. Contrats, signatures, paiements, permissions et handlers de règlement/retrait inchangés.
+
+Validation : build TypeScript/Vite, 57 tests unitaires, matrice Playwright 390/768/1440 (29 captures : grilles/listes, modèle réel, compte détenu lu sur testnet, composition/clavier/tactile, historique absent et scénarios fictifs, montant élevé, image manquante, chargement et erreur réseau). Les tests de connexion utilisent un adaptateur qui refuse les signatures. Aucune transaction envoyée. Aucune annonce actuellement active sur la chaîne lue : le type annonce est couvert par des fixtures UI, pas par un achat réel. Détecteur Impeccable : aucun signalement. Relecture indépendante et détails de validation dans docs/results/position-cards-review.json et position-cards-browser.json.
+
+Asset manquant : illustration de la grenouille seule, sans textes, chiffres, logo ni boutons incrustés. La maquette complète n’est pas intégrée comme image de carte ; les SVG originaux restent en place. Prochaine étape : fournir cet asset optimisé pour l’associer à son modèle, puis brancher un historique de valorisation vérifiable si disponible. Documentation : design-system/terminal/POSITION_CARDS.md. Pas de déploiement ni de push effectué pendant cette passe.
+
+---
+
 # Synchronisation GitHub
 
 Publication demandée par l’utilisateur sur origin : https://github.com/nielslecodeur/near_nft.git, branche main. Avant commit, récupération de l’état distant sans divergence : même historique de départ. Contrôle des fichiers candidats : 527 fichiers, environ 25 Mo, aucun fichier proche de la limite GitHub et aucun secret détecté par les motifs de clés privées/tokens et l’inspection des champs JSON sensibles. Les dossiers .research, .local, .impeccable/review, node_modules, dist, les variables privées et credentials restent ignorés ; les exports de coffre *-everkeep-encrypted.json sont également exclus.

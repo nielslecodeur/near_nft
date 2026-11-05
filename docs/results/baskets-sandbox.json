@@ -1,0 +1,48 @@
+{
+  "network": "sandbox",
+  "checks": [
+    "ai-infrastructure: unbound deposit refunded",
+    "ai-infrastructure: modified signed amount rejected by host",
+    "ai-infrastructure: nonce replay rejected",
+    "ai-infrastructure: close required before withdrawal",
+    "ai-infrastructure: additional deposit rejected and refunded",
+    "ai-infrastructure: frontend-supplied gain cannot exceed actual tokens",
+    "ai-infrastructure: exact token withdrawal once, no fictional gain payment",
+    "space-robotics: unbound deposit refunded",
+    "space-robotics: modified signed amount rejected by host",
+    "space-robotics: nonce replay rejected",
+    "space-robotics: close required before withdrawal",
+    "space-robotics: additional deposit rejected and refunded",
+    "transfer preserves basket quantities and revokes old owner access; new owner withdraws",
+    "energy-transition: unbound deposit refunded",
+    "energy-transition: modified signed amount rejected by host",
+    "energy-transition: nonce replay rejected",
+    "energy-transition: close required before withdrawal",
+    "energy-transition: additional deposit rejected and refunded",
+    "energy-transition: frontend-supplied gain cannot exceed actual tokens",
+    "energy-transition: exact token withdrawal once, no fictional gain payment"
+  ],
+  "records": [
+    {
+      "account": "position0.baskets.sandbox",
+      "model": "ai-infrastructure",
+      "capital": "100000001",
+      "value": "100000001"
+    },
+    {
+      "account": "position1.baskets.sandbox",
+      "model": "space-robotics",
+      "capital": "100000001",
+      "value": "100000001"
+    },
+    {
+      "account": "position2.baskets.sandbox",
+      "model": "energy-transition",
+      "capital": "100000001",
+      "value": "100000001"
+    }
+  ],
+  "realSignatures": true,
+  "realTokenTransfers": true,
+  "settlement": "informational valuation; principal tokens only"
+}

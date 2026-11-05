@@ -17,6 +17,12 @@
       "reserve-v3.everkeep-dev-mw0weth5.testnet": "4wp2KSaMoSpNz4JDsUVeiuRLMjCFRzM8KPBjnjVNvMHr",
       "missions-v3.everkeep-dev-mw0weth5.testnet": "39KB5g7SdasSeQKjQBTTa6CrVmBXiyo1YCUeyc54NXp5"
     },
-    "deployed_at": "2026-11-03T16:38:37.481Z"
+    "deployed_at": "2026-11-03T16:38:37.481Z",
+    "baskets": {
+      "collection": "baskets-v1.everkeep-dev-mw0weth5.testnet",
+      "code_hash": "75cn5Nj8QybFqYD1yDApWYPnHPq6apCPiDNQHGMetehg",
+      "wallet_code_hash": "CLZfwzTxtY918Vbu7i47YYWxhnzrQaFogsb74Mez7pf7",
+      "protocol": "everkeep-fictional-v1"
+    }
   }
 }

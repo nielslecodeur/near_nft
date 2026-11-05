@@ -45,6 +45,8 @@ import {
   YAxis,
 } from "recharts";
 import tokens from "../../design-system/terminal/tokens.json";
+import { PositionCard } from "./PositionCard";
+import type { PositionCardData } from "./position-card-data";
 
 export type MarketItem = {
   id: string;
@@ -58,6 +60,7 @@ export type MarketItem = {
   theme: CardTheme;
   available: boolean;
   presentation?: {
+    card?: PositionCardData;
     badge: string;
     priceLabel: string;
     actionLabel: string;
@@ -450,6 +453,28 @@ export function NFTCard({
   index?: number;
 }) {
   const [saved, setSaved] = useState(false);
+  if (item.presentation?.card)
+    return (
+      <PositionCard
+        savable
+        name={item.name}
+        art={item.art}
+        alt={item.alt}
+        theme={item.theme}
+        data={item.presentation.card}
+        onOpen={() => onOpen(item)}
+        onAction={() =>
+          item.presentation!.card!.kind === "listing"
+            ? onOpen(item)
+            : onBuy(item)
+        }
+        disabled={!item.available}
+        actionLabel={
+          !item.available ? item.presentation.unavailableLabel : undefined
+        }
+        index={index}
+      />
+    );
   return (
     <article
       className="ek-nft-card"

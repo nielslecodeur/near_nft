@@ -1,5 +1,21 @@
 # Everkeep
 
+## Produit courant — paniers thématiques (5 novembre 2026)
+
+Explorer propose d’abord **Actions thématiques** : AI Infrastructure, Space & Robotics et Energy Transition, chacun avec cinq entreprises et des poids cibles totalisant 100 %. Le modèle versionné décrit une composition ; chaque souscription demoUSD crée un compte et une position NFT individuels. Les quantités fractionnaires simulées, la version, les prix initiaux et le reliquat restent figés. Les quantités ne sont pas rééquilibrées automatiquement.
+
+Le seul mode de prix livré est **Démonstration avec prix fictifs**, déterministe et daté à un même jour UTC pour toutes les composantes. Aucun achat réel d’actions, ETF réel, dividende, levier ou conversion dollar. **Simulation sur testnet — aucune action réelle détenue.** La disponibilité auprès d’un fournisseur historique et les droits de redistribution ne sont pas validés : le mode cours historiques n’est pas activé et aucun fallback silencieux n’existe.
+
+Le capital versé, les tokens demoUSD réellement détenus, la valeur simulée et le montant retirable sont quatre informations distinctes. La valorisation reste informative ; aucune hausse fictive n’est payable et aucune réserve de règlement des variations n’est implémentée. Pour les nouvelles positions thématiques, le propriétaire clôture l’exposition, puis retire le solde réel disponible, sans échéance artificielle et hors opération en cours. Les anciennes séries conservent leur maturité et leurs permissions. La revente historique est conservée sans extension à la nouvelle collection dans cette tranche.
+
+Agents propose gratuitement une préparation déterministe selon trois angles : Diversification, Analyse thématique et Liquidité. Les entreprises et poids viennent du registre, le propriétaire autorise le dépôt. Les missions payantes historiques et le spécialiste crypto restent accessibles dans une section dédiée ; leurs tarifs et autorisations restent séparés du capital. Souscription directe possible sans mission payante.
+
+L’interface suit le terminal sombre/vert actuellement décrit dans DESIGN.md : Inter et IBM Plex Mono, cartes éditoriales holo avec illustrations seules. Deux nouveaux univers figurent le calcul IA et les équipements énergétiques ; le personnage spatial existant est réutilisé. Les textes, quantités et boutons restent en HTML. Le coffre local conserve les clés uniquement chiffrées ; export facultatif. La création thématique comporte deux validations Intear, dont une regroupe autorisation ML-DSA et dépôt exact. Voir [calculs, sources, confiance et scénario](docs/thematic-baskets.md).
+
+Les descriptions ci-dessous retracent les tranches précédentes ; les anciennes catégories, disponibilités, fontes Orbite et clés éphémères ne définissent pas le produit courant. DESIGN.md et .impeccable/design.json restent préservés pour cette extension.
+
+## Historique du produit
+
 Marketplace de positions NFT NEAR : créer une position individuelle dans une stratégie, ou acheter la position existante d’un autre propriétaire. Une stratégie est un mandat versionné ; une position est un NFT et son compte d’actifs ; une annonce vend à prix fixe son contrôle. Le code des contrats ne se vend pas et le prix de vente ne crédite pas le capital.
 
 Navigation principale : Explorer, Mes positions, Agents. Wallet Intear et réseau testnet visibles dans le header ; signatures depuis le navigateur, sans commande CLI ni saisie de hash. Les réglages du coffre, les environnements et la sécurité sont dans le menu du compte. Explorer distingue Créer une position / Acheter une position, avec les catégories Diversification, Crypto et Liquidité. Trois configurations, sans duplication : Diversification et Crypto indisponibles faute d’adaptateurs, Liquidité opérationnel en démonstration testnet. Une position ne devient une annonce qu’après mise en vente. Les positions du seed sont identifiées Démonstration Everkeep après vérification réseau.

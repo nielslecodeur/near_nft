@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:baskets": "bash scripts/baskets-proof.sh",
+    "testnet:baskets": "tsx scripts/deploy-baskets-testnet.ts",
+    "test:baskets:browser": "node scripts/browser-baskets.mjs",
     "design:tokens": "node scripts/generate-design-tokens.mjs",
     "prebuild": "npm run design:tokens",
     "demo:agents": "bash scripts/series-demo.sh --serve --missions",
@@ -53,7 +56,9 @@
     "test:catalogue": "node scripts/browser-terminal-pages.mjs",
     "test:catalogue:legacy": "node scripts/browser-catalogue-ux.mjs",
     "test:terminal:pages": "node scripts/browser-terminal-pages.mjs",
-    "test:workspaces": "node scripts/browser-workspaces.mjs"
+    "test:workspaces": "node scripts/browser-workspaces.mjs",
+    "test:cards": "node scripts/browser-position-cards.mjs",
+    "test:cards:special": "node scripts/browser-special-cards.mjs"
   },
   "dependencies": {
     "@hot-labs/near-connect": "0.12.0",

@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-03T11:30:06.214Z",
+  "date": "2026-11-05T18:38:37.242Z",
   "scope": "Real WASM series subscription, immutable mandate, escrow/control/payout and maturity demo. Not a testnet or exhaustive adversarial proof.",
   "checks": [
     "administration ML-DSA réelle, rejeu refusé",
@@ -37,9 +37,9 @@
     "échéance absolue atteinte par fast-forward, Bob retire 100, mandat conservé"
   ],
   "gas": {
-    "delegation": "4046353555700",
-    "list": "7156245065543",
-    "purchase": "25273790593597"
+    "delegation": "4295327728927",
+    "list": "7284887776710",
+    "purchase": "25720310478934"
   },
   "keysRemoved": true
 }
