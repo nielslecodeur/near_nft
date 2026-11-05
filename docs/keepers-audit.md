@@ -80,3 +80,16 @@ The runtime counts the NEAR owed to cards as part of the account balance that pa
 - **Arithmetic:** `price * ROYALTY_BPS` cannot overflow `u128` for any amount that can actually be attached.
 - **View limits:** every paginated view caps `limit` at 50, and the only loop in `new` runs over 4 or fewer tokens.
 - **Storage layout:** the `StorageKey` layout matches the official near-sdk NFT example. The internal `TokensPerOwner` keys of near-contract-standards are hashed per account.
+
+## Testnet solvency check (2026-11-05, read-only)
+
+`stats().token_totals` compared with `ft_balance_of(keepers-v2)` on each allowlisted token, after the author's real fill and wNEAR withdraw:
+
+| Token | Owed to cards | Held by the contract |
+|---|---|---|
+| wNEAR | 0 | 0 |
+| USDC | 0 | 0 |
+| demoUSD | 50 000 000 | 50 000 000 |
+| USDT.e | 0 | 0 |
+
+The books match. In particular, the wNEAR `withdraw_token` did not trigger M1. USDC and USDT.e withdraws remain to be checked the same way.
