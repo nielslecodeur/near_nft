@@ -1,0 +1,25 @@
+{
+  "status": "ready-for-user-review",
+  "disposition": "ship",
+  "verdictScope": "Reviewer scored the single mobile ledger correction resolved. No regressions observed in required recaptures. This verdict covers that fix, not an unrestricted product or contract audit.",
+  "scope": "Independent review of the Positions wallet, owned collection and agent workspace; sampled source and supplied captures, not a contract audit or real wallet certification.",
+  "reviewer": "wallet_collection_finish_reviewer",
+  "initialDisposition": "fix",
+  "materialFixes": [
+    {
+      "finding": "Mobile asset ledger must expose all four values without hidden columns or an undisclosed scroll",
+      "status": "resolved"
+    }
+  ],
+  "context": "Incumbent terminal extension, no new visual world, comp or concept seed. DESIGN.md and sidecar preserved.",
+  "detector": {
+    "runs": 1,
+    "findings": [],
+    "scope": "Changed UI sources and canonical workspace CSS"
+  },
+  "reports": [
+    "docs/results/workspaces-browser.json",
+    "docs/results/workspaces-build-smoke.json"
+  ],
+  "limits": "QA wallet adapter; live read-only RPC with explicit delayed/HTTP503 error fixture; no signatures or transactions sent. Reviewer did not read remaining optional captures, full TestnetPositions/AgentMissions, full sidecar or token definitions."
+}

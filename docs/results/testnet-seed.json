@@ -1,0 +1,41 @@
+{
+  "at": "2026-11-04T10:22:21.995Z",
+  "network": "testnet",
+  "collection": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+  "label": "Démonstration Everkeep",
+  "models": [
+    {
+      "id": "liquidity-v3",
+      "mandate_hash": "kjqjJhAMK7S4cmc2YI5IycpkHNzDpykuxsPSgAoZmmU="
+    }
+  ],
+  "positions": [
+    {
+      "position": "demo-1.reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "owner": "everkeep-demo-mw1yii9b-1.testnet",
+      "amount": "10000000",
+      "listed": true,
+      "transactions": [
+        "DUZgAm56w9kUCQSvURPLK8TDREh4LHfdG9eSSvs9eKUy",
+        "BgFrSDoPRYJhmgFeHYoh3ZQBzfQP7PY6tDLKYkt5HC6o",
+        "6TXyaFAwdtuq7zikpnurhNTVxL3LGak4vu3o9MzBM83E",
+        "JB8JVuYHPH5CAagnHb5jT4uybwMPa87aCedDSsXDbo6w",
+        "4NcxbMfBWcCLykWD63jWFmhAjVLfdFqSZxqsueWnhvyv",
+        "F3JfrZd8RtAcbPC37qCwwmCcn6j7EnUv8HMpJZxxDAG3"
+      ]
+    },
+    {
+      "position": "demo-2.reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "owner": "everkeep-demo-mw1yii9b-2.testnet",
+      "amount": "20000000",
+      "listed": false,
+      "transactions": [
+        "6zqS8Wa87D2pPkERtptKexB3sMbzMCQmvumKkBax4xx",
+        "Ho2vvThodtUAdjoXJ7DAhz2uDLdHGMM1RMKBaKLQm7cp",
+        "8WqnS8e5UM1B5DTQCTLjqCbPtEEd9t82c11CtgXaLSvV",
+        "Fcmn6Y9kNDQJRuZ8Fo63RM2nyQgUCaWwUfHj4HAQt2TV",
+        "HPtY1ngFuwESQcpf3EmU2xgm9N5Dswh3syTDF6dy9wny"
+      ]
+    }
+  ]
+}

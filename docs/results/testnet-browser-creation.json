@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-04T00:04:16.230Z",
+  "network": "testnet",
+  "owner": "everkeep-niels-mw0wq5r0.testnet",
+  "position": "paa735da79790483d.reserve-v3.everkeep-dev-mw0weth5.testnet",
+  "deposit": "10000000",
+  "state": "confirmed",
+  "transactions": [
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "ft_transfer_call",
+      "hash": "6YbgD1jpd8pFn4qYVBuwExnrT4z8AnjwwXZxUQ9CsWJG",
+      "at": "2026-11-04T00:02:10.262Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    }
+  ],
+  "transport": "genuine NEAR Connect / NEAR CLI widget, native near-cli-rs 0.30.1",
+  "keys": "encrypted browser IndexedDB and encrypted backup outside repository",
+  "errors": []
+}

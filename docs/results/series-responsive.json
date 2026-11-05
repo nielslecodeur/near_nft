@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-02T23:33:43.397Z",
+  "checks": [
+    "populated Bob position and market at 320/390/768/1440 without horizontal overflow"
+  ],
+  "captures": [
+    ".impeccable/review/series/positions-populated-320.png",
+    ".impeccable/review/series/market-populated-320.png",
+    ".impeccable/review/series/positions-populated-390.png",
+    ".impeccable/review/series/market-populated-390.png",
+    ".impeccable/review/series/positions-populated-768.png",
+    ".impeccable/review/series/market-populated-768.png",
+    ".impeccable/review/series/positions-populated-1440.png",
+    ".impeccable/review/series/market-populated-1440.png"
+  ],
+  "scope": "Read-only browser inspection after actual sandbox sale and withdrawal."
+}

@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-02T22:33:37.811Z",
+  "routes": [
+    "presentation",
+    "app",
+    "portfolio",
+    "nft",
+    "security",
+    "history",
+    "ecosystem"
+  ],
+  "widths": [
+    1440,
+    768,
+    390,
+    320
+  ],
+  "checks": [
+    "control map keyboard and pointer",
+    "owner change and agent revocation explanation",
+    "all routes without overflow",
+    "route focus",
+    "exact confirmation",
+    "reduced motion"
+  ],
+  "contrasts": [
+    {
+      "selector": ".breadcrumb",
+      "color": "rgb(84, 94, 84)",
+      "background": "rgb(236, 229, 213)",
+      "ratio": 5.39
+    },
+    {
+      "selector": ".stats > div > span",
+      "color": "rgb(84, 94, 84)",
+      "background": "rgb(236, 229, 213)",
+      "ratio": 5.39
+    },
+    {
+      "selector": ".allocation > div > span",
+      "color": "rgb(84, 94, 84)",
+      "background": "rgb(236, 229, 213)",
+      "ratio": 5.39
+    },
+    {
+      "selector": ".assumption",
+      "color": "rgb(84, 94, 84)",
+      "background": "rgb(246, 241, 231)",
+      "ratio": 6.01
+    },
+    {
+      "selector": "footer",
+      "color": "rgb(84, 94, 84)",
+      "background": "rgb(236, 229, 213)",
+      "ratio": 5.39
+    },
+    {
+      "selector": ".primary",
+      "color": "rgb(255, 255, 255)",
+      "background": "rgb(23, 75, 218)",
+      "ratio": 6.87
+    }
+  ],
+  "pageErrors": [],
+  "mutations": [],
+  "scope": "Browser viewport QA and read-only sandbox; no physical device or external wallet testnet validation."
+}

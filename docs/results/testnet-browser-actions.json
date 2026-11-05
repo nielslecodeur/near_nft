@@ -1,0 +1,27 @@
+{
+  "at": "2026-11-04T00:18:31.135Z",
+  "account": "everkeep-niels-mw0wq5r0.testnet",
+  "position": "paa735da79790483d.reserve-v3.everkeep-dev-mw0weth5.testnet",
+  "network": "testnet",
+  "checks": [
+    "native NEAR CLI wallet signs exact application transactions",
+    "real ML-DSA List and CancelListing verified by keyless wallet host",
+    "NFT enters Community only after listing and disappears after cancellation",
+    "same NFT account and 10 demoUSD preserved"
+  ],
+  "transactions": [
+    {
+      "method": "execute",
+      "action": "List",
+      "hash": "5gTThDTkmocoNuYM4ZQp5vsRfyEZGcDMfSWgoHQRYd2K"
+    },
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "paa735da79790483d.reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "execute",
+      "hash": "4633AQaH7eX5p25fbmV4wHENa21X1DP2Vjgf5tTWWBHF",
+      "at": "2026-11-04T00:16:25.740Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    }
+  ]
+}

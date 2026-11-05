@@ -1,0 +1,529 @@
+/* Shared typography and controls; operational reading stays quieter than the poster. */
+:root {
+  --green: var(--accent);
+  --muted: var(--text-muted);
+  --line: var(--border);
+  --display: "Public Sans", Arial, sans-serif;
+}
+.app h1,
+.app h2,
+.app h3 {
+  font-family: var(--font-body);
+}
+.surface-presentation h2 {
+  font-weight: 700;
+}
+.app footer,
+.app footer small,
+.app footer span {
+  color: var(--text-muted);
+}
+.app footer > span > span {
+  color: var(--text-muted);
+}
+.surface-app .chart-projection {
+  stroke: var(--signal);
+}
+.surface-app .chart-point {
+  fill: var(--signal);
+}
+.surface-app .projection-legend span:last-child i {
+  background: var(--signal);
+}
+.surface-app .nft-art {
+  background: var(--signal);
+  color: #fff;
+}
+.surface-app .nft-art .nft-seal {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 22px;
+  min-height: 340px;
+  padding: 28px;
+  border: 1px solid #a9c0ff;
+}
+.nft-seal > span {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+.nft-seal > strong {
+  font-family: var(--font-body);
+  font-size: clamp(3rem, 7vw, 5rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.surface-app .ecosystem-grid {
+  display: block;
+}
+.surface-app .ecosystem-resource {
+  display: grid;
+  grid-template-columns: minmax(0, 0.55fr) minmax(0, 1.5fr) minmax(0, 0.8fr);
+  column-gap: 28px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  padding: 24px 0;
+  min-width: 0;
+}
+.surface-app .ecosystem-resource .section-top {
+  grid-column: 1;
+  grid-row: 1/3;
+  display: block;
+}
+.surface-app .ecosystem-resource .badge {
+  display: inline-block;
+  margin-top: 12px;
+}
+.surface-app .ecosystem-resource > p {
+  grid-column: 2;
+  margin: 0 0 14px;
+}
+.surface-app .ecosystem-resource .ecosystem-links {
+  grid-column: 3;
+  grid-row: 1/3;
+  align-self: center;
+  margin: 0;
+  gap: 10px;
+}
+.surface-app .ecosystem-links a {
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.surface-app .ecosystem-filters button {
+  color: var(--ink);
+  background: transparent;
+  border-color: var(--border);
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+.surface-app .ecosystem-filters [aria-pressed="true"] {
+  color: var(--paper);
+  background: var(--ink);
+}
+@media (max-width: 800px) {
+  .surface-app .ecosystem-resource {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .surface-app .ecosystem-resource .section-top,
+  .surface-app .ecosystem-resource > p,
+  .surface-app .ecosystem-resource .ecosystem-links {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .surface-app .nft-art .nft-seal {
+    min-height: 280px;
+  }
+}
+.app .primary,
+.app .secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.app h1:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 6px;
+}
+.app :where(button, a, input, select, textarea, summary):focus-visible {
+  outline-color: var(--signal);
+}
+.app .secondary,
+.app button {
+  color: var(--ink);
+}
+.app .primary {
+  color: #fff;
+}
+.control-switch button {
+  background: transparent;
+}
+.control-switch [aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.surface-presentation .example-tabs button {
+  background: transparent;
+  color: #fff;
+}
+.surface-presentation .example-tabs [aria-pressed="true"] {
+  background: #fff;
+  color: var(--signal);
+}
+.surface-presentation .primary {
+  max-width: 100%;
+  white-space: normal;
+  min-height: 48px;
+  padding: 14px 22px;
+}
+.agent-editorial > *,
+.prototype-editorial > * {
+  min-width: 0;
+}
+.surface-app .page {
+  padding: 32px 3.5% 24px;
+  max-width: 1600px;
+}
+.surface-app .intro h1 {
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.03;
+}
+.surface-app .intro {
+  margin-bottom: 28px;
+}
+.surface-app header {
+  padding-inline: 3.5%;
+  border-color: var(--border);
+}
+.surface-app .breadcrumb,
+.surface-app .header-actions select,
+.surface-app .wallet {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+.surface-app .wallet {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border);
+}
+.surface-app .environment {
+  border-color: var(--border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.surface-app .environment > svg {
+  display: none;
+}
+.surface-app .pill {
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 0;
+  padding: 5px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+.surface-app .stats {
+  margin-block: 30px;
+}
+.surface-app .stats strong {
+  font-family: var(--font-mono);
+  font-size: 2.6rem;
+  font-weight: 400;
+  letter-spacing: -0.04em;
+}
+.surface-app .stats strong small {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+.surface-app .stats > div > span {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+}
+.surface-app .plan-card {
+  border: 0;
+  border-top: 1px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  padding: 24px 0;
+}
+.surface-app .plan-card h2,
+.surface-app .projection-card h2 {
+  font-size: 1.5rem;
+  font-weight: 650;
+}
+.surface-app .plan-address {
+  background: var(--surface-subtle);
+  color: var(--ink);
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  padding: 16px;
+}
+.surface-app .verified {
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  font-size: 0.625rem;
+}
+.surface-app .allocation span {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+.surface-app .allocation strong {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 1.5rem;
+}
+.surface-app .allocation-bar {
+  background: var(--surface-subtle);
+  border-radius: 0;
+}
+.surface-app .allocation-bar > div {
+  background: var(--signal);
+}
+.surface-app .projection-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 24px;
+}
+.surface-app .projection-value {
+  font-family: var(--font-mono);
+  font-size: 2.25rem;
+  letter-spacing: -0.04em;
+}
+.surface-app .projection-tag {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border);
+  border-radius: 0;
+}
+.surface-app .projection-controls .segmented {
+  background: transparent;
+  border-color: var(--border);
+}
+.surface-app .segmented .selected {
+  background: var(--ink);
+  color: var(--paper);
+}
+.surface-app .chart-grid {
+  stroke: var(--border);
+}
+.surface-app .chart-line {
+  stroke: var(--signal);
+}
+.surface-app .chart-area {
+  fill: #174bda0d;
+}
+.surface-app input[type="range"] {
+  accent-color: var(--signal);
+}
+.surface-app .icon-box {
+  background: transparent;
+  color: var(--signal);
+  border-radius: 0;
+}
+.surface-app .badge {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 0;
+}
+.surface-app .agent-limits strong {
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+.surface-app .activity-row {
+  border-color: var(--border);
+}
+.surface-app .activity-icon {
+  border-radius: 0;
+  color: var(--ink);
+  background: transparent;
+}
+.surface-app .positive {
+  color: var(--ink);
+}
+.surface-app .activity-filters button,
+.surface-app .portfolio-filters button {
+  border-radius: 0;
+}
+.surface-app .activity-filters [aria-pressed="true"],
+.surface-app .portfolio-filters [aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.app .modal {
+  border-radius: 0;
+  border: 1px solid var(--ink);
+  background: var(--surface-raised);
+}
+.app .modal-backdrop {
+  background: #252d287d;
+  backdrop-filter: none;
+}
+.app .action-summary,
+.app .signature-note {
+  border-radius: 0;
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+.app .operation-status,
+.app .change-receipt {
+  border-radius: 0;
+}
+.app .operation-status.success {
+  background: #e3e9d9;
+  color: #273d26;
+}
+.app .operation-status.pending,
+.app .operation-status.signing,
+.app .operation-status.loading {
+  background: var(--signal-light);
+  color: var(--accent-hover);
+}
+.app input,
+.app textarea,
+.app select {
+  border-color: var(--border);
+  color: var(--ink);
+}
+.app input::placeholder,
+.app textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+.nft-identity,
+.nft-panel,
+.ecosystem-observation,
+.resource-card {
+  border-radius: 0;
+  border-color: var(--border);
+  background: var(--surface-raised);
+}
+.nft-art {
+  background: var(--signal);
+  color: #fff;
+  border-radius: 0;
+}
+.nft-art svg {
+  color: #fff;
+}
+.nft-art svg path,
+.nft-art svg circle {
+  stroke: #a8bfff;
+}
+.nft-art svg text {
+  fill: #fff;
+}
+.nft-identity-body h2 {
+  font-family: var(--font-body);
+  font-weight: 650;
+}
+.nft-identity dt,
+.nft-generations dt,
+.resource-links a {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+.nft-balances strong,
+.portfolio-balances dd {
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+.nft-panel .pill,
+.ecosystem-intro .pill {
+  border-radius: 0;
+}
+.portfolio-details dt {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+.portfolio-proposal {
+  border-radius: 0;
+  background: var(--surface-subtle);
+}
+.portfolio-filters [aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.portfolio-allocation {
+  border-radius: 0;
+}
+.portfolio-balances dt {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+}
+@media (hover: hover) and (pointer: fine) {
+  .app > .sidebar .nav:hover:not(:disabled) {
+    background: var(--surface-subtle);
+    color: var(--ink);
+  }
+  .app > .sidebar .nav.active:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .surface-app .activity-filters [aria-pressed="true"]:hover,
+  .surface-app .portfolio-filters [aria-pressed="true"]:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+}
+@media (max-width: 1100px) {
+  .surface-app > .sidebar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .surface-app > .sidebar nav {
+    max-width: 100%;
+  }
+}
+@media (max-width: 800px) {
+  .surface-app .intro h1 {
+    font-size: 2rem;
+  }
+  .surface-app .page {
+    padding-inline: 24px;
+  }
+  .surface-app .stats strong {
+    font-size: 2.1rem;
+  }
+  .surface-app .projection-card {
+    padding: 22px;
+  }
+  .surface-app > .sidebar .nav {
+    font-size: 0;
+    min-width: 44px;
+  }
+}
+@media (max-width: 480px) {
+  .surface-app .page {
+    padding: 26px 18px 20px;
+  }
+  .surface-app .intro h1 {
+    font-size: 1.75rem;
+  }
+  .surface-app .stats strong {
+    font-size: 1.9rem;
+  }
+  .surface-app .allocation strong {
+    font-size: 1.125rem;
+  }
+  .surface-app > .sidebar {
+    padding-inline: 12px;
+  }
+  .surface-app > .sidebar nav {
+    gap: 0;
+  }
+  .surface-app > .sidebar .nav {
+    padding-inline: 8px;
+  }
+  .surface-app .projection-card {
+    padding: 20px;
+  }
+  .surface-app .plan-address {
+    padding: 12px;
+  }
+  .surface-app .portfolio-balances dd {
+    font-size: 1.5rem;
+  }
+  .surface-app .modal-backdrop {
+    padding: 16px;
+  }
+}

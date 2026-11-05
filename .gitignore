@@ -16,7 +16,10 @@ dist/
 .near-credentials/
 credentials.json
 credentials.*.json
+*-everkeep-encrypted.json
 id_rsa
 id_ed25519
 test-results/
 playwright-report/
+.impeccable/review/
+.impeccable/live/

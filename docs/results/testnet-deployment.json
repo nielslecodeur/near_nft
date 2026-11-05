@@ -1,0 +1,30 @@
+{
+  "at": "2026-11-03T16:38:37.494Z",
+  "deployment": {
+    "network": "testnet",
+    "rpc": "https://rpc.testnet.near.org",
+    "parent": "everkeep-dev-mw0weth5.testnet",
+    "collection": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+    "asset": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+    "strategy": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+    "missions": "missions-v3.everkeep-dev-mw0weth5.testnet",
+    "mandate_hash": "kjqjJhAMK7S4cmc2YI5IycpkHNzDpykuxsPSgAoZmmU=",
+    "series_id": "liquidity-v3",
+    "category": "liquidity",
+    "code_hashes": {
+      "demousd-v3.everkeep-dev-mw0weth5.testnet": "7KRPU27CSiF9dG3AU51t76G1maoD357MRUpXizYRs9qv",
+      "strategy-v3.everkeep-dev-mw0weth5.testnet": "GMAf6ULixZmFumgj2SqXAEqfxynVHXoDgJG8xRiw2Ace",
+      "reserve-v3.everkeep-dev-mw0weth5.testnet": "4wp2KSaMoSpNz4JDsUVeiuRLMjCFRzM8KPBjnjVNvMHr",
+      "missions-v3.everkeep-dev-mw0weth5.testnet": "39KB5g7SdasSeQKjQBTTa6CrVmBXiyo1YCUeyc54NXp5"
+    },
+    "deployed_at": "2026-11-03T16:38:37.481Z"
+  },
+  "transactions": [
+    "64eNuosVRzYbfRwELaM19Zb183WCAxmjJmqJEkLcYnDq",
+    "DNGop6wFA8UmiLJzzaN8XEgL2KTUteKBtLkcsebA82hi",
+    "3U7t6kXu58p9L3pQ6VQDUcLG9NoFtf8pbH1J5bnkH7mx",
+    "C4VzpvxhhQhygytfsVJX1GWri5ZPVsZMFJzFDoi6QKeK",
+    "9Uqv2AFHTV5gFudK2mD6VPm86X8L739AaqUVjFk5qyEe"
+  ],
+  "verification": "Fresh keyless contracts, exact code hashes and genuine on-chain ML-DSA admin signature. No existing deployment modified."
+}

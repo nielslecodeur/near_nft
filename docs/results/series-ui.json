@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-02T23:30:46.051Z",
+  "checks": [
+    "three routes render without overflow at 320/390/768/1440",
+    "lost HTTP response then same UUID retry creates exactly one funded position",
+    "real subscription 100 and position loaded",
+    "real agent allocation and refused over-cap attempt",
+    "real fixed-price sale Alice to Bob",
+    "Bob sees same position with revoked delegation",
+    "sandbox fast-forward and Bob withdrawal confirmed",
+    "seller no longer sees the sold NFT among owned positions",
+    "skip link preserves route and focuses main; reduced motion and no page exceptions"
+  ],
+  "captures": [
+    ".impeccable/review/series/series-320.png",
+    ".impeccable/review/series/positions-320.png",
+    ".impeccable/review/series/market-320.png",
+    ".impeccable/review/series/series-390.png",
+    ".impeccable/review/series/positions-390.png",
+    ".impeccable/review/series/market-390.png",
+    ".impeccable/review/series/series-768.png",
+    ".impeccable/review/series/positions-768.png",
+    ".impeccable/review/series/market-768.png",
+    ".impeccable/review/series/series-1440.png",
+    ".impeccable/review/series/positions-1440.png",
+    ".impeccable/review/series/market-1440.png",
+    ".impeccable/review/series/bob-position.png"
+  ],
+  "scope": "Real browser and real local WASM series API. No external wallet login or testnet transaction."
+}

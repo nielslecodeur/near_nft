@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-03T10:56:28.858Z",
+  "checks": [
+    "NFT-first catalogue: two primary destinations, one actual demo offer, no unavailable concepts or carousel",
+    "catalogue and contract sheet fit 320/390/768/1440; lock, maturity, technical reserve disclosed before confirmation",
+    "keyboard opens/closes sheet and restores focus; below-minimum amount blocked; reduced motion removes cover animation",
+    "empty resale contains no fabricated offers and links back to issuance",
+    "optional agent assistance remains accessible outside primary navigation",
+    "real sandbox: Alice purchases a new 20 demoUSD NFT, lists at 19, Bob buys through Explorer; existing funded NFTs preserved"
+  ],
+  "captures": [
+    ".impeccable/review/marketplace/explorer-320.png",
+    ".impeccable/review/marketplace/detail-320.png",
+    ".impeccable/review/marketplace/explorer-390.png",
+    ".impeccable/review/marketplace/detail-390.png",
+    ".impeccable/review/marketplace/explorer-768.png",
+    ".impeccable/review/marketplace/detail-768.png",
+    ".impeccable/review/marketplace/explorer-1440.png",
+    ".impeccable/review/marketplace/detail-1440.png",
+    ".impeccable/review/marketplace/resale-empty.png",
+    ".impeccable/review/marketplace/resale-populated.png",
+    ".impeccable/review/marketplace/owned-nft-390.png"
+  ],
+  "transactions": true,
+  "scope": "Actual local Chrome. Optional transactions use real sandbox WASM and test assets only; no external wallet login or financial testnet transaction."
+}

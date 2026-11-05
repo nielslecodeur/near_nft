@@ -34,6 +34,8 @@ export function interpret(text: string) {
   };
 }
 export function propose(s: Snapshot, p: Policy | null, now: bigint) {
+  if (s.series && (now >= BigInt(s.series.terms.matures_at) || !s.funded))
+    return { amount: "0", reason: "Position non financée ou échéance atteinte." };
   if (
     !p ||
     s.agent_paused ||

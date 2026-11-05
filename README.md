@@ -1,58 +1,57 @@
 # Everkeep
 
-Une épargne programmable et transmissible sur NEAR, avec des autorisations ML-DSA-65 et des clés renouvelables. Prototype pour le track **NFTs That Do Something**, dans le workspace indépendant `near_hack`.
+Marketplace de positions NFT sur **NEAR testnet**. Choisir un modèle officiel, créer une position avec son compte et ses fonds, ou acheter une position proposée par un autre propriétaire. Trois agents proposent des analyses payées séparément en NEAR ; tout investissement exige une autre autorisation.
 
-Chaque plan possède un vrai compte NEAR sans access key, un contrat wallet, un titre NFT, un solde demoUSD et un mandat d’agent. **Sandbox et testnet uniquement : jetons sans valeur réelle, rendement de démonstration, prototype non audité.**
+**Interface terminal :** les pages réutilisent les tokens, primitives et composants validés : recherche Cmd/Ctrl+K, filtres repliables, grille/liste, densité, cadres de cartes JSON et fiches avec provenance et conditions. [Guide des pages](design-system/terminal/PAGES.md). `npm run test:terminal:pages` vérifie cette interface sur le serveur de développement ; le scénario du catalogue précédent reste archivé sous `test:catalogue:legacy`.
 
-## Démarrer
+**Positions et agents :** Positions propose une vue Actifs avec les soldes du wallet et les fonds des comptes NFT séparés, ainsi qu’une Collection des cartes réellement possédées. Agents expose trois expertises et leurs tarifs, puis la préparation de demande et son récapitulatif. [Guide des vues](design-system/terminal/WORKSPACES.md) · vérification navigateur : `npm run test:workspaces`.
 
-Depuis ce dossier, sous Linux x86_64 ou Ubuntu/WSL, avec Node 24, Rust 1.98.1 et un compilateur C sous WSL :
+**Agents : deux validations financières**, une pour devis et analyse, une pour la création groupée dans Intear. Coffre local chiffré avec export facultatif, proposition compacte et suivi technique replié. Une vraie position de 14 demoUSD a été créée avec deux appels au signataire QA, sans téléchargement ; la vérification des deux fenêtres réelles d’Intear reste à effectuer. La position utilisateur `nifelst.testnet` de 25 demoUSD est confirmée sur chaîne. Voir [le parcours et les preuves](docs/agent-ux-simple.md).
+
+## Lancer
+
+Node 24 ; utiliser le même environnement pour installer et exécuter.
 
 ```bash
-bash scripts/setup.sh
-bash scripts/build.sh
-bash scripts/test-contracts.sh
+npm ci
+npm run dev
+# Second terminal, credential opérateur hors dépôt :
+npm run testnet:worker
+```
+
+Sur ce poste Windows/WSL : `wsl -e bash scripts/web.sh` et `wsl -e bash scripts/testnet-worker.sh`. Ouvrir [Everkeep](http://127.0.0.1:5173), choisir **Intear**, réseau **testnet**. [Guide courant](docs/agent-ux-simple.md), [contrats et preuves historiques](docs/testnet.md).
+
+## Utiliser
+
+- **Marketplace** : catégories Diversification, Crypto et Liquidité, puis filtres Tout / Catalogue officiel / Communauté. Trois modèles distincts ; seul Réserve demoUSD est opérationnel en démonstration testnet. Les deux autres attendent leurs adaptateurs. Un modèle ne représente pas un NFT déjà émis.
+- **Mes positions** : NFT réels, fonds détenus, engagés et réservés, échéance, permissions et activité. La création n’est pas une publication : il faut mettre sa position en vente.
+- **Agents** : conversation avec Analyste TradFi, Spécialiste crypto ou Analyste liquidité. Paramètres reconnus et coûts examinés, devis, paiement NEAR, proposition puis consentement distinct. Démonstration déterministe sans IA par défaut ; remboursement contractuel en cas d’échec connu ou délai dépassé avant livraison.
+
+Le header lit séparément les NEAR et demoUSD du wallet. Les réserves de stockage et de gas sont détaillées, sans total converti artificiellement.
+
+## Vérifier
+
+```bash
 npm test
 npm run build
+npm run test:conversation:browser
+npm run test:agents:ux
+npm run testnet:check -- everkeep-niels-mw0wq5r0.testnet
+node scripts/browser-testnet-check.mjs
 ```
 
-Puis, dans deux terminaux :
+Le contrôle navigateur accepte `EVERKEEP_BROWSER_PROFILE` pour tester une session connectée et `EVERKEEP_CHROME` pour choisir Chrome. Les vérifications financières testnet sont consignées séparément dans [docs/results](docs/results).
 
-```bash
-# Terminal A : scénario complet puis API locale
-bash scripts/local-demo.sh
-# Terminal B : interface
-bash scripts/web.sh
-```
+Contrats : [architecture](docs/architecture.md), [menaces](docs/threat-model.md), [cryptographie](docs/crypto-design.md), [tests intercontrats](docs/testing.md), [missions](docs/agent-missions.md). Contrats inchangés pendant cette tranche frontend/testnet : les résultats antérieurs de 58 tests Rust et 19 scénarios WASM missions restent des preuves sandbox datées, distinctes des nouveaux essais réseau.
 
-Ouvrir [http://127.0.0.1:5173](http://127.0.0.1:5173), puis « Charger le compte ». Sous PowerShell, préfixer chaque commande Bash par `wsl -e`, par exemple `wsl -e bash scripts/local-demo.sh`. Installer et lancer les dépendances Node dans le même environnement Linux. Les tâches VS Code sont disponibles dans `.vscode/tasks.json`.
+## Démonstration locale
 
-## Qui contrôle les fonds ?
+`npm run demo:agents` démarre une nouvelle sandbox avec personnages et API 8792. Ouvrir `http://127.0.0.1:5173/?mode=local`. Les sessions historiques sont séparées dans Options ; un redémarrage ne restaure pas leurs clés éphémères. Aucun fallback local silencieux en mode testnet.
 
-Le **wallet du plan** est l’autorité. Retrait, rachat, mandat, révocation, rotation et transmission exigent la signature ML-DSA courante. Une transaction classique du propriétaire peut seulement suspendre l’agent. L’agent possède une route fixe, un plafond par opération et jour UTC, une allocation maximale, une expiration et des générations vérifiées sur chaîne.
+## Identité et limites
 
-Le NFT indexe cette autorité. Le destinataire enregistre lui-même sa clé ; la transmission exige la signature du propriétaire et une preuve de possession de la nouvelle clé. Le compte, les tokens, les positions et les compteurs persistent à la même adresse. Le transfert invalide les anciennes générations et supprime le mandat. Les opérations restent bloquées tant que la collection et le wallet ne sont pas synchronisés.
+[Orbite](docs/orbite-direction.md) : fond noir vert, accent vert, Space Grotesk/Inter, manège manuel avec clavier, tactile et alternative grille. `src/orbite.css` reste présente et importée ; les nouvelles surfaces prolongent cette direction.
 
-Les comptes wallet n’ont aucune access key. Le déploiement testnet préparé crée également collection, token et stratégie sans clé, avec initialisation dans le même reçu. Aucun upgrade, ajout de clé, recovery, sweep ou appel arbitraire n’est exposé. En sandbox, les clés de déploiement sont retirées avant les vérifications. Une FullAccess key résiduelle permettrait de remplacer le code : sa suppression fait partie des contrôles.
+demoUSD et NEAR testnet n’ont aucune valeur monétaire. Aucun mainnet, actions/ETF réels, rendement de marché garanti, dépôt multi-actifs actif ou sécurité post-quantique de bout en bout. Les positions conservent leurs échéances immuables. Le paiement d’une analyse ne donne pas de droit de retrait ou de revente à l’agent.
 
-## Résultats et limites
-
-**21 tests Rust, 6 tests TypeScript, 41 vérifications sandbox et les parcours Chromium desktop/mobile ont réussi.** Les rapports réellement exécutés et leurs limites figurent dans [les tests](docs/testing.md).
-
-| Élément | Périmètre |
-|---|---|
-| Réel en sandbox | Vérification ML-DSA dans le host NEAR, dépôts/retraits FT, allocation et rachat, rotation, révocation, transfert NFT et `nft_transfer_call` accepté/rejeté, refus d’un retrait signé par le destinataire temporaire |
-| NFT conditionnel | Interfaces NEP-171 avec autorisation signée dans `memo` et consentement du destinataire. Les marketplaces doivent intégrer ce protocole ; pas de compatibilité universelle annoncée. Pas d’extension approvals ni de conformité au brouillon Sharded NFT Items. |
-| Simulé explicitement | Distribution de vrais jetons de test depuis une réserve préfinancée : 1 % du principal par période de démonstration. L’objectif annuel de 4 % et les projections sont distincts, hypothétiques. |
-| Différé | DeFi externe, LLM, récupération après perte totale des clés, burn, upgrade, multi-actifs, cross-chain, application mobile native et sécurité post-quantique de bout en bout |
-| Testnet | Capacité RPC contrôlée en lecture ; script de déploiement préparé. Aucun déploiement ni transaction testnet effectué dans cette session. |
-
-Seul demoUSD configuré est accepté. Un `ft_transfer` direct sans callback ne crédite pas la comptabilité du plan : utiliser `ft_transfer_call`, comme l’interface. Les résultats asynchrones inconnus conservent les fonds réservés ; aucun déblocage administrateur n’est prévu.
-
-## Documentation
-
-- [Guide de démo et signataire](docs/demo.md), [progression et prochaines étapes](PROGRESS.md).
-- [Architecture](docs/architecture.md), [menaces](docs/threat-model.md), [crypto](docs/crypto-design.md), [transfert NFT](docs/transfer-protocol.md).
-- [Sources et versions](docs/references.md), [tests et mesures](docs/testing.md).
-
-`contracts/` contient les cinq contrats Rust, `packages/` les messages et l’agent déterministe, `src/` l’interface française et `scripts/` les outils. `Cargo.lock` et `package-lock.json` verrouillent les dépendances. Les fichiers de recherche, secrets locaux et builds frontend sont exclus de Git. Aucun site n’est publié.
+Clés natives et sauvegardes ML-DSA hors dépôt ; ne jamais envoyer une seed dans l’application ou la conversation. Le prototype n’est pas audité. L’achat de position entre deux utilisateurs reste le prochain parcours navigateur testnet à vérifier ; gel, séquestre et révocation disposent de preuves sandbox.

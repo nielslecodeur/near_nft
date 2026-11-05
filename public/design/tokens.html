@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Everkeep — Design tokens, étape 1</title>
+    <link rel="stylesheet" href="/design/tokens.css" />
+    <link rel="stylesheet" href="/design/preview.css" />
+  </head>
+  <body>
+    <header class="preview-header">
+      <span class="brand-mark" role="img" aria-label="Everkeep"></span
+      ><a href="/#explorer">Retour à Explorer</a>
+    </header>
+    <main>
+      <section class="token-hero">
+        <h1>Design tokens</h1>
+        <p class="token-stage">Étape 1 / 4 · proposition à valider</p>
+        <p class="hero-description">
+          L’identité Everkeep, avec une profondeur de terminal : quatre
+          surfaces, un accent vert et une typographie précise.
+        </p>
+      </section>
+      <p id="loading" role="status">Chargement de la référence…</p>
+      <section class="token-section" aria-labelledby="surfaces-heading">
+        <h2 id="surfaces-heading">Quatre niveaux de surface</h2>
+        <p class="section-description">
+          Séparation par la luminance, bordure discrète et lumière intérieure.
+          Les reliefs restent doux.
+        </p>
+        <div id="surfaces" class="surface-grid"></div>
+      </section>
+      <section class="token-section" aria-labelledby="colors-heading">
+        <h2 id="colors-heading">Un accent. Deux états sémantiques.</h2>
+        <p class="section-description">
+          Le vert Everkeep porte les actions. Hausse et baisse disposent de leur
+          propre rôle, toujours accompagné d’un libellé.
+        </p>
+        <div id="colors" class="color-grid"></div>
+        <div class="semantic-examples">
+          <div>
+            <span>Hausse · spécimen</span
+            ><strong class="numeric up">+12,50 %</strong>
+          </div>
+          <div>
+            <span>Baisse · spécimen</span
+            ><strong class="numeric down">−3,25 %</strong>
+          </div>
+        </div>
+      </section>
+      <section class="token-section" aria-labelledby="type-heading">
+        <h2 id="type-heading">Deux polices, deux usages</h2>
+        <p class="section-description">
+          Exemples typographiques uniquement : ces chiffres ne sont pas des
+          données de marché.
+        </p>
+        <div class="type-grid">
+          <div>
+            <h3>Inter</h3>
+            <p class="type-example">Lire, comparer,<br />puis décider.</p>
+            <p class="type-meta">Interface et titres · 400 / 500 / 600 / 700</p>
+          </div>
+          <div>
+            <h3>IBM Plex Mono</h3>
+            <p class="numeric numeric-example">1 234,56<br />0,000001</p>
+            <p class="type-meta">
+              Prix, pourcentages et statistiques · chiffres tabulaires
+            </p>
+          </div>
+        </div>
+        <div id="type-scale" class="type-scale"></div>
+      </section>
+      <section class="token-section">
+        <div class="geometry-grid">
+          <div>
+            <h2>Espacement 4 / 8</h2>
+            <p class="section-description">
+              Une échelle commune pour les marges, les groupes et les
+              alignements.
+            </p>
+            <div id="spacing" class="spacing-list"></div>
+          </div>
+          <div>
+            <h2>Trois rayons</h2>
+            <p class="section-description">
+              Contrôles, surfaces et éléments de mise en avant.
+            </p>
+            <div id="radii" class="radius-list"></div>
+          </div>
+        </div>
+      </section>
+      <section class="token-section" aria-labelledby="motion-heading">
+        <h2 id="motion-heading">Un mouvement court et lisible</h2>
+        <p class="section-description">
+          Une courbe commune ; aucune chorégraphie de chargement.
+        </p>
+        <div id="motion"></div>
+        <p class="motion-note">
+          <code>cubic-bezier(.2,.8,.2,1)</code> · Les transitions sont
+          immédiates lorsque la réduction des animations est activée.
+        </p>
+      </section>
+      <p class="reference-notice">
+        Cette planche présente le socle de l’étape 1. Les primitives, composants
+        composés, pages et cadres spéciaux seront traités dans les étapes
+        suivantes après validation.
+      </p>
+      <footer class="preview-footer">
+        <p>Everkeep · Référence visuelle des tokens</p>
+        <a href="/design/tokens.json">Source JSON</a
+        ><a href="/fonts/ibmplexmono-OFL.txt">Licence des fontes</a>
+      </footer>
+    </main>
+    <script type="module" src="/design/tokens-preview.mjs"></script>
+  </body>
+</html>

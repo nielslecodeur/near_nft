@@ -1,0 +1,606 @@
+.orbite-app .series-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.wallet-header-zone {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  min-width: 0;
+}
+.wallet-network {
+  font-size: 0.74rem;
+  color: #a6b0a8;
+  white-space: nowrap;
+}
+.orbite-app .wallet-connect {
+  min-height: 44px;
+  border: 1px solid #48594b;
+  color: #f0f2ea;
+  background: #151c17;
+  padding: 10px 16px;
+  border-radius: 6px;
+}
+.wallet-account-menu {
+  position: relative;
+}
+.wallet-account-menu > summary {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #48594b;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #f0f2ea;
+  list-style: none;
+}
+.wallet-header-balances {
+  display: flex;
+  gap: 14px;
+  font-size: 0.73rem;
+  color: #c4d4b8;
+  max-width: 320px;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+}
+.wallet-header-balances span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wallet-account-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  z-index: 25;
+  width: min(420px, calc(100vw - 32px));
+  background: #151c17;
+  border: 1px solid #48594b;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 16px 48px #0008;
+  max-height: 80dvh;
+  overflow: auto;
+}
+.wallet-account-panel p {
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: #b6c0b8;
+  overflow-wrap: anywhere;
+}
+.wallet-account-panel dl {
+  font-size: 0.8rem;
+}
+.wallet-account-panel dt {
+  color: #a6b0a8;
+  margin-top: 16px;
+}
+.wallet-account-panel dd {
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.wallet-account-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+.wallet-account-actions a {
+  padding-block: 8px;
+  color: #b5f36b;
+  text-underline-offset: 4px;
+}
+.wallet-connect-error {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 26;
+  width: min(360px, calc(100vw - 32px));
+  background: #151c17;
+  border: 1px solid #a77063;
+  padding: 16px;
+  color: #f0f2ea;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+.orbite-app .series-header .user-menu {
+  margin-left: 0;
+}
+.orbite-app .series-header .user-menu summary {
+  font-size: 0.8rem;
+  min-height: 44px;
+}
+.orbite-app .wallet-header-zone :focus-visible {
+  outline: 2px solid #b5f36b;
+  outline-offset: 4px;
+}
+@media (max-width: 1100px) {
+  .orbite-app .series-header {
+    gap: 16px;
+  }
+  .orbite-app .series-header > nav {
+    order: 4;
+    width: 100%;
+    justify-content: center;
+  }
+  .wallet-header-zone {
+    margin-left: auto;
+  }
+  .orbite-app .series-header .wordmark {
+    font-size: 1.1rem;
+  }
+}
+@media (max-width: 640px) {
+  .orbite-app .series-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand options" "wallet wallet" "navigation navigation";
+    padding: 16px;
+    gap: 16px;
+  }
+  .orbite-app .series-header > .wordmark {
+    grid-area: brand;
+  }
+  .orbite-app .series-header > .user-menu {
+    grid-area: options;
+    min-width: 0;
+  }
+  .orbite-app .series-header > nav {
+    grid-area: navigation;
+    justify-content: space-between;
+  }
+  .orbite-app .series-header > .wallet-header-zone {
+    grid-area: wallet;
+    width: 100%;
+    margin: 0;
+    justify-content: space-between;
+  }
+  .wallet-header-zone {
+    gap: 8px;
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .wallet-network {
+    font-size: 0.65rem;
+    max-width: 65px;
+    white-space: normal;
+  }
+  .wallet-account-menu > summary {
+    max-width: 205px;
+    font-size: 0.75rem;
+  }
+  .wallet-header-balances {
+    gap: 10px;
+    font-size: 0.65rem;
+    max-width: 205px;
+  }
+  .wallet-account-panel {
+    position: fixed;
+    right: 16px;
+    top: 100px;
+  }
+  .orbite-app .series-header > .user-menu {
+    position: static;
+  }
+  .orbite-app .series-header .user-menu > summary {
+    padding: 8px;
+    font-size: 0.7rem;
+  }
+  .orbite-app .series-header > nav {
+    gap: 24px;
+  }
+  .orbite-app .series-header .wordmark {
+    font-size: 0.96rem;
+  }
+  .orbite-app .wallet-connect {
+    font-size: 0.75rem;
+    padding-inline: 10px;
+  }
+  .wallet-connect-error {
+    position: fixed;
+    top: 110px;
+    right: 16px;
+  }
+}
+.orbite-app .marketplace-v3 {
+  max-width: 1264px;
+  margin: auto;
+  padding: 48px 0 80px;
+}
+.orbite-app .market-heading h1 {
+  font:
+    500 clamp(2.5rem, 5vw, 4.3rem)/1.08 "Space Grotesk",
+    sans-serif;
+  letter-spacing: -0.035em;
+  margin: 0 0 22px;
+}
+.market-heading p {
+  font-size: 1.05rem;
+  color: #b6c0b8;
+  max-width: 65ch;
+  line-height: 1.6;
+}
+.market-filters {
+  margin: 40px 0 48px;
+  border-block: 1px solid #354236;
+  padding: 20px 0;
+}
+.market-filters > [role="group"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.orbite-app .market-filters button {
+  border: 1px solid #48594b;
+  background: transparent;
+  color: #b6c0b8;
+  border-radius: 6px;
+  min-height: 44px;
+  padding: 10px 16px;
+}
+.orbite-app .market-filters button[aria-pressed="true"] {
+  background: #b5f36b;
+  color: #10200d;
+  border-color: #b5f36b;
+}
+.market-counts {
+  color: #a6b0a8;
+  font-size: 0.85rem;
+  margin: 0;
+}
+.official-catalogue > h2,
+.community-catalogue > h2 {
+  font-size: 1.8rem;
+  letter-spacing: -0.025em;
+}
+.official-catalogue > p,
+.community-catalogue > p {
+  max-width: 70ch;
+  color: #b6c0b8;
+  line-height: 1.65;
+}
+.orbite-app .model-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 80px;
+  padding: 40px 0;
+  border-top: 1px solid #354236;
+}
+.model-detail h3 {
+  font-size: 1.8rem;
+  margin: 0 0 18px;
+}
+.model-detail p {
+  line-height: 1.7;
+  max-width: 65ch;
+  color: #b6c0b8;
+}
+.model-category {
+  font-size: 0.85rem;
+}
+.model-short-facts {
+  display: flex;
+  gap: 40px;
+  margin: 28px 0;
+}
+.model-short-facts dt {
+  color: #a6b0a8;
+  font-size: 0.8rem;
+}
+.model-short-facts dd {
+  margin: 8px 0;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.model-detail details {
+  margin-block: 24px;
+  overflow-wrap: anywhere;
+}
+.model-detail summary {
+  cursor: pointer;
+  min-height: 44px;
+  color: #d5e7c7;
+}
+.model-detail details dl {
+  font-size: 0.83rem;
+}
+.model-detail details dd {
+  margin: 8px 0 18px;
+}
+.orbite-app .model-live {
+  color: #b5f36b;
+}
+.model-unavailable {
+  color: #c8c1a8 !important;
+}
+.model-create {
+  border-top: 1px solid #48594b;
+  padding-top: 24px;
+  align-self: start;
+}
+.model-create label,
+.key-vault-dialog label {
+  display: block;
+  margin: 20px 0 10px;
+  font-size: 0.9rem;
+}
+.orbite-app .model-create input:not([type="checkbox"]),
+.orbite-app .key-vault-dialog input:not([type="checkbox"]) {
+  width: 100%;
+  min-height: 48px;
+  background: #111912;
+  color: #f0f2ea;
+  border: 1px solid #48594b;
+  padding: 12px;
+  border-radius: 6px;
+  font: inherit;
+}
+.model-create button {
+  min-height: 44px;
+}
+.model-agent-link {
+  display: inline-block;
+  margin-top: 24px;
+  color: #b5f36b;
+  text-underline-offset: 5px;
+}
+.position-creation > p {
+  font-size: 0.9rem;
+}
+.position-creation > details {
+  font-size: 0.82rem;
+}
+.position-creation code {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+}
+.creation-job,
+.creation-confirmed {
+  border-top: 1px solid #48594b;
+  margin-top: 32px;
+  padding-top: 24px;
+}
+.creation-job h4 {
+  font-size: 1.1rem;
+}
+.creation-job > button {
+  margin: 8px 8px 8px 0;
+}
+.backup-ack {
+  display: flex !important;
+  align-items: start;
+  gap: 12px;
+  line-height: 1.6;
+}
+.backup-ack input {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  accent-color: #b5f36b;
+}
+.creation-progress {
+  padding-left: 18px;
+  color: #a6b0a8;
+  font-size: 0.82rem;
+  line-height: 1.9;
+}
+.creation-confirmed strong {
+  color: #b5f36b;
+}
+.testnet-positions .owned-position + .owned-position {
+  margin-top: 48px;
+  padding-top: 40px;
+  border-top: 1px solid #354236;
+}
+.testnet-positions .position-sale-form {
+  max-width: 440px;
+}
+.testnet-positions .position-sale-form input {
+  margin: 8px 0 12px;
+}
+.testnet-positions .owned-position > details > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.creation-confirmed a {
+  color: #d5e7c7;
+  text-underline-offset: 5px;
+}
+.community-catalogue {
+  padding-top: 48px;
+  border-top: 1px solid #354236;
+  margin-top: 40px;
+}
+.community-empty {
+  padding: 32px 0;
+  max-width: 70ch;
+}
+.community-empty h3 {
+  font-size: 1.3rem;
+}
+.community-empty p {
+  color: #a6b0a8;
+  line-height: 1.7;
+}
+.community-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  margin-top: 32px;
+}
+.community-offer {
+  min-width: 0;
+}
+.community-art {
+  height: 230px;
+  overflow: hidden;
+  background: #151c17;
+  border-radius: 10px;
+}
+.community-art svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.community-offer h3 {
+  font-size: 1.35rem;
+  margin: 20px 0 12px;
+}
+.community-offer > strong {
+  display: block;
+  font-size: 1.5rem;
+  margin: 18px 0;
+  font-variant-numeric: tabular-nums;
+}
+.community-offer p {
+  font-size: 0.86rem;
+  color: #b6c0b8;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.community-offer details {
+  font-size: 0.8rem;
+  margin: 20px 0;
+}
+.community-offer summary {
+  cursor: pointer;
+  min-height: 44px;
+}
+.community-offer > button {
+  width: 100%;
+  min-height: 44px;
+}
+.orbite-app .key-vault-dialog {
+  width: min(580px, calc(100% - 32px));
+  max-height: 85dvh;
+  overflow: auto;
+  background: #151c17;
+  color: #f0f2ea;
+  padding: 32px;
+  border: 1px solid #48594b;
+  border-radius: 12px;
+}
+.key-vault-dialog::backdrop {
+  background: #000c;
+}
+.key-vault-dialog p {
+  font-size: 0.93rem;
+  line-height: 1.7;
+  color: #cad5c4;
+}
+.key-vault-dialog h2 {
+  font-size: 1.7rem;
+}
+.key-vault-dialog button {
+  min-height: 44px;
+}
+.marketplace-v3 :focus-visible {
+  outline: 2px solid #b5f36b;
+  outline-offset: 4px;
+}
+.model-detail button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.orbite-app .marketplace-v3 .strategy-selector {
+  margin-block: 40px;
+}
+@media (max-width: 1000px) {
+  .orbite-app .model-detail {
+    gap: 40px;
+  }
+  .community-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .orbite-app .marketplace-v3 {
+    padding-top: 28px;
+  }
+  .market-filters {
+    margin: 28px 0 36px;
+  }
+  .market-filters > [role="group"] {
+    gap: 8px;
+  }
+  .orbite-app .market-filters button {
+    font-size: 0.75rem;
+    padding: 10px 12px;
+  }
+  .orbite-app .model-detail {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding-top: 28px;
+  }
+  .model-detail h3 {
+    font-size: 1.5rem;
+  }
+  .model-short-facts {
+    gap: 24px;
+  }
+  .community-grid {
+    grid-template-columns: 1fr;
+  }
+  .community-art {
+    height: 260px;
+  }
+  .orbite-app .key-vault-dialog {
+    padding: 24px;
+  }
+  .model-create button {
+    white-space: normal;
+  }
+  .model-create .action-row {
+    flex-wrap: wrap;
+  }
+  .creation-progress {
+    font-size: 0.78rem;
+  }
+}
+.orbite-app .sale-recovery {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #354236;
+  max-width: 70ch;
+}
+.orbite-app .feedback {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.orbite-app .sale-recovery > summary {
+  min-height: 44px;
+  cursor: pointer;
+}
+.orbite-app .sale-recovery p {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  color: #a6b0a8;
+}
+.orbite-app .sale-recovery form {
+  max-width: 440px;
+}
+.orbite-app .sale-recovery label {
+  display: block;
+  margin-top: 16px;
+}
+.orbite-app .sale-recovery input {
+  width: 100%;
+  margin: 8px 0 16px;
+  min-height: 44px;
+  padding: 12px;
+  font: inherit;
+  color: #f0f2ea;
+  background: #151c17;
+  border: 1px solid #48594b;
+  border-radius: 6px;
+}

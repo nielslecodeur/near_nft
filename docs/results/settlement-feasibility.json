@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-02T22:54:11.786Z",
+  "scope": "Feasibility of real escrow/control/payout protocol before series integration. NOT a complete Option 2 implementation or testnet proof.",
+  "checks": [
+    "allocation réelle puis dénouement avant gel",
+    "annonce active seulement après gel ML-DSA réel du wallet",
+    "retrait signé refusé pendant l’annonce",
+    "prix incorrect remboursé par NEP-141 sans transfert de contrôle",
+    "contrôle transmis, NFT synchronisé, compte/actifs conservés, ancienne délégation supprimée",
+    "versement vendeur échoué après transfert : créance vendeur, aucun remboursement acheteur",
+    "ancienne clé refusée même sur enveloppe de génération courante",
+    "ancien agent sans autorité après vente",
+    "réclamation fixe payée une seule fois, seconde demande refusée"
+  ],
+  "gas": {
+    "delegation": "3887264060302",
+    "list": "6363146259454",
+    "purchase": "23714586514191"
+  },
+  "keysRemoved": true
+}

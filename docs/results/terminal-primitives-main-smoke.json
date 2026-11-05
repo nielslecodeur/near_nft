@@ -1,0 +1,20 @@
+{
+  "at": "2026-11-04T22:22:21.360Z",
+  "builtOutput": true,
+  "checks": [
+    {
+      "width": 1440,
+      "mainExplorerRenders": true,
+      "terminalStylesNotApplied": true,
+      "noOverflow": true
+    },
+    {
+      "width": 390,
+      "mainExplorerRenders": true,
+      "terminalStylesNotApplied": true,
+      "noOverflow": true
+    }
+  ],
+  "errors": [],
+  "scope": "Main Explorer renders without applying the isolated primitive reference. No wallet connected or transaction performed."
+}

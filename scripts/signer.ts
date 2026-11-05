@@ -5,6 +5,8 @@ import {
   scryptSync,
 } from "node:crypto";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join, resolve, relative, isAbsolute } from "node:path";
 import {
   ml_dsa65,
   initProof,
@@ -28,8 +30,17 @@ if (!passphrase || passphrase.length < 16)
   throw new Error(
     "Définissez EVERKEEP_PASSPHRASE (16 caractères minimum) dans votre session locale. Ne la mettez jamais dans Git.",
   );
-await mkdir(".local/keys", { recursive: true });
-const path = `.local/keys/${label}.json`;
+const directory = resolve(
+  process.env.EVERKEEP_KEY_DIRECTORY ||
+    join(homedir(), ".local/share/everkeep/keys"),
+);
+const rel = relative(process.cwd(), directory);
+if (!rel.startsWith("..") && !isAbsolute(rel))
+  throw new Error(
+    "Le signataire conserve les clés hors du dépôt. Déplacez les anciennes sauvegardes chiffrées dans le répertoire externe avant de les utiliser.",
+  );
+await mkdir(directory, { recursive: true, mode: 0o700 });
+const path = join(directory, `${label}.json`);
 if (command === "generate") {
   const keys = ml_dsa65.keygen(),
     salt = randomBytes(32),

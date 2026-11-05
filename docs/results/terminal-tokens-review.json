@@ -1,0 +1,36 @@
+{
+  "at": "2026-11-04T20:49:24.771Z",
+  "stage": 1,
+  "status": "proposal-awaiting-user-validation",
+  "reviewer": "terminal_tokens_finish_reviewer",
+  "disposition": "ship",
+  "scope": "Step1design-token reference only; not global theme adoption or later-stage implementation.",
+  "captures": 2,
+  "widths": [
+    1440,
+    390
+  ],
+  "materialFixes": [],
+  "tokens": 74,
+  "fonts": [
+    "Inter",
+    "IBM Plex Mono"
+  ],
+  "brand": "Everkeep lime, ivory, sage and original outlined wordmark",
+  "detector": {
+    "runs": 1,
+    "total": 11,
+    "advisories": 7,
+    "warnings": 4,
+    "rationale": "Inter explicitly allowed and already used; historical DESIGN.md differs from this isolated proposal. No findings silently suppressed."
+  },
+  "validation": {
+    "build": "passed, tsc+Vite with token generation",
+    "browser": "passed;4surfaces,3radii,2fonts,tabular figures,focus,reduced motion,contrast,no overflow"
+  },
+  "pending": [
+    "User validation before stage2primitives",
+    "Composed components and CardFrame later",
+    "Product-page migration later"
+  ]
+}

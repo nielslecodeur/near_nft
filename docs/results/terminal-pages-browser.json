@@ -1,0 +1,44 @@
+{
+  "checks": [
+    {
+      "width": 1440,
+      "status": "pass",
+      "wallet": "UI adapter, real read-only RPC; no signature or transaction sent"
+    },
+    {
+      "width": 390,
+      "status": "pass",
+      "wallet": "UI adapter, real read-only RPC; no signature or transaction sent"
+    }
+  ],
+  "captures": [
+    "docs/screenshots/terminal-pages/explorer-1440.png",
+    "docs/screenshots/terminal-pages/list-compact-1440.png",
+    "docs/screenshots/terminal-pages/empty-search-1440.png",
+    "docs/screenshots/terminal-pages/model-detail-1440.png",
+    "docs/screenshots/terminal-pages/creation-review-no-signature-1440.png",
+    "docs/screenshots/terminal-pages/history-unavailable-1440.png",
+    "docs/screenshots/terminal-pages/inactive-model-1440.png",
+    "docs/screenshots/terminal-pages/resale-catalogue-1440.png",
+    "docs/screenshots/terminal-pages/resale-detail-1440.png",
+    "docs/screenshots/terminal-pages/wallet-connected-adapter-1440.png",
+    "docs/screenshots/terminal-pages/positions-1440.png",
+    "docs/screenshots/terminal-pages/agents-1440.png",
+    "docs/screenshots/terminal-pages/explorer-390.png",
+    "docs/screenshots/terminal-pages/list-compact-390.png",
+    "docs/screenshots/terminal-pages/empty-search-390.png",
+    "docs/screenshots/terminal-pages/model-detail-390.png",
+    "docs/screenshots/terminal-pages/creation-review-no-signature-390.png",
+    "docs/screenshots/terminal-pages/history-unavailable-390.png",
+    "docs/screenshots/terminal-pages/inactive-model-390.png",
+    "docs/screenshots/terminal-pages/resale-catalogue-390.png",
+    "docs/screenshots/terminal-pages/resale-detail-390.png",
+    "docs/screenshots/terminal-pages/wallet-connected-adapter-390.png",
+    "docs/screenshots/terminal-pages/wallet-actions-scroll-390.png",
+    "docs/screenshots/terminal-pages/positions-390.png",
+    "docs/screenshots/terminal-pages/agents-390.png",
+    "docs/screenshots/terminal-pages/rpc-error-390.png"
+  ],
+  "errors": [],
+  "scope": "Actual product pages. Wallet adapter exercises connection UI only. RPC reads are live; no financial signature, mainnet call or deployment."
+}

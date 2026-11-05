@@ -1,3 +1,29 @@
+> Parcours courant (4 novembre 2026) : [Agents, deux validations financières](agent-ux-simple.md). Avec l’accord explicite de l’utilisateur, les clés ML-DSA et capacités sont désormais conservées uniquement sous forme chiffrée dans un coffre IndexedDB local ; le mot de passe et les clés déchiffrées restent en mémoire. Export externe facultatif. Devis/paiement combinés puis création groupée dans Intear ; résultats finaux vérifiés et inconnus non rejoués. Les passages historiques ci-dessous décrivent les étapes antérieures. Contrats inchangés dans cette tranche.
+
+> État du 4 novembre 2026 : le mode par défaut est testnet réel. NEAR Connect transporte les signatures du wallet ; le signataire ML-DSA chiffré est dans le navigateur, le worker local ne reçoit aucune clé propriétaire. Trois catégories et trois modèles, dont Liquidité actif en démonstration. Voir [parcours, déploiements et preuves](testnet.md). Les mentions ci-dessous de testnet désactivé et d’API 8791 décrivent des étapes historiques ; la sandbox payante est 8792, l’opérateur testnet est 8793.
+
+> Architecture courante : [marketplace de positions](marketplace-mvp.md) et [missions d’analyse payées](agent-missions.md). Catalogue et annonces sont distincts ; les positions et contraintes existantes ne sont pas migrées. Le nouveau contrat keyless `missions` sépare le paiement natif NEAR de l’analyse et le consentement ML-DSA à la souscription. Le worker reçoit des données, jamais de clés ; un mandat du wallet désigne le contrat de missions, puis une seconde signature lie proposition, mission, route et montant. Documents chiffrés hors chaîne sous capacité ; états et engagements publics. Le serveur local Alice/Bob reste un composant de confiance de démonstration.
+
+## Évolution Explorer / Mes positions / Agent
+
+La navigation est désormais Explorer (stratégies et revente), Mes positions et Agent. Les échéances contractuelles sont conservées. `wallet/src/funding.rs` et `collection/src/agent_funding.rs` ajoutent un mandat de souscription exact, distinct de la politique d’allocation. La proposition pure n’a ni clés ni droit de dépense ; la signature ML-DSA, le séquestre propriétaire et l’exécution par l’agent sont trois opérations séparées. Voir [protocole et preuves](explorer-agent.md).
+
+L’API actuelle utilise8791 ; les sources précédentes8790/8789/8788 restent distinctes si actives. Le mode d’affichage NFT historique ne relâche pas les vérifications financières. Les paragraphes d’interface suivants sont historiques et ne décrivent pas la nouvelle navigation.
+
+## Architecture des séries (option 2)
+
+La collection regroupe désormais index NFT, série unique et séquestre de vente. `contracts/collection/src/series.rs` impose capacité, minimum et fenêtre, réserve le capital avant financement et crée des créances fixes pour échecs connus. La préparation technique ne mint pas : le wallet reçoit ses demoUSD puis synchronise le NFT. Un compte non initialisé/enregistré/synchronisé ne peut pas accepter de souscription.
+
+`contracts/wallet/src/series_types.rs` définit les termes partagés immuables. Chaque wallet en conserve une copie et l’empreinte. `SetPolicy` n’autorise que des droits inférieurs ou égaux aux limites de série, avec expiration avant l’échéance. `Withdraw` exige échéance atteinte, principal et réserves nuls, bénéficiaire propriétaire courant. `Redeem` ne verse pas au propriétaire avant échéance. Le transfert change le contrôle sans remplacer ces termes.
+
+`wallet/src/sale.rs` et `collection/src/market.rs` réalisent le règlement décrit dans settlement.md. Les états en chaînes sont persistants, les callbacks privés et les paiements réservés avant promesse. Un résultat inconnu conserve le verrou. Le séquestre du prix n’entre jamais dans les actifs comptabilisés du wallet.
+
+L’interface `SeriesApp.tsx` contient exactement trois routes. `series-api.ts` n’agit que dans sa sandbox locale avec des personnages de test et garde des identifiants idempotents pour ses commandes. Le wallet externe est un lecteur testnet ; aucune opération financière testnet n’est activée ici. La capacité, les dates et les restrictions restent imposées par les contrats, indépendamment des boutons.
+
+Le format d’état a changé : nouvelles instances obligatoires. La factory historique sans admin conserve ses tests de plans libres ; elle ne représente pas une série. Aucun upgrade ni sweep n’a été ajouté.
+
+Les sections historiques ci-dessous détaillent le socle réutilisé ; leurs mentions de plans libres ou d’objectif/projection ne définissent plus le produit de séries.
+
 # Architecture et états
 
 ## Composants

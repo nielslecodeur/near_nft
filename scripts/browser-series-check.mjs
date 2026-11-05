@@ -1,0 +1,24 @@
+import {chromium} from "@playwright/test";
+import assert from "node:assert/strict";
+import {mkdir,writeFile} from "node:fs/promises";
+const browser=await chromium.launch({executablePath:"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",headless:true,args:["--disable-gpu"]});
+const checks=[],captures=[];const root=".impeccable/review/series";await mkdir(root,{recursive:true});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:"reduce"});const errors=[];page.on("pageerror",e=>errors.push(String(e)));
+ await page.goto("http://127.0.0.1:5173/#series");await page.getByRole("heading",{name:"Une échéance. Des règles fixes."}).waitFor({timeout:60000});
+ for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:1000});for(const route of ["series","positions","market"]){await page.goto("http://127.0.0.1:5173/#"+route);await page.locator("main[aria-busy=false]").waitFor({timeout:30000});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),route+" overflow at "+width);const path=`${root}/${route}-${width}.png`;await page.screenshot({path,fullPage:true});captures.push(path);}}checks.push("three routes render without overflow at 320/390/768/1440");
+ await page.setViewportSize({width:1440,height:1000});await page.goto("http://127.0.0.1:5173/#series");
+ async function command(button,expectedError=false){await page.getByRole("button",{name:button,exact:true}).click();const dialog=page.getByRole("dialog");await dialog.waitFor();await dialog.getByRole("button",{name:"Confirmer en sandbox",exact:true}).click();if(expectedError){await dialog.getByRole("alert").waitFor({timeout:60000});await dialog.getByRole("button",{name:"Fermer",exact:true}).click();}else await dialog.waitFor({state:"hidden",timeout:120000});}
+ let lostRequest;await page.route("http://127.0.0.1:8788/command",async route=>{const body=route.request().postDataJSON();if(body.action==="subscribe"&&!lostRequest){lostRequest=body;await route.fetch();await route.abort("failed");}else await route.continue();});
+ await page.getByLabel("Montant en demoUSD",{exact:true}).fill("100");await command("Examiner la souscription",true);
+ const replay=await page.evaluate(async body=>{const r=await fetch("http://127.0.0.1:8788/command",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});return{status:r.status,data:await r.json()};},lostRequest);assert.equal(replay.status,200);assert.equal(replay.data.positions.filter(p=>p.funded).length,1);checks.push("lost HTTP response then same UUID retry creates exactly one funded position");
+ await page.getByRole("link",{name:"Mes positions",exact:true}).click();await page.getByRole("heading",{name:"Mes positions",exact:true}).waitFor();checks.push("real subscription 100 and position loaded");
+ await command("Autoriser l’agent");await command("Exécuter l’allocation");await command("Tester le plafond",true);checks.push("real agent allocation and refused over-cap attempt");
+ await command("Dénouer la stratégie");await command("Mettre en vente");await page.getByRole("link",{name:"Marché",exact:true}).click();await page.getByLabel("Compte de démo").selectOption("Bob");await command("Examiner l’achat");checks.push("real fixed-price sale Alice to Bob");
+ await page.getByRole("link",{name:"Mes positions",exact:true}).click();await page.getByRole("heading",{name:/position\.market/}).waitFor();assert.ok(await page.getByText("Aucune délégation active.",{exact:false}).count());checks.push("Bob sees same position with revoked delegation");
+ await page.screenshot({path:root+"/bob-position.png",fullPage:true});captures.push(root+"/bob-position.png");
+ await page.getByText("Temps de démonstration",{exact:true}).click();await command("Atteindre l’échéance en sandbox");await command("Retirer les fonds");checks.push("sandbox fast-forward and Bob withdrawal confirmed");
+ await page.getByLabel("Compte de démo").selectOption("Alice");await page.getByRole("heading",{name:"Votre première position attend sa série."}).waitFor();checks.push("seller no longer sees the sold NFT among owned positions");
+ await page.getByRole("link",{name:"Aller au contenu",exact:true}).focus();await page.keyboard.press("Enter");assert.equal(await page.evaluate(()=>location.hash),"#positions");assert.equal(await page.evaluate(()=>document.activeElement.id),"content");assert.deepEqual(errors,[]);checks.push("skip link preserves route and focuses main; reduced motion and no page exceptions");
+ const report={date:new Date().toISOString(),checks,captures,scope:"Real browser and real local WASM series API. No external wallet login or testnet transaction."};await writeFile("docs/results/series-ui.json",JSON.stringify(report,null,2)+"\n");console.log(JSON.stringify(report));
+}finally{await browser.close();}

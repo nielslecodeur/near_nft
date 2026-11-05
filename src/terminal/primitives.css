@@ -1,0 +1,505 @@
+.ek-ui {
+  color-scheme: dark;
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--type-sm);
+  line-height: var(--line-normal);
+  font-weight: var(--weight-regular);
+  letter-spacing: var(--tracking-body);
+  accent-color: var(--color-brand);
+  caret-color: var(--color-brand);
+  scrollbar-color: var(--color-control-border) var(--color-s1);
+  scrollbar-width: thin;
+}
+.ek-ui,
+.ek-ui *,
+.ek-ui *::before,
+.ek-ui *::after {
+  box-sizing: border-box;
+}
+.ek-ui ::selection {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+}
+.ek-ui :where(button, input, select) {
+  font: inherit;
+}
+.ek-ui :is(button, input, select, [tabindex]):focus-visible {
+  outline: var(--stroke-focus) solid var(--color-brand);
+  outline-offset: var(--space-1);
+}
+.ek-ui :where(svg.lucide) {
+  flex: none;
+  width: var(--layout-icon);
+  height: var(--layout-icon);
+  stroke-width: 2;
+}
+.ek-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--layout-touch-target);
+  padding: var(--space-2) var(--space-4);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-s2);
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-tight);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color var(--duration-fast) var(--ease-ui),
+    color var(--duration-fast) var(--ease-ui),
+    border-color var(--duration-fast) var(--ease-ui),
+    box-shadow var(--duration-fast) var(--ease-ui);
+}
+.ek-button:hover:not(:disabled) {
+  background: var(--color-s3);
+  border-color: var(--color-control-border);
+}
+.ek-button:active:not(:disabled) {
+  background: var(--color-bg);
+  box-shadow: inset 0 var(--stroke-focus) 0 var(--color-highlight);
+}
+.ek-button--primary {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+  border-color: var(--color-brand);
+}
+.ek-button--primary:hover:not(:disabled) {
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+.ek-button--primary:active:not(:disabled) {
+  background: var(--color-brand);
+}
+.ek-button--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.ek-button--danger {
+  color: var(--color-down);
+}
+.ek-button:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+.ek-button[aria-busy="true"] {
+  opacity: 1;
+  cursor: progress;
+  color: var(--color-muted);
+}
+.ek-button > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ek-icon-button {
+  width: var(--layout-touch-target);
+  padding: var(--space-2);
+}
+.ek-icon-button > span {
+  display: flex;
+}
+.ek-field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.ek-field > label {
+  font-weight: var(--weight-medium);
+}
+.ek-input-wrap {
+  position: relative;
+  min-width: 0;
+}
+.ek-input-wrap > svg {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  transform: translateY(-50%);
+  color: var(--color-muted);
+  pointer-events: none;
+}
+.ek-input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--layout-touch-target);
+  padding: var(--space-2) var(--space-3);
+  border: var(--stroke-border) solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition:
+    border-color var(--duration-fast) var(--ease-ui),
+    background-color var(--duration-fast) var(--ease-ui);
+}
+.ek-input-wrap--icon .ek-input {
+  padding-inline-start: calc(
+    var(--space-3) + var(--layout-icon) + var(--space-2)
+  );
+}
+.ek-input::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+.ek-input[inputmode="decimal"],
+.ek-input[type="number"] {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.ek-input:hover:not(:disabled) {
+  background: var(--color-s1);
+}
+.ek-input[aria-invalid="true"] {
+  border-color: var(--color-down);
+}
+.ek-input:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+.ek-field-hint,
+.ek-field-error {
+  margin: 0;
+  font-size: var(--type-xs);
+  line-height: var(--line-normal);
+}
+.ek-field-hint {
+  color: var(--color-muted);
+}
+.ek-field-error {
+  display: flex;
+  gap: var(--space-2);
+  align-items: start;
+  color: var(--color-down);
+}
+.ek-field-error svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+.ek-check,
+.ek-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--layout-touch-target);
+  cursor: pointer;
+}
+.ek-check input {
+  margin: 0;
+  width: var(--space-4);
+  height: var(--space-4);
+  cursor: inherit;
+}
+.ek-check:has(:disabled),
+.ek-switch:has(:disabled) {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+.ek-switch {
+  position: relative;
+}
+.ek-switch input {
+  position: absolute;
+  width: var(--layout-switch-width);
+  height: var(--layout-switch-height);
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.ek-switch-track {
+  display: inline-flex;
+  align-items: center;
+  width: var(--layout-switch-width);
+  height: var(--layout-switch-height);
+  padding: var(--space-1);
+  border-radius: var(--radius-control);
+  background: var(--color-control-border);
+  pointer-events: none;
+  transition: background-color var(--duration-fast) var(--ease-ui);
+}
+.ek-switch-track > span {
+  width: var(--layout-switch-thumb);
+  height: var(--layout-switch-thumb);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  transition: transform var(--duration-fast) var(--ease-ui);
+}
+.ek-switch input:checked + .ek-switch-track {
+  background: var(--color-brand);
+}
+.ek-switch input:checked + .ek-switch-track > span {
+  transform: translateX(
+    calc(
+      var(--layout-switch-width) - var(--layout-switch-thumb) - var(--space-2)
+    )
+  );
+}
+.ek-switch input:focus-visible + .ek-switch-track {
+  outline: var(--stroke-focus) solid var(--color-brand);
+  outline-offset: var(--space-1);
+}
+.ek-number {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: var(--weight-regular);
+}
+.ek-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--color-s2);
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+  font-weight: var(--weight-medium);
+}
+.ek-badge svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+.ek-badge--brand {
+  color: var(--color-brand);
+}
+.ek-badge--up {
+  color: var(--color-up);
+}
+.ek-badge--down {
+  color: var(--color-down);
+}
+.ek-surface {
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+}
+.ek-surface--bg {
+  background: var(--color-bg);
+  box-shadow: var(--shadow-bg);
+}
+.ek-surface--s1 {
+  background: var(--color-s1);
+  box-shadow: var(--shadow-s1);
+}
+.ek-surface--s2 {
+  background: var(--color-s2);
+  box-shadow: var(--shadow-s2);
+}
+.ek-surface--s3 {
+  background: var(--color-s3);
+  box-shadow: var(--shadow-s3);
+}
+.ek-divider {
+  border: 0;
+  border-top: var(--stroke-border) solid var(--color-border);
+  margin: var(--space-6) 0;
+}
+.ek-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  border-bottom: var(--stroke-border) solid var(--color-border);
+}
+.ek-tab {
+  min-height: var(--layout-touch-target);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-weight: var(--weight-medium);
+  transition:
+    color var(--duration-fast) var(--ease-ui),
+    background-color var(--duration-fast) var(--ease-ui);
+}
+.ek-tab:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+.ek-tab[data-state="active"] {
+  color: var(--color-brand);
+  background: var(--color-s2);
+  box-shadow: inset 0 calc(-1 * var(--stroke-focus)) 0 var(--color-brand);
+}
+.ek-tab:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+.ek-tab-panel {
+  padding-block: var(--space-4);
+}
+.ek-tab-panel > :first-child {
+  margin-top: 0;
+}
+.ek-tab-panel > :last-child {
+  margin-bottom: 0;
+}
+.ek-tooltip,
+.ek-menu {
+  z-index: var(--layer-floating);
+  border: var(--stroke-border) solid var(--color-border);
+  background: var(--color-s3);
+  box-shadow: var(--shadow-s3);
+  border-radius: var(--radius-control);
+}
+.ek-tooltip {
+  max-width: var(--layout-tooltip-max);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--type-xs);
+}
+.ek-menu {
+  min-width: var(--layout-menu-min);
+  max-width: calc(100vw - var(--space-8));
+  padding: var(--space-1);
+}
+.ek-menu-item {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: var(--layout-touch-target);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.ek-menu-item[data-highlighted] {
+  outline: var(--stroke-focus) solid var(--color-brand);
+  outline-offset: calc(-1 * var(--stroke-focus));
+  background: var(--color-hover);
+}
+.ek-menu-item[data-disabled] {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+.ek-menu-item--danger {
+  color: var(--color-down);
+}
+.ek-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-overlay);
+  background: var(--color-overlay);
+}
+.ek-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--layer-dialog);
+  width: min(var(--layout-dialog-max), calc(100% - var(--space-8)));
+  max-height: calc(100dvh - var(--space-8));
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-6);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-feature);
+  background: var(--color-s2);
+  box-shadow: var(--shadow-s3);
+}
+.ek-dialog-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.ek-dialog-heading h2 {
+  margin: var(--space-2) 0 0;
+  font-size: var(--type-title);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-title);
+  font-weight: var(--weight-semibold);
+  text-wrap: balance;
+}
+.ek-dialog-description {
+  color: var(--color-muted);
+  margin: var(--space-3) 0 var(--space-6);
+}
+.ek-dialog-body {
+  display: grid;
+  gap: var(--space-4);
+}
+.ek-dialog-footer {
+  display: flex;
+  justify-content: end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+.ek-dialog[data-state="open"],
+.ek-dialog-overlay[data-state="open"] {
+  animation: ek-appear var(--duration-normal) var(--ease-ui);
+}
+@keyframes ek-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.ek-notice {
+  display: flex;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-s1);
+}
+.ek-notice > svg {
+  margin-top: var(--space-1);
+  color: var(--color-muted);
+}
+.ek-notice strong {
+  display: block;
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-1);
+}
+.ek-notice > div > div {
+  color: var(--color-muted);
+}
+.ek-notice--success > svg,
+.ek-notice--success strong {
+  color: var(--color-up);
+}
+.ek-notice--error > svg,
+.ek-notice--error strong {
+  color: var(--color-down);
+}
+.ek-skeleton {
+  display: grid;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+}
+.ek-skeleton-line {
+  display: block;
+  height: var(--layout-skeleton-line);
+  width: 100%;
+  background: var(--color-s3);
+  border-radius: var(--radius-control);
+}
+.ek-skeleton-line--short {
+  width: calc(100% * 2 / 3);
+}
+.ek-sr-only {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: var(--stroke-border);
+  height: var(--stroke-border);
+  padding: 0;
+  margin: calc(-1 * var(--stroke-border));
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ek-ui,
+  .ek-ui *,
+  .ek-dialog-overlay {
+    animation: none !important;
+    transition-duration: 0ms !important;
+  }
+}

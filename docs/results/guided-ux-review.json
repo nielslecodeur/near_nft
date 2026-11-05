@@ -1,0 +1,41 @@
+{
+  "at": "2026-11-04T15:58:55.681Z",
+  "reviewer": "guided_ux_finish_reviewer",
+  "initialDisposition": "fix",
+  "disposition": "ship",
+  "scope": "Verdict pass limited to UX-01/02/03; no financial execution or security audit certification.",
+  "fixes": [
+    {
+      "id": "UX-01",
+      "status": "resolved",
+      "change": "Masquer les détails names disclosure; secondary styling."
+    },
+    {
+      "id": "UX-02",
+      "status": "resolved",
+      "change": "Wallet errors contained; meaningful text, retry and technical details; unavailable balances distinct from zero."
+    },
+    {
+      "id": "UX-03",
+      "status": "resolved",
+      "change": "Grid cards adapt to content; tablet descriptions, exits and actions visible."
+    }
+  ],
+  "captureCount": 30,
+  "widths": [
+    390,
+    768,
+    1440
+  ],
+  "tests": {
+    "typescript": 47,
+    "build": "passed",
+    "browser": "passed; read-only actual testnet snapshot, public wallet adapter and labelled maturity/RPC fixtures",
+    "vaultAndReceipts": "passed; isolated browser synthetic receipts"
+  },
+  "detector": {
+    "runs": 1,
+    "advisories": 14,
+    "scope": "Font/radius scale compared with pre-existing stale DESIGN.md; Orbite preserved; no non-advisory finding."
+  }
+}

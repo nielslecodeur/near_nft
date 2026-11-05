@@ -11,6 +11,22 @@ type RpcTransactionResponse = Awaited<
   ReturnType<Account["signAndSendTransaction"]>
 >;
 import { readFile } from "node:fs/promises";
+
+/** Fast-forward can leave the finalized transaction anchor behind a large height jump.
+ * Wait for ordinary sandbox blocks; never retry a possibly accepted transaction. */
+export async function settleSandboxFinality(account: SandboxAccount) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const [head, final] = await Promise.all([
+      account.rpc("block", { finality: "optimistic" }),
+      account.rpc("block", { finality: "final" }),
+    ]);
+    if (BigInt(head.header.height) - BigInt(final.header.height) <= 5n) return;
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  throw new Error(
+    "Sandbox finalized anchor did not catch up after fast-forward; no transaction sent.",
+  );
+}
 export class Receipt {
   constructor(readonly result: RpcTransactionResponse) {}
   get receiptFailures() {

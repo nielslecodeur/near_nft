@@ -1,0 +1,28 @@
+{
+  "at": "2026-11-04T14:46:15.987Z",
+  "captures": [
+    ".impeccable/review/agent-simple/conversation-390.png",
+    ".impeccable/review/agent-simple/request-390.png",
+    ".impeccable/review/agent-simple/conversation-1440.png",
+    ".impeccable/review/agent-simple/request-1440.png",
+    ".impeccable/review/agent-simple/proposal-fixture-390.png",
+    ".impeccable/review/agent-simple/proposal-fixture-768.png",
+    ".impeccable/review/agent-simple/proposal-fixture-1440.png",
+    ".impeccable/review/agent-simple/expired-fixture-390.png",
+    ".impeccable/review/agent-simple/success-fixture-390.png",
+    ".impeccable/review/agent-simple/success-fixture-1440.png",
+    ".impeccable/review/agent-simple/vault-390.png",
+    ".impeccable/review/agent-simple/vault-1440.png",
+    ".impeccable/review/agent-simple/marketplace-390.png",
+    ".impeccable/review/agent-simple/marketplace-1440.png",
+    ".impeccable/review/agent-simple/backup-settings-390.png"
+  ],
+  "checks": [
+    "conversation preserves requested reserve; incompatible liquidity prepares no paid quote; keyboard focus and reduced motion verified",
+    "compact proposal: one primary creation action, amounts/reserve/fees visible; expired and confirmed branches have no misleading creation button",
+    "vault password form replaces mandatory JSON download; optional legacy import folded; Escape closes protected dialog",
+    "encrypted backup export exists only in Options; real testnet demo origin labelled; responsive widths 390/768/1440 have no document overflow"
+  ],
+  "errors": [],
+  "scope": "public UI and explicit proposal state fixtures; no wallet signatures. Actual chain execution and two approvals are in grouped-agent-proof.json."
+}

@@ -1,0 +1,54 @@
+{
+  "matte": {
+    "rarity": "standard",
+    "frame": "matte",
+    "palette": { "accent": "brand", "surface": "s1" },
+    "layers": [{ "src": "$art", "depth": "background", "opacity": 1 }],
+    "liveFeed": false
+  },
+  "metal": {
+    "rarity": "rare",
+    "frame": "metal",
+    "palette": { "accent": "brand", "surface": "s2" },
+    "layers": [{ "src": "$art", "depth": "background", "opacity": 1 }],
+    "liveFeed": false
+  },
+  "holo": {
+    "rarity": "epic",
+    "frame": "holo",
+    "palette": { "accent": "brand", "surface": "s2" },
+    "layers": [
+      { "src": "$art", "depth": "background", "opacity": 1 },
+      {
+        "src": "/art/terminal/orbit-subject.svg",
+        "depth": "subject",
+        "opacity": 0.85
+      },
+      {
+        "src": "/art/terminal/orbit-foreground.svg",
+        "depth": "foreground",
+        "opacity": 0.7
+      }
+    ],
+    "liveFeed": false
+  },
+  "live": {
+    "rarity": "legendary",
+    "frame": "animated",
+    "palette": { "accent": "brand", "surface": "s3" },
+    "layers": [
+      { "src": "$art", "depth": "background", "opacity": 1 },
+      {
+        "src": "/art/terminal/orbit-subject.svg",
+        "depth": "subject",
+        "opacity": 0.85
+      },
+      {
+        "src": "/art/terminal/orbit-foreground.svg",
+        "depth": "foreground",
+        "opacity": 0.7
+      }
+    ],
+    "liveFeed": true
+  }
+}

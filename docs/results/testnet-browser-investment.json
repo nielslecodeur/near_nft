@@ -1,0 +1,118 @@
+{
+  "at": "2026-11-04T00:23:19.191Z",
+  "mission": {
+    "id": "ff6125e4-3be4-434b-965a-97e6d0eb98ea",
+    "client": "everkeep-niels-mw0wq5r0.testnet",
+    "profile": {
+      "id": "liquidity",
+      "version": "1",
+      "price": "10000000000000000000000",
+      "processing_ns": "120000000000",
+      "enabled": true
+    },
+    "request_hash": "zczrYxbolnfD9QWwCjChpLrjU5KsKwRKo4oPbkOVQnI=",
+    "quote_expires_at": "1793752032595979452",
+    "paid_at": "1793751452661049616",
+    "deadline": "1793751572661049616",
+    "state": "Delivered",
+    "result_hash": "e2Sm2/iqKNb2UKoWjwagKDvVqiud9uE3yh1OcfdeSmQ=",
+    "proposal_expires_at": "1793752359895917864",
+    "outcome": "proposed",
+    "allocation_hashes": [
+      "t3WvFMRisQTKlQYWyEMc0lhBok/manirN71UEFsdHaM="
+    ],
+    "operations": [
+      {
+        "position": "m6c9705d2b156db-0.reserve-v3.everkeep-dev-mw0weth5.testnet",
+        "allocation": {
+          "collection": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+          "strategy_id": "liquidity-v3",
+          "strategy_version": "1",
+          "asset": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+          "strategy": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+          "amount": "35000000",
+          "mandate_hash": "kjqjJhAMK7S4cmc2YI5IycpkHNzDpykuxsPSgAoZmmU="
+        },
+        "state": "Confirmed",
+        "attempt": "2",
+        "authorization_hash": "as7GQEmwKJKXsFCJmKzpzeq7kvIaR90gFsriEOX6sUA=",
+        "authorization_expires_at": "1793752210547689103",
+        "policy_version": "1",
+        "error": null
+      }
+    ],
+    "refund": null,
+    "provider": {
+      "beneficiary": "everkeep-dev-mw0weth5.testnet",
+      "amount": "10000000000000000000000",
+      "state": "Claimable",
+      "attempt": "0"
+    },
+    "failure": null
+  },
+  "transactions": [
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "missions-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "reserve_allocation",
+      "hash": "D5V1Agy4d3zrbARC3rp4UmyxXDFcN4eR3yUc5RDWx74C",
+      "at": "2026-11-04T00:19:50.167Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    },
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "create_plan",
+      "hash": "HsxonwEcvG2VV2teMcfrjnYeysYUc6j6KrxYARhzS93Z",
+      "at": "2026-11-04T00:20:03.227Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    },
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "register_position",
+      "hash": "5sMqJ2voeyC5eUDuHgWVsyBNU5aCu2QeEJ3oq9mqZPCK",
+      "at": "2026-11-04T00:20:12.457Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    },
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "m6c9705d2b156db-0.reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "execute",
+      "hash": "CXf9BxbvjwoQB3Qqs9mxp7bg81tKKPtn96tB6yefNKi8",
+      "at": "2026-11-04T00:20:24.322Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    },
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "missions-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "authorize_allocation",
+      "hash": "EFRpALDdM5QA6PAGL3mHprNMtjFw4XhfNbX36gej985e",
+      "at": "2026-11-04T00:20:35.237Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    },
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "ft_transfer_call",
+      "hash": "HS2Ykgko62MQw2SfXpyyTGKnrBh4dS9j7ZqPVDXfchfW",
+      "at": "2026-11-04T00:20:47.806Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    },
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "missions-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "reconcile_allocation",
+      "hash": "3kaqZCMHeR511WdYFwc25y8u2AS9HEm3VMptKLRqJNG9",
+      "at": "2026-11-04T00:21:12.341Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    }
+  ],
+  "checks": [
+    "browser-local encrypted ML-DSA keys backed up outside repository",
+    "wallet permit and mission-bound ML-DSA authorization both verified on testnet",
+    "exact 35 demoUSD escrow consumed once by operator",
+    "NFT and funding reconciled to original owner",
+    "15 demoUSD of the 50 budget remain unspent"
+  ]
+}

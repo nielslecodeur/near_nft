@@ -1,0 +1,40 @@
+{
+  "at": "2026-11-04T20:22:01.827Z",
+  "checks": [
+    "390: immediate visual catalogue, real images, actual listings separated; intersected search/category/theme and empty reset; touch/keyboard flip, logical focus/inert and stable heights; model review and public-wallet adapter return with exact amount; listing purchase confirmation with no financial signature.",
+    "768: immediate visual catalogue, real images, actual listings separated; intersected search/category/theme and empty reset; touch/keyboard flip, logical focus/inert and stable heights; model review and public-wallet adapter return with exact amount; listing purchase confirmation with no financial signature.",
+    "1440: immediate visual catalogue, real images, actual listings separated; intersected search/category/theme and empty reset; touch/keyboard flip, logical focus/inert and stable heights; model review and public-wallet adapter return with exact amount; listing purchase confirmation with no financial signature.",
+    "Explicit-click 240ms desktop rotation, no hover flip; immediate keyboard/mobile/reduced-motion; image failures retain text and controls."
+  ],
+  "captures": [
+    ".impeccable/review/catalogue/fronts-390.png",
+    ".impeccable/review/catalogue/composition-390.png",
+    ".impeccable/review/catalogue/model-review-390.png",
+    ".impeccable/review/catalogue/creation-resumed-390.png",
+    ".impeccable/review/catalogue/no-results-390.png",
+    ".impeccable/review/catalogue/listing-composition-390.png",
+    ".impeccable/review/catalogue/purchase-review-390.png",
+    ".impeccable/review/catalogue/fronts-768.png",
+    ".impeccable/review/catalogue/composition-768.png",
+    ".impeccable/review/catalogue/model-review-768.png",
+    ".impeccable/review/catalogue/creation-resumed-768.png",
+    ".impeccable/review/catalogue/no-results-768.png",
+    ".impeccable/review/catalogue/listing-composition-768.png",
+    ".impeccable/review/catalogue/purchase-review-768.png",
+    ".impeccable/review/catalogue/fronts-1440.png",
+    ".impeccable/review/catalogue/composition-1440.png",
+    ".impeccable/review/catalogue/model-review-1440.png",
+    ".impeccable/review/catalogue/creation-resumed-1440.png",
+    ".impeccable/review/catalogue/no-results-1440.png",
+    ".impeccable/review/catalogue/listing-composition-1440.png",
+    ".impeccable/review/catalogue/purchase-review-1440.png",
+    ".impeccable/review/catalogue/motion-flip-1440.png",
+    ".impeccable/review/catalogue/image-error-390.png"
+  ],
+  "errors": [],
+  "source": "Actual read-only testnet state at one cached final block through Intear RPC. Wallet connection uses public-account QA adapter; financial signatures always reject.",
+  "limits": [
+    "No new on-chain creation or sale sent.",
+    "No actual Intear popup or user signature verified. Financial transport and contracts unchanged."
+  ]
+}

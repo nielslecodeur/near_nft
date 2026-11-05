@@ -15,7 +15,28 @@ export type Policy = {
   policy_version: string;
 };
 export type Action =
+  | {
+      AuthorizeSubscription: {
+        agent: string;
+        asset: string;
+        strategy: string;
+        amount: string;
+        expires_at: string;
+        beneficiary: string;
+      };
+    }
+  | "CancelSubscription"
   | Redemption
+  | {
+      List: {
+        id: string;
+        price: string;
+        payment_token: string;
+        expires_at: string;
+        valuation_hash: string;
+      };
+    }
+  | { CancelListing: { id: string } }
   | { Withdraw: { asset: string; amount: string; beneficiary: string } }
   | { SetPolicy: { policy: Policy; horizon_years: number; target_bps: number } }
   | "Revoke"
@@ -23,6 +44,22 @@ export type Action =
   | { Transfer: { owner_id: string; public_key: string } }
   | { TransferCall: { owner_id: string; public_key: string; msg: string } };
 export type Snapshot = {
+  funding_permit?: {
+    agent: string;
+    amount: string;
+    expires_at: string;
+    beneficiary: string;
+    ownership_epoch: string;
+    policy_version: string;
+  } | null;
+  series?: import("./series.js").SeriesRules | null;
+  funded?: boolean;
+  sale?: {
+    id: string;
+    price: string;
+    expires_at: string;
+    state: string;
+  } | null;
   account_id: string;
   collection_id: string;
   owner_id: string;
@@ -148,6 +185,7 @@ export function verifyPair(
     ownership_epoch: string;
     sync_seq: string;
   } | null,
+  readOnly = false,
 ) {
   if (
     item.collection_id !== expected ||
@@ -162,7 +200,7 @@ export function verifyPair(
     item.owner_id !== token.owner_id ||
     item.ownership_epoch !== token.ownership_epoch ||
     item.sync_seq !== token.sync_seq ||
-    item.status !== "Active"
+    (!readOnly && item.status !== "Active")
   )
     throw new Error("Synchronisation en cours : opérations refusées");
   return item;

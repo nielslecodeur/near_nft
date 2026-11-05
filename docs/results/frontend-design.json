@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-02T22:30:31.226Z",
+  "liveSandbox": true,
+  "fonts": {
+    "display": true,
+    "body": true
+  },
+  "viewportsWithoutOverflow": [
+    1440,
+    1024,
+    768,
+    650,
+    390,
+    320
+  ],
+  "checks": [
+    "skip link and main focus",
+    "real loading state",
+    "projection deposits and horizon",
+    "rate and inspection with keyboard",
+    "modal focus trap, Escape and focus return",
+    "reduced motion",
+    "self-hosted fonts"
+  ],
+  "pageErrors": [],
+  "scope": "Local sandbox UI. External testnet wallet signing not exercised."
+}

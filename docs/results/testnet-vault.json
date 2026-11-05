@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-04T08:43:40.948Z",
+  "wrongPasswordRejected": true,
+  "wrongOwnerRejected": true,
+  "recovered": 2,
+  "checks": [
+    "restored encrypted backup into fresh isolated browser context",
+    "wrong password and different account rejected",
+    "both ML-DSA position keys decrypted locally then zeroed",
+    "no native credentials or secret bytes exported"
+  ]
+}

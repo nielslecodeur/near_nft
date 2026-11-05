@@ -1,0 +1,646 @@
+/* Positions and Agents extend the approved terminal, without financial changes. */
+.ek-app .agent-missions {
+  padding-top: 0;
+}
+.ek-wallet-exact {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+  min-width: 0;
+}
+.ek-wallet-exact summary {
+  min-height: var(--layout-touch-target);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  text-decoration: underline;
+  text-underline-offset: var(--space-1);
+}
+.ek-wallet-exact .ek-number {
+  display: block;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.ek-app .ek-positions-page > .page-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3) var(--space-6);
+  padding: 0 0 var(--space-6);
+  margin-block: var(--space-8);
+  border: 0;
+}
+.ek-app .ek-positions-page > .page-title h1 {
+  margin: 0;
+}
+.ek-app .ek-positions-page > .page-title p {
+  grid-column: 1;
+  margin: 0;
+  color: var(--color-muted);
+}
+.ek-app .ek-positions-page > .page-title button {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+.ek-wallet-overview {
+  padding: var(--space-6);
+  background: var(--color-s1);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+}
+.ek-wallet-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.ek-wallet-account > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.ek-wallet-account h2 {
+  margin: 0;
+  font-size: var(--type-title);
+}
+.ek-wallet-account > p {
+  width: 100%;
+  margin: 0;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+.ek-wallet-account .ek-inline-actions {
+  margin-block: var(--space-3) var(--space-6);
+}
+.ek-app .ek-wallet-explorer {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--layout-touch-target);
+  color: var(--color-muted);
+}
+.ek-wallet-receive {
+  padding: var(--space-4);
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-control);
+  background: var(--color-s2);
+}
+.ek-wallet-receive h3 {
+  margin-top: 0;
+}
+.ek-wallet-receive p {
+  max-width: var(--layout-measure);
+  color: var(--color-muted);
+}
+.ek-wallet-receive code {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.ek-token-balances,
+.ek-wallet-skeletons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  padding-block: var(--space-6);
+  border-block: var(--stroke-border) solid var(--color-border);
+}
+.ek-token-balances > div {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.ek-token-balances > div > :first-child {
+  font-size: var(--type-sm);
+}
+.ek-token-balances strong {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--type-heading);
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+.ek-token-balances strong .ek-number {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.ek-token-balances small,
+.ek-token-balances > div > :last-child {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-token-balances > div:last-child strong {
+  font-size: var(--type-title);
+}
+.ek-position-asset-table h3 {
+  margin-block: var(--space-6) var(--space-2);
+}
+.ek-position-asset-table > p {
+  color: var(--color-muted);
+  font-size: var(--type-sm);
+  margin: 0 0 var(--space-4);
+}
+.ek-owned-table-scroll {
+  overflow-x: auto;
+  position: relative;
+}
+.ek-owned-cell-label {
+  display: none;
+}
+.ek-owned-table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.ek-owned-table-scroll :is(th, td) {
+  padding: var(--space-4);
+  border-bottom: var(--stroke-border) solid var(--color-border);
+  font-weight: var(--weight-regular);
+  vertical-align: middle;
+}
+.ek-owned-table-scroll thead th {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-owned-table-scroll td {
+  white-space: nowrap;
+}
+.ek-owned-table-scroll th:first-child {
+  padding-left: 0;
+}
+.ek-owned-table-scroll th small {
+  display: block;
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+  margin-top: var(--space-1);
+}
+.ek-owned-view-tabs {
+  display: flex;
+  gap: var(--space-4);
+  margin-block: var(--space-8) var(--space-6);
+  border-bottom: var(--stroke-border) solid var(--color-border);
+}
+.ek-app .ek-owned-view-tabs button {
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  background: transparent;
+  border: 0;
+  border-bottom: var(--stroke-focus) solid transparent;
+  border-radius: 0;
+  color: var(--color-muted);
+}
+.ek-app .ek-owned-view-tabs [aria-selected="true"] {
+  color: var(--color-brand);
+  border-bottom-color: var(--color-brand);
+}
+.ek-owned-view-tabs .ek-number {
+  font-size: var(--type-xs);
+  padding-inline: var(--space-2);
+  background: var(--color-s2);
+  border-radius: var(--radius-control);
+}
+.ek-app .ek-positions-page .owned-position {
+  padding: var(--space-6);
+  margin-block: var(--space-4);
+  background: var(--color-s1);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  scroll-margin-top: calc(var(--space-20) + var(--space-16));
+}
+.ek-app .ek-positions-page .owned-position-title {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.ek-app .ek-positions-page .owned-position h2 {
+  font-size: var(--type-lead);
+  margin: 0;
+}
+.ek-app .ek-positions-page .owned-position-title > span {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-app .ek-positions-page .position-balances {
+  margin-block: var(--space-6);
+  padding-block: var(--space-4);
+  border-block: var(--stroke-border) solid var(--color-border);
+}
+.ek-app .ek-positions-page .position-balances dd {
+  font-size: var(--type-lead);
+}
+.ek-app .ek-positions-page .owned-position > p {
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+}
+.ek-app .ek-positions-page .owned-detail {
+  padding-top: var(--space-6);
+  margin-top: var(--space-6);
+  border-color: var(--color-border);
+}
+.ek-app .ek-positions-page .position-action-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block: 0 var(--space-6);
+}
+.ek-app .ek-positions-page .position-action-tabs [aria-pressed="true"] {
+  color: var(--color-brand);
+  background: var(--color-s2);
+  border-color: var(--color-control-border);
+}
+.ek-app .ek-positions-page .owned-detail :is(section, details) {
+  max-width: var(--layout-measure);
+}
+.ek-app .ek-positions-page .owned-detail p {
+  color: var(--color-muted);
+}
+.ek-collection-toolbar {
+  display: flex;
+  gap: var(--space-6);
+  align-items: end;
+  margin-block: var(--space-6);
+}
+.ek-collection-toolbar > .ek-field {
+  flex: 1;
+  min-width: 0;
+}
+.ek-collection-toolbar [role="group"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ek-app .ek-collection-toolbar [aria-pressed="true"] {
+  background: var(--color-s2);
+  color: var(--color-brand);
+  border-color: var(--color-control-border);
+}
+.ek-owned-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin-block: var(--space-6);
+}
+.ek-owned-card {
+  min-width: 0;
+  background: var(--color-s1);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  overflow: clip;
+  transition: transform var(--duration-normal) var(--ease-ui);
+}
+.ek-owned-card[data-selected] {
+  border-color: var(--color-brand);
+}
+.ek-app .ek-owned-art {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  min-height: 0;
+  background: transparent;
+  border-radius: 0;
+}
+.ek-owned-card-info {
+  padding: var(--space-4);
+}
+.ek-owned-card-info h3 {
+  margin-block: var(--space-3) var(--space-2);
+  font-size: var(--type-lead);
+}
+.ek-owned-identifier {
+  font-family: var(--font-numeric);
+  font-size: var(--type-xs);
+  overflow-wrap: anywhere;
+  color: var(--color-muted);
+  margin: 0;
+}
+.ek-owned-card-info dl {
+  margin-block: var(--space-6);
+  display: grid;
+  gap: var(--space-4);
+}
+.ek-owned-card-info dt {
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+}
+.ek-owned-card-info dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-sm);
+  overflow-wrap: anywhere;
+}
+.ek-owned-card-info > .ek-button {
+  width: 100%;
+}
+.ek-app .agent-missions .mission-heading {
+  padding: 0;
+  margin-block: var(--space-8) var(--space-4);
+  border: 0;
+}
+.ek-app .agent-missions .mission-heading h1 {
+  margin: 0 0 var(--space-3);
+}
+.ek-app .agent-missions .mission-heading p {
+  max-width: var(--layout-measure);
+  color: var(--color-muted);
+  font-size: var(--type-body);
+}
+.ek-app .agent-missions .conversation-navigation {
+  margin-block: var(--space-4) var(--space-8);
+  padding: 0;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+.ek-app .agent-missions .agent-conversation {
+  display: grid;
+  grid-template-columns:
+    calc(var(--layout-sidebar-width) + var(--space-12))
+    minmax(0, 1fr);
+  gap: var(--space-8);
+  margin: 0;
+  max-width: none;
+}
+.ek-expert-sidebar h2 {
+  font-size: var(--type-lead);
+  margin: 0 0 var(--space-4);
+}
+.ek-expert-options {
+  display: grid;
+  gap: var(--space-3);
+}
+.ek-app .ek-expert-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--layout-icon) minmax(0, 1fr);
+  gap: var(--space-2) var(--space-3);
+  text-align: left;
+  justify-content: start;
+  padding: var(--space-4);
+  background: var(--color-s1);
+  font-weight: var(--weight-regular);
+}
+.ek-expert-option > svg:first-child {
+  grid-column: 1;
+  grid-row: 1 / 4;
+  color: var(--color-muted);
+}
+.ek-expert-option > :is(strong, span, small) {
+  grid-column: 2;
+}
+.ek-expert-option > strong {
+  font-size: var(--type-sm);
+  padding-right: var(--space-4);
+}
+.ek-expert-option > span:not(.ek-number) {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-expert-option > .ek-number {
+  font-size: var(--type-xs);
+}
+.ek-app .ek-expert-option[aria-pressed="true"] {
+  border-color: var(--color-brand);
+  background: var(--color-s2);
+}
+.ek-expert-option[aria-pressed="true"] > svg:first-child {
+  color: var(--color-brand);
+}
+.ek-expert-selected {
+  position: absolute;
+  right: var(--space-3);
+  top: var(--space-4);
+  color: var(--color-brand);
+}
+.ek-expert-disclosure {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: var(--stroke-border) solid var(--color-border);
+}
+.ek-expert-disclosure h3 {
+  font-size: var(--type-sm);
+  margin: 0 0 var(--space-2);
+}
+.ek-expert-disclosure p {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+  margin-block: var(--space-2);
+}
+.ek-agent-workspace {
+  min-width: 0;
+  padding: var(--space-6);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  background: var(--color-s1);
+}
+.ek-agent-workspace-heading h2 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--type-title);
+}
+.ek-agent-workspace-heading p {
+  margin: 0 0 var(--space-3);
+  color: var(--color-muted);
+}
+.ek-app .agent-missions .conversation-composer {
+  display: grid;
+  gap: var(--space-3);
+  margin-block: var(--space-6);
+  max-width: none;
+}
+.ek-app .agent-missions .conversation-composer label {
+  font-size: var(--type-sm);
+  margin: 0;
+}
+.ek-app .agent-missions .conversation-composer textarea {
+  background: var(--color-s2);
+  min-height: var(--layout-swatch-height);
+  padding: var(--space-4);
+  font-size: var(--type-body);
+}
+.ek-app .agent-missions .conversation-composer button {
+  justify-self: start;
+}
+.ek-app .agent-missions .conversation-examples {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-4) var(--space-6);
+}
+.ek-app .agent-missions .conversation-examples button {
+  padding: var(--space-3);
+  text-align: left;
+  justify-content: flex-start;
+  border: var(--stroke-border) solid var(--color-border);
+  background: var(--color-s2);
+  border-radius: var(--radius-control);
+  font-size: var(--type-xs);
+}
+.ek-app
+  .agent-missions
+  :is(.conversation-method-details, .conversation-details) {
+  border-top: var(--stroke-border) solid var(--color-border);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+}
+.ek-app .agent-missions .conversation-thread {
+  margin-block: var(--space-6);
+}
+.ek-app .agent-missions .conversation-line {
+  border-radius: var(--radius-control);
+  background: var(--color-s2);
+  margin-block: var(--space-3);
+  padding: var(--space-4);
+}
+.ek-app .agent-missions .conversation-line p {
+  margin: var(--space-2) 0 0;
+}
+.ek-app .agent-missions .conversation-line strong {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-app .agent-missions .conversation-quote {
+  max-width: none;
+  padding: var(--space-6) 0 0;
+  background: transparent;
+  border-top: var(--stroke-border) solid var(--color-border);
+}
+.ek-app .agent-missions .conversation-quote h2 {
+  font-size: var(--type-title);
+}
+.ek-app
+  .agent-missions
+  :is(.mission-review, .agent-proposal, .mission-summary, .mission-history) {
+  border-color: var(--color-border);
+  background: var(--color-s1);
+  border-radius: var(--radius-surface);
+}
+@media (hover: hover) and (pointer: fine) {
+  .ek-owned-card:hover {
+    transform: translateY(calc(-1 * var(--space-1)));
+  }
+}
+@media (max-width: __BP_TABLET__) {
+  .ek-owned-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ek-app .agent-missions .agent-conversation {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ek-expert-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ek-expert-disclosure {
+    display: none;
+  }
+}
+@media (max-width: __BP_MOBILE__) {
+  .ek-app .ek-positions-page > .page-title {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ek-app .ek-positions-page > .page-title button {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+  }
+  .ek-wallet-overview {
+    padding: var(--space-4);
+  }
+  .ek-wallet-account .ek-inline-actions {
+    gap: var(--space-2);
+  }
+  .ek-token-balances {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+  .ek-owned-table-scroll table {
+    display: block;
+    min-width: 0;
+  }
+  .ek-owned-table-scroll thead {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: var(--stroke-border);
+    height: var(--stroke-border);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .ek-owned-table-scroll tbody {
+    display: block;
+  }
+  .ek-owned-table-scroll tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ek-owned-table-scroll tbody th {
+    padding: var(--space-4) 0;
+  }
+  .ek-owned-table-scroll td {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    align-items: baseline;
+    padding: var(--space-3) 0;
+    white-space: normal;
+  }
+  .ek-owned-table-scroll td .ek-number {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .ek-owned-cell-label {
+    display: block;
+    font-family: var(--font-ui);
+    color: var(--color-muted);
+    font-size: var(--type-xs);
+  }
+  .ek-app .ek-positions-page .owned-position {
+    padding: var(--space-4);
+  }
+  .ek-app .ek-positions-page .owned-position-title {
+    align-items: start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .ek-collection-toolbar {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .ek-owned-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ek-expert-options {
+    gap: var(--space-2);
+  }
+  .ek-app .ek-expert-option {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-3);
+  }
+  .ek-expert-option > strong {
+    font-size: var(--type-xs);
+    padding: 0;
+  }
+  .ek-expert-option > span:not(.ek-number),
+  .ek-expert-selected {
+    display: none;
+  }
+  .ek-expert-option .ek-number {
+    font-size: var(--type-xs);
+  }
+  .ek-agent-workspace {
+    padding: var(--space-4);
+  }
+  .ek-app .agent-missions .conversation-navigation {
+    justify-content: flex-start;
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ek-owned-card:hover {
+    transform: none;
+  }
+}

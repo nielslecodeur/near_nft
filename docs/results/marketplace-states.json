@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-03T16:07:50.332Z",
+  "checks": [
+    "delayed response shows loading then resolves to actual offer",
+    "offline catalogue exposes an error and retry control",
+    "missing series has no invented issue or purchase action",
+    "closed series remains inspectable and blocks purchase",
+    "amount exceeding remaining capacity never opens financial confirmation"
+  ],
+  "commands": 0,
+  "scope": "Render-only HTTP fixtures derived from actual sandbox state. No chain mutation or simulated financial proof."
+}

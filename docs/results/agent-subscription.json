@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-03T11:29:40.339Z",
+  "checks": [
+    "administration ML-DSA réelle, rejeu refusé",
+    "invalid signature cannot create a spending mandate",
+    "genuine ML-DSA mandate alone moves no capital and mints no NFT",
+    "non-exact deposit refunded without consuming authorization",
+    "exact owner deposit reserved in escrow, not yet invested",
+    "different agent refused by contract",
+    "stale policy refused",
+    "designated agent creates one credited NFT position for original owner",
+    "execution replay cannot spend escrow twice",
+    "signed revocation refunds only the original beneficiary exactly once",
+    "revoked mandate cannot be executed later"
+  ],
+  "scope": "Real WASM, real ML-DSA, owner escrow and designated agent subscription. Sandbox only."
+}

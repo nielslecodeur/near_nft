@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-03T10:25:32.645Z",
+  "checks": [
+    "three unique cards, circular arrows, keyboard, grid and honest unavailable strategy states",
+    "reduced motion disables carousel transitions",
+    "all three pages at 320/390/768/1440 without horizontal overflow",
+    "discussion/proposal makes zero spending calls; incompatible liquidity abstains",
+    "real ML-DSA mandate then escrow then designated agent subscription executed as separate confirmations",
+    "new NFT visible in positions; real owner key rotation from user security menu",
+    "second mandate revoked before execution and original owner refunded exactly",
+    "secondary purchase remains a distinct owner action and secure settlement works"
+  ],
+  "captures": [
+    ".impeccable/review/explorer/explorer-320.png",
+    ".impeccable/review/explorer/positions-320.png",
+    ".impeccable/review/explorer/agent-320.png",
+    ".impeccable/review/explorer/explorer-390.png",
+    ".impeccable/review/explorer/positions-390.png",
+    ".impeccable/review/explorer/agent-390.png",
+    ".impeccable/review/explorer/explorer-768.png",
+    ".impeccable/review/explorer/positions-768.png",
+    ".impeccable/review/explorer/agent-768.png",
+    ".impeccable/review/explorer/explorer-1440.png",
+    ".impeccable/review/explorer/positions-1440.png",
+    ".impeccable/review/explorer/agent-1440.png",
+    ".impeccable/review/explorer/positions-populated-390.png",
+    ".impeccable/review/explorer/agent-populated-390.png"
+  ],
+  "scope": "Actual Chrome and real sandbox WASM. No external wallet login or testnet financial transaction."
+}

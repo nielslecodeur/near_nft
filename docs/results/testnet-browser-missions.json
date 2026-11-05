@@ -1,0 +1,59 @@
+{
+  "at": "2026-11-04T00:19:56.931Z",
+  "mission": {
+    "id": "ff6125e4-3be4-434b-965a-97e6d0eb98ea",
+    "client": "everkeep-niels-mw0wq5r0.testnet",
+    "profile": {
+      "id": "liquidity",
+      "version": "1",
+      "price": "10000000000000000000000",
+      "processing_ns": "120000000000",
+      "enabled": true
+    },
+    "request_hash": "zczrYxbolnfD9QWwCjChpLrjU5KsKwRKo4oPbkOVQnI=",
+    "quote_expires_at": "1793752032595979452",
+    "paid_at": "1793751452661049616",
+    "deadline": "1793751572661049616",
+    "state": "Delivered",
+    "result_hash": "e2Sm2/iqKNb2UKoWjwagKDvVqiud9uE3yh1OcfdeSmQ=",
+    "proposal_expires_at": "1793752359895917864",
+    "outcome": "proposed",
+    "allocation_hashes": [
+      "t3WvFMRisQTKlQYWyEMc0lhBok/manirN71UEFsdHaM="
+    ],
+    "operations": [
+      null
+    ],
+    "refund": null,
+    "provider": {
+      "beneficiary": "everkeep-dev-mw0weth5.testnet",
+      "amount": "10000000000000000000000",
+      "state": "Claimable",
+      "attempt": "0"
+    },
+    "failure": null
+  },
+  "transactions": [
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "missions-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "quote",
+      "hash": "5QQ76rDpqR7TSuCvqQrR6WQ9rGpWSTrzRJ1xcwRTTEJY",
+      "at": "2026-11-04T00:17:24.317Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    },
+    {
+      "account": "everkeep-niels-mw0wq5r0.testnet",
+      "receiver": "missions-v3.everkeep-dev-mw0weth5.testnet",
+      "method": "pay",
+      "hash": "DLbGepzmVzqNbR7PKdTurufyeG5mwxrfiiq9ZMfsVENd",
+      "at": "2026-11-04T00:17:35.543Z",
+      "signer": "near-cli-rs 0.30.1, local keychain"
+    }
+  ],
+  "checks": [
+    "real browser wallet quote and exact-price payment",
+    "operator delivered deterministic analysis on testnet",
+    "delivery grants no investment permission; no demoUSD moved"
+  ]
+}

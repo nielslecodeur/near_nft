@@ -1,0 +1,42 @@
+{
+  "consulted_on": "2026-11-02",
+  "catalogue": "https://near.army/",
+  "scope": "Public documentation and repository HEAD discovery only; not a code audit, library installation or execution integration.",
+  "repositories": [
+    {
+      "repo": "near/intents",
+      "head": "d340060afe1debb8c8f2f2fc6b6c999d48c886b0",
+      "status": "resolved"
+    },
+    {
+      "repo": "nearai/cloud-api",
+      "head": "3cee4c05a7c5e0d65656bbe2700eb7ee33160dc5",
+      "status": "resolved"
+    },
+    {
+      "repo": "NEAR-DevHub/trezu",
+      "head": "7b063ddbddc7b8202ab680b44cc8f461504aa869",
+      "status": "resolved"
+    },
+    {
+      "repo": "NEAR-DevHub/trezu-docs",
+      "head": "2269f80e37e88428b9e5d2acf4049ce2eadaf9e2",
+      "status": "resolved"
+    },
+    {
+      "repo": "near-daos/sputnik-dao-contract",
+      "head": "5434a59dec23ee0c49df8c8c4350c208a7e75b0b",
+      "status": "resolved"
+    },
+    {
+      "repo": "out-layer/outlayer",
+      "head": "aaf60a26855e30bc3318126382903df92dea7d3d",
+      "status": "resolved"
+    },
+    {
+      "repo": "rhea-finance/rhea-sdk-docs",
+      "head": "fa77fe1af7db16451531f2d784aad17f9d6a0dc6",
+      "status": "resolved"
+    }
+  ]
+}

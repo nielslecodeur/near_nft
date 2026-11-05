@@ -1,3 +1,8 @@
+mod funding;
+use funding::FundingPermit;
+mod series_types;
+use series_types::SeriesRules;
+mod sale;
 use near_sdk::json_types::{Base64VecU8, U64, U128};
 use near_sdk::serde_json::{self, json};
 use near_sdk::store::LookupMap;
@@ -5,6 +10,7 @@ use near_sdk::{
     AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseOrValue, PromiseResult, env, near,
     require,
 };
+use sale::SaleLock;
 const DAY: u64 = 86_400_000_000_000;
 
 #[near(serializers = [borsh, json])]
@@ -38,6 +44,15 @@ pub struct Envelope {
 }
 #[near(serializers = [json])]
 pub enum Action {
+    AuthorizeSubscription {
+        agent: AccountId,
+        asset: AccountId,
+        strategy: AccountId,
+        amount: U128,
+        expires_at: U64,
+        beneficiary: AccountId,
+    },
+    CancelSubscription,
     Withdraw {
         asset: AccountId,
         amount: U128,
@@ -51,6 +66,16 @@ pub enum Action {
         policy: Policy,
         horizon_years: u16,
         target_bps: u16,
+    },
+    List {
+        id: U64,
+        price: U128,
+        payment_token: AccountId,
+        expires_at: U64,
+        valuation_hash: Base64VecU8,
+    },
+    CancelListing {
+        id: U64,
     },
     Revoke,
     Rotate {
@@ -120,6 +145,11 @@ pub struct Wallet {
     target_bps: u16,
     recipients: LookupMap<AccountId, Consent>,
     transfer_call: Option<TransferCallState>,
+    sale: Option<SaleLock>,
+    last_sale: Option<SaleLock>,
+    sale_sequence: u64,
+    series: Option<SeriesRules>,
+    funding_permit: Option<FundingPermit>,
 }
 fn call(
     account: AccountId,
@@ -159,6 +189,7 @@ impl Wallet {
         owner: AccountId,
         public_key: Base64VecU8,
         proof: Base64VecU8,
+        series: Option<SeriesRules>,
     ) -> Self {
         let id = env::current_account_id();
         require!(env::predecessor_account_id() == collection, "FACTORY_ONLY");
@@ -208,13 +239,18 @@ impl Wallet {
             target_bps: 400,
             recipients: LookupMap::new(b"r"),
             transfer_call: None,
+            sale: None,
+            last_sale: None,
+            sale_sequence: 0,
+            series,
+            funding_permit: None,
         }
     }
     pub fn snapshot(&self) -> serde_json::Value {
         json!({"account_id":env::current_account_id(),"collection_id":self.collection,"owner_id":self.owner,
             "network":self.network,"asset":self.asset,"strategy":self.strategy,"algorithm":"ML-DSA-65",
             "ownership_epoch":U64(self.epoch),"key_version":U64(self.key_version),"policy_version":U64(self.policy_version),
-            "nonce":U64(self.nonce),"public_key":Base64VecU8(self.public_key.clone()),"status":if self.transfer_call.is_some(){"TransferPending"}else if self.active {"Active"} else {"Syncing"},
+            "nonce":U64(self.nonce),"public_key":Base64VecU8(self.public_key.clone()),"funding_permit":self.funding_permit,"series":self.series,"funded":self.deposits>0,"sale":self.sale,"sale_sequence":U64(self.sale_sequence),"status":if self.funding_permit.is_some(){"SubscriptionAuthorized"}else if self.sale.is_some(){"SaleLocked"}else if self.transfer_call.is_some(){"TransferPending"}else if self.active {"Active"} else {"Syncing"},
             "proposed_owner":self.transfer_call.as_ref().map(|_|self.owner.clone()),
             "available":U128(self.available),"reserved":U128(self.reserved),"principal":U128(self.principal),
             "deposits":U128(self.deposits),"withdrawals":U128(self.withdrawals),"realized_gains":U128(self.gains),
@@ -230,7 +266,7 @@ impl Wallet {
         proof: Base64VecU8,
         expires_at: U64,
     ) {
-        self.ready();
+        require!(self.active && self.pending.is_none(), "ACCOUNT_BUSY");
         require!(
             env::attached_deposit() >= NearToken::from_millinear(100),
             "CONSENT_STORAGE_DEPOSIT"
@@ -270,7 +306,7 @@ impl Wallet {
         call(
             self.collection.clone(),
             "sync_item",
-            json!({"owner_id":self.owner,"sequence":U64(self.sync_seq),"epoch":U64(self.epoch)}),
+            json!({"owner_id":self.owner,"sequence":U64(self.sync_seq),"epoch":U64(self.epoch),"funded":self.deposits>0}),
             0,
             15,
         )
@@ -364,10 +400,17 @@ impl Wallet {
         signature: Base64VecU8,
         new_key_proof: Option<Base64VecU8>,
     ) -> PromiseOrValue<serde_json::Value> {
-        self.ready();
+        require!(self.active, "SYNC_REQUIRED");
+        require!(self.pending.is_none(), "PAYMENT_PENDING");
         require!(message.0.len() <= 16_384, "MESSAGE_LIMIT");
         let e: Envelope =
             serde_json::from_slice(&message.0).unwrap_or_else(|_| env::panic_str("MESSAGE_FORMAT"));
+        if !matches!(
+            e.action,
+            Action::CancelListing { .. } | Action::CancelSubscription
+        ) {
+            self.ready();
+        }
         require!(
             serde_json::to_vec(&e).unwrap() == message.0,
             "NON_CANONICAL"
@@ -397,11 +440,59 @@ impl Wallet {
         verify(&self.public_key, &signature.0, &message.0);
         self.nonce = self.nonce.checked_add(1).unwrap();
         match e.action {
+            Action::AuthorizeSubscription {
+                agent,
+                asset,
+                strategy,
+                amount,
+                expires_at,
+                beneficiary,
+            } => {
+                return PromiseOrValue::Promise(self.authorize_funding(
+                    agent,
+                    asset,
+                    strategy,
+                    amount,
+                    expires_at,
+                    beneficiary,
+                ));
+            }
+            Action::CancelSubscription => {
+                let version = self
+                    .funding_permit
+                    .as_ref()
+                    .unwrap_or_else(|| env::panic_str("NO_FUNDING_MANDATE"))
+                    .policy_version;
+                return PromiseOrValue::Promise(
+                    call(
+                        self.collection.clone(),
+                        "cancel_agent_subscription",
+                        json!({"policy_version":version}),
+                        0,
+                        25,
+                    )
+                    .then(call(
+                        env::current_account_id(),
+                        "on_funding_cancelled",
+                        json!({"version":version}),
+                        0,
+                        10,
+                    )),
+                );
+            }
             Action::Withdraw {
                 asset,
                 amount,
                 beneficiary,
             } => {
+                if let Some(series) = &self.series {
+                    require!(
+                        env::block_timestamp() >= series.terms.matures_at.0,
+                        "CAPITAL_LOCKED_UNTIL_MATURITY"
+                    );
+                    require!(self.principal == 0 && self.reserved == 0, "UNWIND_REQUIRED");
+                    require!(beneficiary == self.owner, "CURRENT_OWNER_ONLY");
+                }
                 require!(
                     asset == self.asset
                         && beneficiary != env::current_account_id()
@@ -473,11 +564,64 @@ impl Wallet {
                         && target_bps <= 10_000,
                     "POLICY_EXPIRY"
                 );
+                if let Some(series) = &self.series {
+                    require!(
+                        self.deposits > 0 && env::block_timestamp() < series.terms.matures_at.0,
+                        "SERIES_NOT_INVESTABLE"
+                    );
+                    require!(
+                        policy.max_operation.0 <= series.terms.max_operation.0
+                            && policy.max_period.0 <= series.terms.max_period.0
+                            && policy.allocation_bps <= series.terms.allocation_bps
+                            && policy.expires_at.0 <= series.terms.matures_at.0,
+                        "SERIES_MANDATE_LIMIT"
+                    );
+                    require!(horizon_years == 0 && target_bps == 0, "NO_YIELD_OBJECTIVE");
+                }
                 self.policy_version += 1;
                 self.policy = Some(policy);
                 self.agent_paused = false;
                 self.horizon_years = horizon_years;
                 self.target_bps = target_bps;
+            }
+            Action::List {
+                id,
+                price,
+                payment_token,
+                expires_at,
+                valuation_hash,
+            } => {
+                return PromiseOrValue::Promise(self.list_sale(
+                    id,
+                    price,
+                    payment_token,
+                    expires_at,
+                    valuation_hash,
+                ));
+            }
+            Action::CancelListing { id } => {
+                require!(
+                    self.sale
+                        .as_ref()
+                        .is_some_and(|sale| sale.id == id && sale.state == "Frozen"),
+                    "SALE_NOT_CANCELLABLE"
+                );
+                return PromiseOrValue::Promise(
+                    call(
+                        self.collection.clone(),
+                        "cancel_listing",
+                        json!({"id":id}),
+                        0,
+                        20,
+                    )
+                    .then(call(
+                        env::current_account_id(),
+                        "on_listing_cancelled",
+                        json!({"id":id}),
+                        0,
+                        10,
+                    )),
+                );
             }
             Action::Revoke => {
                 self.revoke_inner();
@@ -522,6 +666,11 @@ impl Wallet {
     }
     /// Only narrows authority. A classical owner key cannot withdraw or broaden a mandate.
     pub fn pause_agent(&mut self) {
+        require!(
+            self.funding_permit.is_none(),
+            "SUBSCRIPTION_PENDING_USE_SIGNED_CANCELLATION"
+        );
+        require!(self.sale.is_none(), "SALE_LOCKED");
         require!(env::predecessor_account_id() == self.owner, "OWNER_ONLY");
         self.revoke_inner();
     }
@@ -532,6 +681,12 @@ impl Wallet {
         policy_version: U64,
     ) -> Promise {
         self.ready();
+        if let Some(series) = &self.series {
+            require!(
+                self.deposits > 0 && env::block_timestamp() < series.terms.matures_at.0,
+                "SERIES_NOT_INVESTABLE"
+            );
+        }
         require!(!self.agent_paused, "AGENT_REVOKED");
         let p = self.policy.as_ref().unwrap();
         require!(env::predecessor_account_id() == p.agent, "AGENT_ONLY");
@@ -579,13 +734,35 @@ impl Wallet {
     }
     pub fn ft_on_transfer(&mut self, sender_id: AccountId, amount: U128, msg: String) -> U128 {
         require!(env::predecessor_account_id() == self.asset, "FT_ONLY");
-        require!(self.active && self.pending.is_none(), "ACCOUNT_BUSY");
+        require!(
+            self.active && self.pending.is_none() && self.sale.is_none(),
+            "ACCOUNT_BUSY"
+        );
         require!(amount.0 > 0, "ZERO");
         if msg == "yield" {
             require!(sender_id == self.strategy, "YIELD_SOURCE");
             self.gains = self.gains.checked_add(amount.0).unwrap();
         } else {
             require!(msg == env::current_account_id().as_str(), "PLAN_MESSAGE");
+            if let Some(series) = &self.series {
+                require!(
+                    sender_id == self.collection && self.deposits == 0,
+                    "SINGLE_INITIAL_SUBSCRIPTION_ONLY"
+                );
+                require!(
+                    env::block_timestamp() >= series.terms.opens_at.0
+                        && env::block_timestamp() < series.terms.closes_at.0
+                        && amount.0 >= series.terms.minimum.0,
+                    "SUBSCRIPTION_TERMS"
+                );
+            }
+            if let Some(permit) = &self.funding_permit {
+                require!(
+                    amount == permit.amount && env::block_timestamp() < permit.expires_at.0,
+                    "FUNDING_MANDATE_LIMIT"
+                );
+            }
+            self.funding_permit = None;
             self.deposits = self.deposits.checked_add(amount.0).unwrap();
         }
         self.available = self.available.checked_add(amount.0).unwrap();
@@ -593,6 +770,9 @@ impl Wallet {
             "deposit",
             json!({"sender_id":sender_id,"amount":amount,"kind":msg}),
         );
+        if self.series.is_some() && msg != "yield" {
+            self.sync().detach();
+        }
         U128(0)
     }
     #[private]
@@ -717,7 +897,103 @@ mod tests {
             target_bps: 400,
             recipients: LookupMap::new(b"r"),
             transfer_call: None,
+            sale: None,
+            last_sale: None,
+            sale_sequence: 0,
+            series: None,
+            funding_permit: None,
         }
+    }
+    #[test]
+    fn sale_valuation_timestamp_is_frozen_and_survives_cancellation() {
+        let mut w = wallet();
+        assert!(w.sale_valuation_at(U64(1)).is_none());
+        let quote = w.sale_quote(U128(97), U64(DAY + 100));
+        let hash = serde_json::from_value(quote["valuation_hash"].clone()).unwrap();
+        w.list_sale(U64(1), U128(97), w.asset.clone(), U64(DAY + 100), hash).detach();
+        assert_eq!(w.sale_valuation_at(U64(1)).unwrap().0, DAY);
+        context("collection.testnet", Some(PromiseResult::Successful(b"true".to_vec())));
+        assert!(w.on_listing_cancelled(U64(1)));
+        let mut later = VMContextBuilder::new();
+        later.current_account_id("plan.collection.testnet".parse().unwrap())
+            .block_timestamp(DAY * 2);
+        testing_env!(later.build());
+        assert_eq!(w.sale_valuation_at(U64(1)).unwrap().0, DAY);
+        assert!(w.sale_valuation_at(U64(2)).is_none());
+    }
+    #[test]
+    fn sale_abort_fences_delayed_commit_and_release_is_idempotent() {
+        let mut w = wallet();
+        w.sale = Some(SaleLock {
+            id: U64(1),
+            price: U128(97),
+            expires_at: U64(DAY),
+            valuation_hash: Base64VecU8(vec![1; 32]),
+            state: "Frozen".into(),
+            buyer: None,
+        });
+        context("collection.testnet", None);
+        assert_eq!(w.abort_sale(U64(1))["state"], "Aborted");
+        assert_eq!(
+            w.commit_sale(U64(1), "bob.testnet".parse().unwrap())["state"],
+            "Aborted"
+        );
+        assert_eq!(w.owner, "alice.testnet".parse::<AccountId>().unwrap());
+        assert!(w.release_sale(U64(1)));
+        assert!(w.release_sale(U64(1)));
+        assert_eq!(w.available, 1000);
+    }
+    #[test]
+    fn committed_sale_cannot_be_aborted() {
+        let mut w = wallet();
+        w.sale = Some(SaleLock {
+            id: U64(1),
+            price: U128(97),
+            expires_at: U64(DAY),
+            valuation_hash: Base64VecU8(vec![1; 32]),
+            state: "Committed".into(),
+            buyer: Some("bob.testnet".parse().unwrap()),
+        });
+        context("collection.testnet", None);
+        assert_eq!(w.abort_sale(U64(1))["state"], "Committed");
+        assert_eq!(
+            w.commit_sale(U64(1), "mallory.testnet".parse().unwrap())["buyer"],
+            "bob.testnet"
+        );
+    }
+    #[test]
+    #[should_panic(expected = "SALE_LOCKED")]
+    fn frozen_sale_blocks_agent() {
+        let mut w = wallet();
+        w.sale = Some(SaleLock {
+            id: U64(1),
+            price: U128(97),
+            expires_at: U64(DAY),
+            valuation_hash: Base64VecU8(vec![1; 32]),
+            state: "Frozen".into(),
+            buyer: None,
+        });
+        context("agent.testnet", None);
+        let _ = w.agent_allocate(U128(1), U64(0), U64(1));
+    }
+    #[test]
+    #[should_panic(expected = "ACCOUNT_BUSY")]
+    fn frozen_sale_rejects_late_yield_without_revaluing() {
+        let mut w = wallet();
+        w.sale = Some(SaleLock {
+            id: U64(1),
+            price: U128(97),
+            expires_at: U64(DAY),
+            valuation_hash: Base64VecU8(vec![1; 32]),
+            state: "Frozen".into(),
+            buyer: None,
+        });
+        context("demo.testnet", None);
+        w.ft_on_transfer(
+            "strategy.testnet".parse().unwrap(),
+            U128(10),
+            "yield".into(),
+        );
     }
     #[test]
     fn real_ml_dsa_host_verifies_independent_noble_fixture() {
@@ -989,6 +1265,9 @@ impl Wallet {
         proof: Option<Base64VecU8>,
         msg: Option<String>,
     ) -> Promise {
+        if self.series.is_some() {
+            require!(self.deposits > 0, "UNFUNDED_POSITION");
+        }
         require!(
             owner_id != self.owner
                 && owner_id != env::current_account_id()
@@ -1026,11 +1305,13 @@ impl Wallet {
         }
         event(
             "control_transfer",
-            json!({"old_owner_id":old_owner,"owner_id":self.owner,"epoch":U64(self.epoch)}),
+            json!({"old_owner_id":old_owner,"owner_id":self.owner,"epoch":U64(self.epoch),"funded":self.deposits>0}),
         );
         self.sync()
     }
     fn ready(&self) {
+        require!(self.funding_permit.is_none(), "SUBSCRIPTION_PENDING");
+        require!(self.sale.is_none(), "SALE_LOCKED");
         require!(self.active, "SYNC_REQUIRED");
         require!(self.pending.is_none(), "PAYMENT_PENDING");
     }

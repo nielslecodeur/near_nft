@@ -1,0 +1,169 @@
+.ek-card-frame {
+  position: relative;
+  aspect-ratio: var(--layout-art-ratio);
+  min-width: 0;
+  perspective: var(--effect-perspective);
+}
+.ek-frame-skin {
+  --mx: 50%;
+  --my: 50%;
+  --dx: 0;
+  --dy: 0;
+  height: 100%;
+  position: relative;
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  background: var(--ek-frame-surface);
+  transform-style: preserve-3d;
+  transform: rotateX(calc(var(--dy) * var(--effect-tilt) * -1))
+    rotateY(calc(var(--dx) * var(--effect-tilt)));
+  transition: transform var(--duration-normal) var(--ease-ui);
+}
+.ek-frame-art {
+  position: absolute;
+  inset: var(--space-1);
+  overflow: hidden;
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+}
+.ek-art-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translate(
+    calc(var(--dx) * var(--effect-parallax) * var(--depth)),
+    calc(var(--dy) * var(--effect-parallax) * var(--depth))
+  );
+}
+.ek-art-layer--background {
+  --depth: -0.5;
+  width: calc(100% + var(--space-4));
+  height: calc(100% + var(--space-4));
+  inset: calc(-1 * var(--space-2));
+}
+.ek-art-layer--subject {
+  --depth: 0.5;
+}
+.ek-art-layer--foreground {
+  --depth: 1;
+}
+.ek-frame-foil,
+.ek-frame-glare,
+.ek-frame-material,
+.ek-frame-pulse {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.ek-frame-foil {
+  display: none;
+  opacity: var(--effect-foil-opacity);
+  background: conic-gradient(
+    from var(--effect-foil-angle) at var(--mx) var(--my),
+    transparent,
+    var(--color-text),
+    var(--ek-frame-accent),
+    transparent,
+    var(--color-text),
+    transparent
+  );
+  mix-blend-mode: screen;
+}
+.ek-frame-glare {
+  display: none;
+  opacity: var(--effect-glare-opacity);
+  background: radial-gradient(
+    ellipse at var(--mx) var(--my),
+    var(--color-text),
+    transparent var(--texture-glow-falloff)
+  );
+}
+.ek-card-frame--metal .ek-frame-material {
+  border: var(--stroke-focus) solid var(--color-control-border);
+  background: linear-gradient(
+    120deg,
+    var(--color-highlight),
+    transparent 40%,
+    var(--color-hover)
+  );
+}
+.ek-card-frame--holo .ek-frame-foil,
+.ek-card-frame--animated .ek-frame-foil,
+.ek-card-frame--holo .ek-frame-glare,
+.ek-card-frame--animated .ek-frame-glare {
+  display: block;
+}
+.ek-card-frame--holo .ek-frame-material,
+.ek-card-frame--animated .ek-frame-material {
+  border: var(--stroke-focus) solid
+    color-mix(in srgb, var(--ek-frame-accent) 55%, var(--color-text));
+}
+.ek-frame-pulse {
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 var(--stroke-focus) var(--ek-frame-accent),
+    0 0 var(--space-6)
+      color-mix(in srgb, var(--ek-frame-accent) 18%, transparent);
+}
+.ek-frame-feed {
+  position: absolute;
+  inset-inline: var(--space-3);
+  bottom: var(--space-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-3);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-s1);
+}
+.ek-feed-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+  grid-column: 1 / -1;
+}
+.ek-feed-label svg {
+  width: var(--space-3);
+  height: var(--space-3);
+}
+.ek-feed-values {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ek-frame-feed .ek-sparkline {
+  align-self: center;
+  width: var(--space-16);
+}
+.ek-frame-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  gap: var(--space-2);
+  background: var(--color-s2);
+  color: var(--color-muted);
+  text-align: center;
+}
+.ek-frame-fallback > span:last-child {
+  font-size: var(--type-xs);
+}
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .ek-frame-skin,
+  .ek-art-layer {
+    transform: none;
+  }
+  .ek-frame-glare {
+    display: none;
+  }
+}

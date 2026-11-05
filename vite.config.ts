@@ -8,8 +8,22 @@ export default defineConfig({
     watch: {
       usePolling: Boolean(process.env.WSL_DISTRO_NAME),
       interval: 500,
-      ignored: ["**/.research/**", "**/artifacts/**", "**/contracts/**", "**/target/**"],
+      ignored: [
+        "**/.research/**",
+        "**/artifacts/**",
+        "**/contracts/**",
+        "**/target/**",
+      ],
     },
   },
-  build: { target: "es2022" },
+  build: {
+    target: "es2022",
+    rollupOptions: {
+      input: {
+        app: "index.html",
+        primitives: "design/primitives.html",
+        components: "design/components.html",
+      },
+    },
+  },
 });

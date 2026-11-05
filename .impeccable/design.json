@@ -1,0 +1,473 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-04T22:59:11.919Z",
+  "title": "Design System: Everkeep Terminal",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Terminal black",
+        "canonical": "#07080C",
+        "tonalRamp": [
+          "oklch(15.00% 0.0039 272.54)",
+          "oklch(26.43% 0.0067 272.54)",
+          "oklch(37.86% 0.0086 272.54)",
+          "oklch(49.29% 0.0094 272.54)",
+          "oklch(60.71% 0.0088 272.54)",
+          "oklch(72.14% 0.0070 272.54)",
+          "oklch(83.57% 0.0043 272.54)",
+          "oklch(95.00% 0.0009 272.54)"
+        ]
+      },
+      "s1": {
+        "role": "neutral",
+        "displayName": "Low surface",
+        "canonical": "#0D0F16",
+        "tonalRamp": [
+          "oklch(15.00% 0.0062 272.30)",
+          "oklch(26.43% 0.0108 272.30)",
+          "oklch(37.86% 0.0138 272.30)",
+          "oklch(49.29% 0.0150 272.30)",
+          "oklch(60.71% 0.0141 272.30)",
+          "oklch(72.14% 0.0112 272.30)",
+          "oklch(83.57% 0.0068 272.30)",
+          "oklch(95.00% 0.0015 272.30)"
+        ]
+      },
+      "s2": {
+        "role": "neutral",
+        "displayName": "Raised surface",
+        "canonical": "#141722",
+        "tonalRamp": [
+          "oklch(15.00% 0.0093 272.51)",
+          "oklch(26.43% 0.0161 272.51)",
+          "oklch(37.86% 0.0207 272.51)",
+          "oklch(49.29% 0.0224 272.51)",
+          "oklch(60.71% 0.0211 272.51)",
+          "oklch(72.14% 0.0168 272.51)",
+          "oklch(83.57% 0.0102 272.51)",
+          "oklch(95.00% 0.0022 272.51)"
+        ]
+      },
+      "s3": {
+        "role": "neutral",
+        "displayName": "Floating surface",
+        "canonical": "#1C2030",
+        "tonalRamp": [
+          "oklch(15.00% 0.0128 273.14)",
+          "oklch(26.43% 0.0223 273.14)",
+          "oklch(37.86% 0.0287 273.14)",
+          "oklch(49.29% 0.0311 273.14)",
+          "oklch(60.71% 0.0292 273.14)",
+          "oklch(72.14% 0.0233 273.14)",
+          "oklch(83.57% 0.0141 273.14)",
+          "oklch(95.00% 0.0030 273.14)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Ivory text",
+        "canonical": "#F0F2EA",
+        "tonalRamp": [
+          "oklch(15.00% 0.0045 118.02)",
+          "oklch(26.43% 0.0077 118.02)",
+          "oklch(37.86% 0.0100 118.02)",
+          "oklch(49.29% 0.0108 118.02)",
+          "oklch(60.71% 0.0101 118.02)",
+          "oklch(72.14% 0.0081 118.02)",
+          "oklch(83.57% 0.0049 118.02)",
+          "oklch(95.00% 0.0011 118.02)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Sage muted text",
+        "canonical": "#A6B0A8",
+        "tonalRamp": [
+          "oklch(15.00% 0.0066 151.68)",
+          "oklch(26.43% 0.0114 151.68)",
+          "oklch(37.86% 0.0147 151.68)",
+          "oklch(49.29% 0.0159 151.68)",
+          "oklch(60.71% 0.0149 151.68)",
+          "oklch(72.14% 0.0119 151.68)",
+          "oklch(83.57% 0.0072 151.68)",
+          "oklch(95.00% 0.0016 151.68)"
+        ]
+      },
+      "brand": {
+        "role": "primary",
+        "displayName": "Terminal lime",
+        "canonical": "#B5F36B",
+        "tonalRamp": [
+          "oklch(15.00% 0.0660 129.84)",
+          "oklch(26.43% 0.1147 129.84)",
+          "oklch(37.86% 0.1475 129.84)",
+          "oklch(49.29% 0.1600 129.84)",
+          "oklch(60.71% 0.1503 129.84)",
+          "oklch(72.14% 0.1198 129.84)",
+          "oklch(83.57% 0.0728 129.84)",
+          "oklch(95.00% 0.0157 129.84)"
+        ]
+      },
+      "on-brand": {
+        "role": "primary",
+        "displayName": "On-brand ink",
+        "canonical": "#07080C",
+        "tonalRamp": [
+          "oklch(15.00% 0.0039 272.54)",
+          "oklch(26.43% 0.0067 272.54)",
+          "oklch(37.86% 0.0086 272.54)",
+          "oklch(49.29% 0.0094 272.54)",
+          "oklch(60.71% 0.0088 272.54)",
+          "oklch(72.14% 0.0070 272.54)",
+          "oklch(83.57% 0.0043 272.54)",
+          "oklch(95.00% 0.0009 272.54)"
+        ]
+      },
+      "up": {
+        "role": "secondary",
+        "displayName": "Positive mint",
+        "canonical": "#4FD498",
+        "tonalRamp": [
+          "oklch(15.00% 0.0601 160.40)",
+          "oklch(26.43% 0.1043 160.40)",
+          "oklch(37.86% 0.1342 160.40)",
+          "oklch(49.29% 0.1455 160.40)",
+          "oklch(60.71% 0.1367 160.40)",
+          "oklch(72.14% 0.1090 160.40)",
+          "oklch(83.57% 0.0662 160.40)",
+          "oklch(95.00% 0.0143 160.40)"
+        ]
+      },
+      "down": {
+        "role": "secondary",
+        "displayName": "Negative rose",
+        "canonical": "#FF7B88",
+        "tonalRamp": [
+          "oklch(15.00% 0.0660 15.75)",
+          "oklch(26.43% 0.1147 15.75)",
+          "oklch(37.86% 0.1475 15.75)",
+          "oklch(49.29% 0.1600 15.75)",
+          "oklch(60.71% 0.1503 15.75)",
+          "oklch(72.14% 0.1198 15.75)",
+          "oklch(83.57% 0.0728 15.75)",
+          "oklch(95.00% 0.0157 15.75)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Quiet border",
+        "canonical": "rgba(255,255,255,0.06)",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 89.88)",
+          "oklch(26.43% 0.0000 89.88)",
+          "oklch(37.86% 0.0000 89.88)",
+          "oklch(49.29% 0.0000 89.88)",
+          "oklch(60.71% 0.0000 89.88)",
+          "oklch(72.14% 0.0000 89.88)",
+          "oklch(83.57% 0.0000 89.88)",
+          "oklch(95.00% 0.0000 89.88)"
+        ]
+      },
+      "highlight": {
+        "role": "neutral",
+        "displayName": "Inset highlight",
+        "canonical": "rgba(255,255,255,0.05)",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 89.88)",
+          "oklch(26.43% 0.0000 89.88)",
+          "oklch(37.86% 0.0000 89.88)",
+          "oklch(49.29% 0.0000 89.88)",
+          "oklch(60.71% 0.0000 89.88)",
+          "oklch(72.14% 0.0000 89.88)",
+          "oklch(83.57% 0.0000 89.88)",
+          "oklch(95.00% 0.0000 89.88)"
+        ]
+      },
+      "hover": {
+        "role": "neutral",
+        "displayName": "Hover wash",
+        "canonical": "rgba(255,255,255,0.04)",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 89.88)",
+          "oklch(26.43% 0.0000 89.88)",
+          "oklch(37.86% 0.0000 89.88)",
+          "oklch(49.29% 0.0000 89.88)",
+          "oklch(60.71% 0.0000 89.88)",
+          "oklch(72.14% 0.0000 89.88)",
+          "oklch(83.57% 0.0000 89.88)",
+          "oklch(95.00% 0.0000 89.88)"
+        ]
+      },
+      "grid": {
+        "role": "neutral",
+        "displayName": "Chart grid",
+        "canonical": "rgba(255,255,255,0.025)",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 89.88)",
+          "oklch(26.43% 0.0000 89.88)",
+          "oklch(37.86% 0.0000 89.88)",
+          "oklch(49.29% 0.0000 89.88)",
+          "oklch(60.71% 0.0000 89.88)",
+          "oklch(72.14% 0.0000 89.88)",
+          "oklch(83.57% 0.0000 89.88)",
+          "oklch(95.00% 0.0000 89.88)"
+        ]
+      },
+      "brand-glow": {
+        "role": "primary",
+        "displayName": "Lime atmosphere",
+        "canonical": "rgba(181,243,107,0.10)",
+        "tonalRamp": [
+          "oklch(15.00% 0.0660 129.84)",
+          "oklch(26.43% 0.1147 129.84)",
+          "oklch(37.86% 0.1475 129.84)",
+          "oklch(49.29% 0.1600 129.84)",
+          "oklch(60.71% 0.1503 129.84)",
+          "oklch(72.14% 0.1198 129.84)",
+          "oklch(83.57% 0.0728 129.84)",
+          "oklch(95.00% 0.0157 129.84)"
+        ]
+      },
+      "control-border": {
+        "role": "neutral",
+        "displayName": "Visible control border",
+        "canonical": "#69716E",
+        "tonalRamp": [
+          "oklch(15.00% 0.0044 171.50)",
+          "oklch(26.43% 0.0077 171.50)",
+          "oklch(37.86% 0.0099 171.50)",
+          "oklch(49.29% 0.0107 171.50)",
+          "oklch(60.71% 0.0101 171.50)",
+          "oklch(72.14% 0.0080 171.50)",
+          "oklch(83.57% 0.0049 171.50)",
+          "oklch(95.00% 0.0011 171.50)"
+        ]
+      },
+      "overlay": {
+        "role": "neutral",
+        "displayName": "Dialog overlay",
+        "canonical": "rgba(7,8,12,0.80)",
+        "tonalRamp": [
+          "oklch(15.00% 0.0039 272.54)",
+          "oklch(26.43% 0.0067 272.54)",
+          "oklch(37.86% 0.0086 272.54)",
+          "oklch(49.29% 0.0094 272.54)",
+          "oklch(60.71% 0.0088 272.54)",
+          "oklch(72.14% 0.0070 272.54)",
+          "oklch(83.57% 0.0043 272.54)",
+          "oklch(95.00% 0.0009 272.54)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Main page headings; steps down at mobile width."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Detail headings and narrow page titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section, dialog and action-panel headings."
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Supporting headings and desktop catalogue names."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Compact interface reading."
+      },
+      "field": {
+        "displayName": "Field",
+        "purpose": "Full-size fields and data; mobile inputs."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Functional metadata and provenance."
+      },
+      "numeric": {
+        "displayName": "Numeric",
+        "purpose": "Financial figures and addresses with tabular alignment."
+      }
+    },
+    "shadows": [
+      {
+        "name": "bg",
+        "value": "none",
+        "purpose": "Flat page base."
+      },
+      {
+        "name": "s1",
+        "value": "inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 40px rgba(0,0,0,0.16)",
+        "purpose": "Low surfaces and real-page primary hover."
+      },
+      {
+        "name": "s2",
+        "value": "inset 0 1px 0 rgba(255,255,255,0.05), 0 16px 48px rgba(0,0,0,0.22)",
+        "purpose": "Raised trade panels."
+      },
+      {
+        "name": "s3",
+        "value": "inset 0 1px 0 rgba(255,255,255,0.05), 0 24px 64px rgba(0,0,0,0.28)",
+        "purpose": "Floating menus, tooltips and dialogs."
+      }
+    ],
+    "motion": [
+      {
+        "name": "fast",
+        "value": "180ms",
+        "purpose": "Control feedback and grid entry."
+      },
+      {
+        "name": "normal",
+        "value": "200ms",
+        "purpose": "Card/material transitions and dialog opacity."
+      },
+      {
+        "name": "expressive",
+        "value": "240ms",
+        "purpose": "Quote-change pulse when an explicitly sourced feed exists."
+      },
+      {
+        "name": "ease-ui",
+        "value": "cubic-bezier(.2,.8,.2,1)",
+        "purpose": "Shared short UI easing."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Disable motion, tilt and smooth scroll; retain accessible actions."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "640px"
+      },
+      {
+        "name": "tablet",
+        "value": "960px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Real-page primary action; lime is retained on hover.",
+      "html": "<button class=\"ds-primary\">Examiner la création</button>",
+      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 16px;border:1px solid var(--color-border,rgba(255,255,255,0.06));border-radius:var(--radius-control,8px);font-family:var(--font-ui,Inter, sans-serif);font-size:.875rem;font-weight:600;line-height:1.2;cursor:pointer;transition:background-color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1)),color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1)),box-shadow 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1))}.ds-primary{background:var(--color-brand,#B5F36B);color:var(--color-on-brand,#07080C);}.ds-primary:hover:not(:disabled){background:var(--color-brand,#B5F36B);box-shadow:var(--shadow-s1,inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 40px rgba(0,0,0,0.16));}.ds-primary:active:not(:disabled){transform:translateY(1px)}.ds-primary:disabled{opacity:.45;cursor:not-allowed}.ds-primary:focus-visible{outline:2px solid var(--color-brand,#B5F36B);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}.ds-primary:active{transform:none}}"
+    },
+    {
+      "name": "Secondary action",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Shared terminal action variant.",
+      "html": "<button class=\"ds-secondary\">Actualiser</button>",
+      "css": ".ds-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 16px;border:1px solid var(--color-border,rgba(255,255,255,0.06));border-radius:var(--radius-control,8px);font-family:var(--font-ui,Inter, sans-serif);font-size:.875rem;font-weight:600;line-height:1.2;cursor:pointer;transition:background-color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1)),color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1)),box-shadow 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1))}.ds-secondary{background:var(--color-s2,#141722);color:var(--color-text,#F0F2EA);}.ds-secondary:hover:not(:disabled){background:var(--color-s2,#141722);}.ds-secondary:active:not(:disabled){transform:translateY(1px)}.ds-secondary:disabled{opacity:.45;cursor:not-allowed}.ds-secondary:focus-visible{outline:2px solid var(--color-brand,#B5F36B);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none}.ds-secondary:active{transform:none}}"
+    },
+    {
+      "name": "Ghost action",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Shared terminal action variant.",
+      "html": "<button class=\"ds-ghost\">Retour</button>",
+      "css": ".ds-ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 16px;border:1px solid var(--color-border,rgba(255,255,255,0.06));border-radius:var(--radius-control,8px);font-family:var(--font-ui,Inter, sans-serif);font-size:.875rem;font-weight:600;line-height:1.2;cursor:pointer;transition:background-color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1)),color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1)),box-shadow 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1))}.ds-ghost{background:transparent;color:var(--color-text,#F0F2EA);border-color:transparent;}.ds-ghost:hover:not(:disabled){background:var(--color-s2,#141722);}.ds-ghost:active:not(:disabled){transform:translateY(1px)}.ds-ghost:disabled{opacity:.45;cursor:not-allowed}.ds-ghost:focus-visible{outline:2px solid var(--color-brand,#B5F36B);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-ghost{transition:none}.ds-ghost:active{transform:none}}"
+    },
+    {
+      "name": "Danger action",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Shared terminal action variant.",
+      "html": "<button class=\"ds-danger\">Annuler la mise en vente</button>",
+      "css": ".ds-danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 16px;border:1px solid var(--color-border,rgba(255,255,255,0.06));border-radius:var(--radius-control,8px);font-family:var(--font-ui,Inter, sans-serif);font-size:.875rem;font-weight:600;line-height:1.2;cursor:pointer;transition:background-color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1)),color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1)),box-shadow 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1))}.ds-danger{background:var(--color-s2,#141722);color:var(--color-down,#FF7B88);}.ds-danger:hover:not(:disabled){background:var(--color-s2,#141722);}.ds-danger:active:not(:disabled){transform:translateY(1px)}.ds-danger:disabled{opacity:.45;cursor:not-allowed}.ds-danger:focus-visible{outline:2px solid var(--color-brand,#B5F36B);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-danger{transition:none}.ds-danger:active{transform:none}}"
+    },
+    {
+      "name": "Amount field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Real-page amount entry with explicit units and mono figures.",
+      "html": "<label class=\"ds-field\">Montant (demoUSD)<input inputmode=\"decimal\" placeholder=\"0,00\"><span>Actifs de test sans valeur réelle.</span></label>",
+      "css": ".ds-field{display:grid;gap:8px;color:var(--color-text,#F0F2EA);font-family:var(--font-ui,Inter, sans-serif);font-size:.875rem}.ds-field input{min-width:0;min-height:44px;padding:8px 12px;border:1px solid var(--color-control-border,#69716E);border-radius:var(--radius-control,8px);background:var(--color-s1,#0D0F16);color:var(--color-text,#F0F2EA);font-family:var(--font-numeric,'IBM Plex Mono', monospace);font-size:1rem;font-variant-numeric:tabular-nums;transition:border-color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1))}.ds-field input::placeholder{color:var(--color-muted,#A6B0A8);opacity:1}.ds-field input:hover{background:var(--color-s1,#0D0F16)}.ds-field input[aria-invalid=true]{border-color:var(--color-down,#FF7B88)}.ds-field input:disabled{opacity:.45}.ds-field>span{font-size:.75rem;color:var(--color-muted,#A6B0A8)}.ds-field input:focus-visible{outline:2px solid var(--color-brand,#B5F36B);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-field input{transition:none}}"
+    },
+    {
+      "name": "Current navigation",
+      "kind": "nav",
+      "refersTo": "navigation-active",
+      "description": "Named routes retain the current page and accessible targets.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Navigation principale\"><a href=\"#explorer\" aria-current=\"page\">Explorer</a><a href=\"#positions\">Positions</a><a href=\"#agent\">Agents</a></nav>",
+      "css": ".ds-nav{display:flex;flex-wrap:wrap;gap:16px;background:var(--color-bg,#07080C);font-family:var(--font-ui,Inter, sans-serif)}.ds-nav a{display:inline-flex;align-items:center;min-height:44px;color:var(--color-muted,#A6B0A8);font-size:.875rem;text-decoration:none;transition:color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1))}.ds-nav a:hover,.ds-nav a[aria-current]{color:var(--color-text,#F0F2EA)}.ds-nav a[aria-current]{font-weight:600}.ds-nav a:active{color:var(--color-brand,#B5F36B)}.ds-nav a:focus-visible{outline:2px solid var(--color-brand,#B5F36B);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-nav a{transition:none}}"
+    },
+    {
+      "name": "Catalogue status badge",
+      "kind": "chip",
+      "refersTo": "status-badge",
+      "description": "Noninteractive status metadata; no investment rating is implied.",
+      "html": "<span class=\"ds-badge\">Modèle · NEAR testnet</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:var(--radius-control,8px);background:var(--color-s2,#141722);color:var(--color-muted,#A6B0A8);font-family:var(--font-ui,Inter, sans-serif);font-size:.75rem;font-weight:500}"
+    },
+    {
+      "name": "Catalogue card",
+      "kind": "card",
+      "refersTo": "catalogue-card",
+      "description": "Low-surface catalogue container with a focusable inspection action; illustration is intentionally omitted from this compact snippet.",
+      "html": "<article class=\"ds-card\"><span class=\"ds-card-meta\">Modèle officiel · NEAR</span><button>Examiner les conditions</button><p>Création : minimum indiqué dans la fiche.</p><span class=\"ds-card-note\">Cadre éditorial · aucune note financière</span></article>",
+      "css": ".ds-card{display:grid;gap:8px;padding:16px;max-width:320px;background:var(--color-s1,#0D0F16);color:var(--color-text,#F0F2EA);border:1px solid var(--color-border,rgba(255,255,255,0.06));border-radius:var(--radius-surface,12px);box-shadow:var(--shadow-s1,inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 40px rgba(0,0,0,0.16));font-family:var(--font-ui,Inter, sans-serif);transition:transform 200ms var(--ease-ui,cubic-bezier(.2,.8,.2,1)),border-color 200ms var(--ease-ui,cubic-bezier(.2,.8,.2,1))}.ds-card:hover,.ds-card:focus-within{transform:translateY(-4px);border-color:var(--color-control-border,#69716E)}.ds-card button{min-height:44px;border:0;padding:0;text-align:left;color:var(--color-text,#F0F2EA);background:transparent;font:600 1rem var(--font-ui,Inter, sans-serif);cursor:pointer}.ds-card button:hover{color:var(--color-brand,#B5F36B)}.ds-card button:active{transform:translateY(1px)}.ds-card p{margin:0;line-height:1.5;font-size:.875rem}.ds-card-meta,.ds-card-note{font-size:.75rem;color:var(--color-muted,#A6B0A8)}.ds-card button:focus-visible{outline:2px solid var(--color-brand,#B5F36B);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-card{transition:none}.ds-card:hover,.ds-card:focus-within,.ds-card button:active{transform:none}}"
+    },
+    {
+      "name": "Inspection dialog surface",
+      "kind": "custom",
+      "refersTo": "dialog",
+      "description": "Dialog material sample; the live application supplies focus trapping and authorization handlers.",
+      "html": "<section class=\"ds-dialog\" aria-label=\"Détails du catalogue\"><h2>Examiner les conditions</h2><p>Vérifiez les montants exacts et les autorisations avant signature.</p><button>Fermer</button></section>",
+      "css": ".ds-dialog{max-width:480px;max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;padding:24px;border:1px solid var(--color-border,rgba(255,255,255,0.06));border-radius:var(--radius-feature,20px);background:var(--color-s2,#141722);color:var(--color-text,#F0F2EA);box-shadow:var(--shadow-s3,inset 0 1px 0 rgba(255,255,255,0.05), 0 24px 64px rgba(0,0,0,0.28));font-family:var(--font-ui,Inter, sans-serif)}.ds-dialog h2{margin:0 0 12px;font-size:1.5rem;line-height:1.2;letter-spacing:-.03em;font-weight:600}.ds-dialog p{margin:0 0 24px;color:var(--color-muted,#A6B0A8);font-size:.875rem;line-height:1.65}.ds-dialog button{min-height:44px;padding:8px 16px;border:1px solid var(--color-border,rgba(255,255,255,0.06));border-radius:var(--radius-control,8px);background:var(--color-s2,#141722);color:var(--color-text,#F0F2EA);font:600 .875rem var(--font-ui,Inter, sans-serif);cursor:pointer;transition:background-color 180ms var(--ease-ui,cubic-bezier(.2,.8,.2,1))}.ds-dialog button:hover{background:var(--color-s3,#1C2030)}.ds-dialog button:active{transform:translateY(1px)}.ds-dialog button:focus-visible{outline:2px solid var(--color-brand,#B5F36B);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-dialog button{transition:none}.ds-dialog button:active{transform:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Everkeep Terminal",
+    "overview": "Everkeep is a dark financial terminal for transferable NEAR positions: the assets, constraints and current owner remain legible before an action is authorized. Near-black surfaces, a retained lime accent and original orbital SVG artwork connect the catalogue to positions, agents and wallet controls. French interface copy and explicit testnet context make the setting concrete.\n\nThe approved terminal tokens, primitives and composed components are the current house system. Inter carries interface text and headings; IBM Plex Mono carries financial figures. The existing wordmark stays an outlined SVG asset. Density follows the task: a useful navigation and catalogue strip lead into focused inspection, while transaction reviews keep exact amounts and permission consequences visible.",
+    "keyCharacteristics": [
+      "Near-black tonal layers with restrained lime actions and selection.",
+      "Locally hosted Inter and IBM Plex Mono, with aligned financial numerals.",
+      "Thin borders, soft inset highlights and controlled rounded surfaces.",
+      "Original geometric artwork and optional pointer-responsive editorial frames.",
+      "Truthful availability, explicit units and exact authorization values."
+    ],
+    "rules": [
+      {
+        "name": "The Shared Terminal Rule",
+        "body": "Use the approved terminal materials across catalogue, positions, agents and wallet; vary density and hierarchy with the task.",
+        "section": "colors"
+      },
+      {
+        "name": "The Exact Money Rule",
+        "body": "Never interpolate financial balances. Disclose approximation in compact overviews and retain selectable exact amounts; confirmations and exports remain exact.",
+        "section": "typography"
+      },
+      {
+        "name": "The Depth Explains State Rule",
+        "body": "Combine tonal surfaces and thin borders at rest; use the stronger shared shadow for floating controls and dialogs. Blur belongs to the sticky header.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do preserve French labels, explicit units, visible testnet context and distinctions between observed funds and hypothetical projections.",
+      "Do keep keyboard focus management, accessible names, readable disabled states and selectable exact values.",
+      "Do distinguish a creation minimum from a resale price, and target model composition from assets actually held.",
+      "Do keep mobile wallet panels inside the viewport with internal scrolling, and mobile catalogue controls in the compact two-column arrangement.",
+      "Do derive catalogue availability, listings and amounts from validated product data; show unavailable history explicitly."
+    ],
+    "donts": [
+      "Don't animate financial values or present hypothetical yield as earned.",
+      "Don't substitute compact figures for exact confirmation amounts or merge capital, fees and technical costs.",
+      "Don't treat card-frame names, materials or JSON rarity fields as financial risk ratings, contractual NFT rarity or proof of value.",
+      "Don't import specimen inventory, simulated market metrics or invented history into real catalogue pages.",
+      "Don't add continuous decorative motion or copy external illustrations; retain the original local SVG artwork."
+    ]
+  }
+}

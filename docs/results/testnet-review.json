@@ -1,0 +1,41 @@
+{
+  "at": "2026-11-04T08:48:02.243Z",
+  "disposition": "ship",
+  "scope": "Independent read-only visual/source review of three testnet UX routes at 390/768/1440px. Not a browser execution or security audit.",
+  "sections": {
+    "persistence": "Ordinary extension; preserve historical DESIGN.md and sidecar. Current Orbite tokens documented separately.",
+    "fidelity": "All nine required captures valid; navigation, model/listing distinction, fees/consent, stable money and responsive layout match the incumbent.",
+    "ceiling": "Reached at extension scope; no replacement visual identity.",
+    "material_fixes": [],
+    "keep": "Honest availability, manual carousel, separate fee and capital authorization, exact network balances."
+  },
+  "detector": {
+    "primaryFindings": 0,
+    "advisories": "Historical DESIGN.md token drift only; files preserved."
+  },
+  "requiredCaptures": [
+    ".impeccable/review/testnet/marketplace-desktop.png",
+    ".impeccable/review/testnet/positions-desktop.png",
+    ".impeccable/review/testnet/agents-desktop.png",
+    ".impeccable/review/testnet/marketplace-tablet.png",
+    ".impeccable/review/testnet/positions-tablet.png",
+    ".impeccable/review/testnet/agents-tablet.png",
+    ".impeccable/review/testnet/marketplace-mobile.png",
+    ".impeccable/review/testnet/positions-mobile.png",
+    ".impeccable/review/testnet/agents-mobile.png"
+  ],
+  "finalBuild": {
+    "result": "passed",
+    "tests": 36,
+    "build": "tsc --noEmit && vite build"
+  },
+  "recoveryReview": {
+    "disposition": "ship",
+    "scope": "Incremental public-listing recovery, all eleven captures read-only; not live purchase validation.",
+    "materialFixes": [],
+    "captures": [
+      ".impeccable/review/testnet/recovery-desktop.png",
+      ".impeccable/review/testnet/recovery-mobile.png"
+    ]
+  }
+}

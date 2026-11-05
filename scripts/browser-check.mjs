@@ -4,16 +4,24 @@ const executablePath =
   process.platform === "win32"
     ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
     : process.env.CHROMIUM_PATH;
-const browser = await chromium.launch({ executablePath, headless: true });
+const browser = await chromium.launch({
+  executablePath,
+  headless: true,
+  args: ["--disable-gpu"],
+});
 try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1100 },
   });
   page.setDefaultTimeout(60000);
   const errors = [];
+  let depositRequests = 0;
+  page.on("request",request=>{if(request.method()==="POST"&&request.url().endsWith(":8787/action")&&request.postDataJSON()?.command==="deposit")depositRequests++;});
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("http://127.0.0.1:5173", { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Une longueur d’avance." }).waitFor();
+  await page.goto("http://127.0.0.1:5173/#app", { waitUntil: "networkidle" });
+  await page
+    .getByRole("heading", { name: "Votre plan d’épargne." })
+    .waitFor();
   await mkdir(".research/screenshots", { recursive: true });
   await page.screenshot({
     path: ".research/screenshots/desktop-empty.png",
@@ -38,9 +46,16 @@ try {
       .click();
     await page.getByRole("heading", { name: "Une nouvelle clé." }).waitFor();
     await page.getByRole("button", { name: "Fermer", exact: true }).click();
-    const confirm = async () => {
+    const confirm = async (double = false) => {
       const dialog = page.getByRole("dialog");
-      await dialog.getByRole("button", { name: /^Confirmer/ }).click();
+      if (double) await dialog.getByRole("button", { name: /^Confirmer/ }).evaluate(button=>{button.click();button.click();});
+      else await dialog.getByRole("button", { name: /^Confirmer/ }).click();
+      await expect(dialog.locator(".operation-status.pending")).toBeVisible();
+      await expect(
+        dialog.getByRole("button", { name: "Fermer", exact: true }),
+      ).toBeDisabled();
+      await page.keyboard.press("Escape");
+      await expect(dialog).toBeVisible();
       await expect(dialog).toHaveCount(0, { timeout: 60000 });
     };
     await page
@@ -52,7 +67,8 @@ try {
     );
     await page.getByRole("button", { name: "Déposer", exact: true }).click();
     await page.getByLabel("Montant (demoUSD)").fill("1000");
-    await confirm();
+    await confirm(true);
+    if(depositRequests!==1)throw new Error("Double submission sent more than one deposit request");
     await expect(page.locator(".allocation").first()).toContainText("1 000");
     await page
       .getByRole("button", { name: "Définir le mandat", exact: true })
@@ -71,6 +87,8 @@ try {
       .click();
     await expect(page.getByRole("alert")).toContainText("plafond");
     await page.getByRole("button", { name: "Révoquer", exact: true }).click();
+    await expect(page.getByRole("dialog")).toContainText("Le mandat sera supprimé");
+    await confirm();
     await expect(
       page.getByRole("button", { name: "Lancer", exact: true }),
     ).toBeDisabled();
@@ -98,6 +116,8 @@ try {
     await page.getByLabel("Montant (demoUSD)").fill("25");
     await confirm();
     await expect(page.locator(".allocation>div").nth(1)).toContainText("75");
+    await expect(page.locator(".operation-status.success")).toBeVisible();
+    await expect(page.locator(".change-receipt")).toContainText("rachetés");
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({
       path: ".research/screenshots/desktop-after-actions.png",

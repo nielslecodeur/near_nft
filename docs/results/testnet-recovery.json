@@ -1,0 +1,11 @@
+{
+  "at": "2026-11-04T08:58:03.917Z",
+  "fixture": true,
+  "checks": [
+    "RPC negative fixture simulates unavailable NFT/index view; not a live failed settlement",
+    "public listing remains readable independently of NFT/index",
+    "release method decision and interrupted-response behavior covered by tests/sale-recovery.test.ts",
+    "read-only UI fixture: no transaction requested or broadcast"
+  ],
+  "expectedRecoveryMethod": "release_settled"
+}

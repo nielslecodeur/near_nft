@@ -1,0 +1,1102 @@
+/* Generated from design-system/terminal/components.css. */
+html {
+  background: var(--color-bg);
+  color-scheme: dark;
+  scroll-padding-top: var(--space-20);
+  scrollbar-color: var(--color-control-border) var(--color-bg);
+  scrollbar-width: thin;
+}
+body {
+  margin: 0;
+}
+.ek-components-page {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+.ek-components-page a {
+  color: var(--color-muted);
+  text-underline-offset: var(--space-1);
+}
+.ek-components-page a:hover {
+  color: var(--color-brand);
+}
+.ek-muted {
+  color: var(--color-muted);
+}
+.ek-small {
+  font-size: var(--type-xs);
+}
+.ek-inline-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ek-terminal-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--layer-navigation);
+  border-bottom: var(--stroke-border) solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+  backdrop-filter: blur(var(--layout-header-blur));
+}
+.ek-terminal-nav {
+  max-width: var(--layout-max);
+  min-height: var(--space-20);
+  margin-inline: auto;
+  padding: var(--space-3) var(--space-8);
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+.ek-terminal-brand {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--layout-touch-target);
+}
+.ek-terminal-brand > span {
+  width: var(--layout-wordmark-width);
+  height: var(--layout-wordmark-height);
+  background: var(--color-text);
+  mask: url("/design/everkeep-wordmark.svg") left center / contain no-repeat;
+}
+.ek-terminal-nav nav {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+.ek-terminal-nav nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--layout-touch-target);
+  text-decoration: none;
+  font-size: var(--type-sm);
+}
+.ek-terminal-nav nav [aria-current] {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+.ek-header-search {
+  margin-left: auto;
+}
+.ek-header-search > .ek-button {
+  width: 100%;
+  color: var(--color-muted);
+  border-color: var(--color-border);
+  background: var(--color-s1);
+}
+.ek-header-search kbd {
+  font: inherit;
+  font-size: var(--type-xs);
+  padding: var(--space-1);
+  color: var(--color-muted);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+.ek-network {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-xs);
+  flex: none;
+}
+.ek-network svg {
+  color: var(--color-brand);
+  width: var(--space-4);
+  height: var(--space-4);
+}
+.ek-network small {
+  display: block;
+  color: var(--color-muted);
+  font-size: inherit;
+}
+.ek-connect {
+  flex: none;
+  white-space: nowrap;
+}
+.ek-ticker-wrap {
+  display: flex;
+  align-items: stretch;
+  max-width: var(--layout-max);
+  margin: auto;
+  padding-inline: var(--space-8);
+  border-bottom: var(--stroke-border) solid var(--color-border);
+}
+.ek-ticker-origin {
+  display: flex;
+  align-items: center;
+  flex: none;
+  padding-inline-end: var(--space-4);
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-ticker {
+  min-width: 0;
+  display: flex;
+  gap: var(--space-6);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-block: var(--space-3);
+}
+.ek-ticker > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  white-space: nowrap;
+}
+.ek-ticker strong {
+  font-size: var(--type-xs);
+  font-weight: var(--weight-medium);
+}
+.ek-price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+.ek-price-unit {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-ui .ek-sparkline {
+  display: block;
+  width: var(--layout-spark-width);
+  height: var(--layout-spark-height);
+}
+.ek-sparkline polyline {
+  stroke: var(--color-brand);
+  stroke-width: var(--stroke-focus);
+}
+.ek-sparkline--up polyline {
+  stroke: var(--color-up);
+}
+.ek-sparkline--down polyline {
+  stroke: var(--color-down);
+}
+.ek-chart-missing {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-number-update {
+  display: inline-block;
+  animation: ek-number-tick var(--duration-fast) var(--ease-ui);
+}
+@keyframes ek-number-tick {
+  from {
+    opacity: 0.6;
+    transform: translateY(var(--space-1));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.ek-components-main {
+  max-width: var(--layout-max);
+  padding-inline: var(--space-8);
+  margin: auto;
+}
+.ek-components-intro {
+  position: relative;
+  isolation: isolate;
+  padding-block: var(--space-12) var(--space-8);
+  background-image:
+    linear-gradient(
+      var(--color-grid) var(--stroke-border),
+      transparent var(--stroke-border)
+    ),
+    linear-gradient(
+      to right,
+      var(--color-grid) var(--stroke-border),
+      transparent var(--stroke-border)
+    );
+  background-size: var(--texture-grid-size) var(--texture-grid-size);
+}
+.ek-components-intro::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  max-width: var(--layout-glow-width);
+  background: radial-gradient(
+    ellipse at top left,
+    var(--color-brand-glow),
+    transparent var(--texture-glow-falloff)
+  );
+}
+.ek-components-intro::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background: var(--color-text);
+  mask: url("/design/grain.svg") repeat;
+  mask-size: var(--texture-grain-size);
+  opacity: var(--opacity-noise);
+}
+.ek-components-intro h1 {
+  margin: 0 0 var(--space-4);
+  font-size: var(--type-display);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-title);
+  text-wrap: balance;
+}
+.ek-components-intro p {
+  margin: 0 0 var(--space-6);
+  max-width: var(--layout-measure);
+  color: var(--color-muted);
+  font-size: var(--type-body);
+}
+.ek-components-intro > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+}
+.ek-components-intro > a,
+.ek-components-footer a {
+  display: inline-flex;
+  min-height: var(--layout-touch-target);
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  text-decoration: none;
+}
+.ek-reference-feedback {
+  display: block;
+  min-height: var(--layout-touch-target);
+  padding-block: var(--space-3);
+  border-top: var(--stroke-border) solid var(--color-border);
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+  overflow-wrap: anywhere;
+}
+.ek-reference-section {
+  padding-block: var(--space-8) var(--space-10);
+  border-top: var(--stroke-border) solid var(--color-border);
+}
+.ek-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.ek-section-heading h2 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-title);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-title);
+  line-height: var(--line-tight);
+}
+.ek-section-heading p {
+  margin: 0;
+  color: var(--color-muted);
+  max-width: var(--layout-measure);
+}
+.ek-search-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: var(--layout-chart-height);
+  overflow-y: auto;
+}
+.ek-search-results li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3);
+  min-height: var(--layout-touch-target);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.ek-search-results li > span {
+  font-weight: var(--weight-medium);
+}
+.ek-search-results small {
+  grid-row: 2;
+  color: var(--color-muted);
+}
+.ek-search-results svg {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  align-self: center;
+}
+.ek-search-results [aria-selected="true"] {
+  background: var(--color-s3);
+  outline: var(--stroke-focus) solid var(--color-brand);
+  outline-offset: calc(-1 * var(--stroke-focus));
+}
+.ek-table-scroll {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  background: var(--color-s1);
+}
+.ek-market-table,
+.ek-activity-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.ek-market-table {
+  min-width: var(--layout-table-min);
+}
+.ek-market-table caption,
+.ek-activity-table caption {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-market-table :is(th, td),
+.ek-activity-table :is(th, td) {
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--stroke-border) solid var(--color-border);
+  white-space: nowrap;
+  font-weight: var(--weight-regular);
+}
+.ek-market-table thead th,
+.ek-activity-table thead th {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-market-table tbody tr:hover,
+.ek-activity-table tbody tr:hover {
+  background: var(--color-hover);
+}
+.ek-table-sort {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--layout-touch-target);
+  background: none;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+}
+.ek-table-sort svg {
+  width: var(--space-3);
+  height: var(--space-3);
+}
+.ek-collection-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: none;
+  color: var(--color-text);
+  border: 0;
+  padding: 0;
+  min-height: var(--layout-touch-target);
+  text-align: left;
+  cursor: pointer;
+}
+.ek-collection-name img {
+  width: var(--space-12);
+  height: var(--space-12);
+  border-radius: var(--radius-control);
+  object-fit: cover;
+}
+.ek-collection-name small {
+  display: block;
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+  margin-top: var(--space-1);
+}
+.ek-stat-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin: 0 0 var(--space-6);
+  padding: var(--space-4) 0;
+  border-block: var(--stroke-border) solid var(--color-border);
+}
+.ek-stat-bar dt {
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+  margin-bottom: var(--space-2);
+}
+.ek-stat-bar dd {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--type-lead);
+}
+.ek-stat-bar dd > span:last-child:not(.ek-number) {
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+}
+.ek-inventory-toolbar {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+.ek-inventory-toolbar > .ek-field:has([type="search"]) {
+  flex: 1;
+  min-width: var(--layout-min-column);
+}
+.ek-view-controls {
+  display: flex;
+  gap: var(--space-1);
+}
+.ek-view-controls [aria-pressed="true"],
+.ek-chart-heading [aria-pressed="true"] {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  background: var(--color-s2);
+}
+.ek-inventory-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+}
+.ek-inventory-body.has-filters {
+  grid-template-columns: var(--layout-sidebar-width) minmax(0, 1fr);
+}
+.ek-filter-sidebar {
+  border-right: var(--stroke-border) solid var(--color-border);
+  padding-right: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  align-self: start;
+}
+.ek-filter-sidebar > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.ek-filter-sidebar h3 {
+  font-size: var(--type-sm);
+  font-weight: var(--weight-semibold);
+  margin: 0;
+}
+.ek-filter-sidebar > .ek-button {
+  justify-content: start;
+  padding-left: 0;
+}
+.ek-inventory-content {
+  min-width: 0;
+}
+.ek-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+.ek-nft-card {
+  position: relative;
+  min-width: 0;
+  overflow: visible;
+  background: var(--color-s1);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--shadow-s1);
+  transition:
+    transform var(--duration-normal) var(--ease-ui),
+    border-color var(--duration-normal) var(--ease-ui);
+  animation: ek-grid-entry var(--duration-fast) var(--ease-ui) backwards;
+  animation-delay: calc(var(--ek-card-index) * var(--effect-stagger));
+}
+.ek-nft-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  border-radius: inherit;
+  box-shadow: var(--shadow-s3);
+  transition: opacity var(--duration-normal) var(--ease-ui);
+}
+.ek-nft-card:hover,
+.ek-nft-card:focus-within {
+  transform: translateY(calc(-1 * var(--space-1)));
+  border-color: var(--color-control-border);
+}
+.ek-nft-card:hover::after,
+.ek-nft-card:focus-within::after {
+  opacity: 1;
+}
+.ek-nft-art {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-surface) var(--radius-surface) 0 0;
+}
+.ek-art-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+.ek-ui .ek-art-button:focus-visible {
+  outline-offset: calc(-1 * var(--space-1));
+}
+.ek-art-button .ek-frame-skin {
+  border: 0;
+  border-radius: 0;
+}
+.ek-art-button .ek-frame-art {
+  inset: 0;
+  border-radius: 0;
+}
+.ek-art-layer--background {
+  transition: scale var(--duration-normal) var(--ease-ui);
+}
+.ek-nft-card:hover .ek-art-layer--background,
+.ek-nft-card:focus-within .ek-art-layer--background {
+  scale: var(--effect-art-scale);
+}
+.ek-save {
+  position: absolute;
+  right: var(--space-3);
+  top: var(--space-3);
+  background: var(--color-s1);
+}
+.ek-save[aria-pressed="true"] {
+  color: var(--color-brand);
+  border-color: var(--color-brand);
+}
+.ek-save[aria-pressed="true"] svg {
+  fill: var(--color-brand-glow);
+}
+.ek-nft-footer {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+.ek-nft-collection {
+  overflow-wrap: anywhere;
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+}
+.ek-nft-title {
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  min-height: var(--layout-touch-target);
+}
+.ek-nft-price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.ek-nft-last {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+}
+.ek-quick-buy {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+.ek-inventory-count {
+  margin: var(--space-4) 0 0;
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+}
+.ek-nft-skeleton {
+  padding: var(--space-4);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  background: var(--color-s1);
+}
+.ek-art-skeleton {
+  aspect-ratio: var(--layout-art-ratio);
+  background: var(--color-s2);
+  border-radius: var(--radius-control);
+  margin-bottom: var(--space-4);
+}
+.ek-inventory .ek-notice p {
+  margin: 0 0 var(--space-4);
+}
+.ek-inventory[data-density="compact"] .ek-card-grid {
+  gap: var(--space-2);
+}
+.ek-inventory[data-density="compact"] .ek-nft-footer {
+  padding: var(--space-3);
+  gap: var(--space-1);
+}
+.ek-inventory[data-view="list"] .ek-card-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ek-inventory[data-view="list"] .ek-nft-card {
+  display: grid;
+  grid-template-columns: var(--layout-sidebar-width) minmax(0, 1fr);
+}
+.ek-inventory[data-view="list"] .ek-art-button,
+.ek-inventory[data-view="list"] .ek-card-frame {
+  height: 100%;
+  aspect-ratio: auto;
+}
+.ek-inventory[data-view="list"] .ek-nft-footer {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: center;
+}
+.ek-inventory[data-view="list"] .ek-nft-collection,
+.ek-inventory[data-view="list"] .ek-nft-title {
+  grid-column: 1;
+}
+.ek-inventory[data-view="list"] .ek-nft-price {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  align-self: center;
+}
+.ek-inventory[data-view="list"] .ek-quick-buy {
+  grid-column: 2;
+  grid-row: 3;
+  width: auto;
+  margin: 0;
+}
+.ek-frame-lab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-16);
+  align-items: start;
+}
+.ek-frame-controls {
+  display: grid;
+  gap: var(--space-6);
+}
+.ek-frame-controls p {
+  margin: 0;
+  color: var(--color-muted);
+  max-width: var(--layout-measure);
+}
+.ek-demo-quote {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.ek-demo-quote > span:first-child {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.ek-demo-quote .ek-price {
+  font-size: var(--type-title);
+}
+.ek-frame-showcase {
+  padding-top: var(--space-2);
+}
+.ek-frame-showcase > div:last-of-type {
+  margin-block: var(--space-4) var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.ek-frame-showcase > div:last-of-type strong {
+  font-weight: var(--weight-semibold);
+}
+.ek-theme-editor {
+  border-top: var(--stroke-border) solid var(--color-border);
+  padding-top: var(--space-3);
+}
+.ek-theme-editor summary,
+.ek-chart-data summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--layout-touch-target);
+  cursor: pointer;
+  color: var(--color-muted);
+}
+.ek-theme-editor label {
+  display: block;
+  margin-block: var(--space-3) var(--space-2);
+}
+.ek-theme-editor textarea {
+  font-family: var(--font-numeric);
+  font-size: var(--type-xs);
+  min-height: var(--layout-chart-height);
+  resize: vertical;
+}
+.ek-theme-editor > p {
+  font-size: var(--type-xs);
+  margin-block: var(--space-2) var(--space-4);
+}
+.ek-theme-editor .ek-notice {
+  margin-top: var(--space-4);
+}
+.ek-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--layout-trade-width);
+  gap: var(--space-6);
+  align-items: start;
+}
+.ek-price-history {
+  margin-bottom: var(--space-6);
+}
+.ek-chart-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.ek-chart-heading h3 {
+  margin: 0;
+  font-size: var(--type-lead);
+  font-weight: var(--weight-semibold);
+}
+.ek-chart-heading > div {
+  display: flex;
+  gap: var(--space-1);
+}
+.ek-history-chart {
+  height: var(--layout-chart-height);
+  min-width: 0;
+  width: 100%;
+  margin-block: var(--space-6) var(--space-3);
+}
+.ek-chart-tooltip {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--color-s3);
+  box-shadow: var(--shadow-s3);
+  border-radius: var(--radius-control);
+  border: var(--stroke-border) solid var(--color-border);
+}
+.ek-chart-tooltip > span:first-child {
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+}
+.ek-chart-data table {
+  width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+}
+.ek-chart-data :is(th, td) {
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--stroke-border) solid var(--color-border);
+  font-weight: var(--weight-regular);
+}
+.ek-chart-data caption {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+  text-align: left;
+  margin-block: var(--space-3);
+}
+.ek-trade-panel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  background: var(--color-s2);
+  box-shadow: var(--shadow-s2);
+}
+.ek-trade-panel > .ek-badge {
+  justify-self: start;
+}
+.ek-trade-panel h3 {
+  margin: 0;
+  font-size: var(--type-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-muted);
+}
+.ek-trade-price {
+  font-size: var(--type-heading);
+}
+.ek-trade-panel p {
+  color: var(--color-muted);
+  margin: 0 0 var(--space-2);
+}
+.ek-traits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+.ek-traits > div {
+  padding: var(--space-4);
+  background: var(--color-s1);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+.ek-traits dt {
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+  margin-bottom: var(--space-2);
+}
+.ek-traits dd {
+  margin: 0;
+}
+.ek-traits small {
+  display: block;
+  font-size: var(--type-xs);
+  color: var(--color-muted);
+  margin-top: var(--space-2);
+}
+.ek-components-footer {
+  border-top: var(--stroke-border) solid var(--color-border);
+  padding-block: var(--space-8);
+  color: var(--color-muted);
+}
+.ek-components-footer p {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-xs);
+  max-width: var(--layout-measure);
+}
+.ek-terminal-skip {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--layer-floating);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--color-s3);
+  transform: translateY(calc(-100% - var(--space-4)));
+}
+.ek-terminal-skip:focus {
+  transform: none;
+}
+@keyframes ek-grid-entry {
+  from {
+    opacity: 0.7;
+    transform: translateY(var(--space-1));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (min-width: 640px) and (hover: hover) and (pointer: fine) {
+  .ek-quick-buy {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+    pointer-events: none;
+    transition:
+      opacity var(--duration-fast) var(--ease-ui),
+      transform var(--duration-fast) var(--ease-ui);
+  }
+  .ek-nft-card:hover .ek-quick-buy,
+  .ek-nft-card:focus-within .ek-quick-buy {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+}
+@media (max-width: 960px) {
+  .ek-terminal-nav {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .ek-terminal-nav nav {
+    order: 4;
+    width: auto;
+    flex: 1;
+  }
+  .ek-header-search {
+    margin-left: auto;
+  }
+  .ek-network {
+    order: 5;
+  }
+  .ek-ui .ek-connect > span {
+    display: none;
+  }
+  .ek-connect {
+    padding: var(--space-2);
+    width: var(--layout-touch-target);
+  }
+  .ek-connect > svg {
+    display: block;
+  }
+  .ek-connect > span:empty {
+    display: none;
+  }
+  .ek-frame-lab {
+    gap: var(--space-8);
+  }
+  .ek-detail-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ek-inventory-body.has-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ek-filter-sidebar {
+    padding: var(--space-4);
+    border: var(--stroke-border) solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-s1);
+  }
+}
+@media (max-width: 640px) {
+  .ek-terminal-nav,
+  .ek-ticker-wrap,
+  .ek-components-main {
+    padding-inline: var(--space-4);
+  }
+  .ek-terminal-nav {
+    column-gap: var(--space-2);
+    row-gap: var(--space-1);
+  }
+  .ek-terminal-nav nav {
+    gap: var(--space-4);
+  }
+  .ek-search-label,
+  .ek-header-search kbd {
+    display: none;
+  }
+  .ek-header-search > .ek-button {
+    width: var(--layout-touch-target);
+    padding: var(--space-2);
+  }
+  .ek-header-search > .ek-button > span {
+    display: none;
+  }
+  .ek-network small {
+    display: none;
+  }
+  .ek-network {
+    font-size: var(--type-xs);
+  }
+  .ek-ticker-origin {
+    padding-right: var(--space-2);
+  }
+  .ek-ticker {
+    gap: var(--space-4);
+  }
+  .ek-components-intro {
+    padding-block: var(--space-8);
+  }
+  .ek-components-intro h1 {
+    font-size: var(--type-heading);
+  }
+  .ek-reference-section {
+    padding-block: var(--space-6) var(--space-8);
+  }
+  .ek-section-heading h2 {
+    font-size: var(--type-title);
+  }
+  .ek-stat-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--space-4);
+  }
+  .ek-inventory-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+  .ek-inventory-toolbar > .ek-field:has([type="search"]) {
+    order: -1;
+    flex-basis: 100%;
+    min-width: 0;
+    grid-column: 1 / -1;
+  }
+  .ek-inventory-toolbar > .ek-button { justify-self: start; }
+  .ek-inventory-toolbar > .ek-field:has(select) {
+    flex: 1;
+    min-width: 0;
+  }
+  .ek-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+  .ek-inventory[data-density="compact"] .ek-card-grid {
+    gap: var(--space-3);
+  }
+  .ek-inventory[data-density="compact"] .ek-nft-card {
+    display: grid;
+    grid-template-columns: var(--layout-swatch-height) minmax(0, 1fr);
+  }
+  .ek-inventory[data-view="list"] .ek-nft-card {
+    grid-template-columns: var(--layout-swatch-height) minmax(0, 1fr);
+  }
+  .ek-inventory[data-view="list"] .ek-nft-footer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ek-inventory[data-view="list"] .ek-nft-price,
+  .ek-inventory[data-view="list"] .ek-quick-buy {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .ek-inventory:is([data-view="list"], [data-density="compact"]) .ek-nft-art {
+    align-self: stretch;
+  }
+  .ek-inventory:is([data-view="list"], [data-density="compact"]) .ek-art-button,
+  .ek-inventory:is([data-view="list"], [data-density="compact"])
+    .ek-card-frame {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .ek-inventory:is([data-view="list"], [data-density="compact"]) .ek-save {
+    top: var(--space-2);
+    right: var(--space-2);
+  }
+  .ek-nft-title {
+    font-size: var(--type-body);
+  }
+  .ek-frame-lab {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+  .ek-traits {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ek-traits > div {
+    display: grid;
+    grid-template-columns: var(--space-20) minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  .ek-traits dt {
+    margin: 0;
+  }
+  .ek-activity-table :is(th, td) {
+    padding: var(--space-3);
+  }
+  .ek-ui :is(input, select, textarea) {
+    font-size: var(--type-body);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ek-nft-card,
+  .ek-number-update {
+    animation: none;
+  }
+  .ek-nft-card:hover,
+  .ek-nft-card:focus-within {
+    transform: none;
+  }
+  .ek-nft-card .ek-art-layer--background {
+    scale: 1;
+  }
+  .ek-quick-buy {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+}

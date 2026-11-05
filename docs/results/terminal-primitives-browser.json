@@ -1,0 +1,70 @@
+{
+  "at": "2026-11-04T21:59:39.517Z",
+  "stage": 2,
+  "base": "http://127.0.0.1:5173",
+  "checks": [
+    {
+      "width": 1440,
+      "touch": false,
+      "checks": [
+        "no overflow including long query",
+        "all interactive targets >=44px",
+        "two local fonts, tabular numbers including monetary input",
+        "disabled + busy guards",
+        "hover + pressed + visible keyboard focus",
+        "accessible tooltip Escape",
+        "error associations + corrected value",
+        "search + select + checkbox + switch",
+        "keyboard tabs skip disabled",
+        "keyboard menu + disabled item + focus restoration",
+        "dialog focus trap + Escape + cancel/apply + focus restoration",
+        "error/empty recovery + static accessible skeleton",
+        "reduced motion: zero transitions, no animations"
+      ]
+    },
+    {
+      "width": 390,
+      "touch": true,
+      "checks": [
+        "no overflow including long query",
+        "all interactive targets >=44px",
+        "two local fonts, tabular numbers including monetary input",
+        "disabled + busy guards",
+        "hover + pressed + visible keyboard focus",
+        "accessible tooltip Escape",
+        "error associations + corrected value",
+        "search + select + checkbox + switch",
+        "keyboard tabs skip disabled",
+        "keyboard menu + disabled item + focus restoration",
+        "dialog focus trap + Escape + cancel/apply + focus restoration",
+        "error/empty recovery + static accessible skeleton",
+        "reduced motion: zero transitions, no animations"
+      ]
+    }
+  ],
+  "captures": [
+    ".impeccable/review/terminal-primitives/primitives-1440.png",
+    ".impeccable/review/terminal-primitives/focus-1440.png",
+    ".impeccable/review/terminal-primitives/hover-1440.png",
+    ".impeccable/review/terminal-primitives/pressed-1440.png",
+    ".impeccable/review/terminal-primitives/tooltip-1440.png",
+    ".impeccable/review/terminal-primitives/validation-1440.png",
+    ".impeccable/review/terminal-primitives/menu-1440.png",
+    ".impeccable/review/terminal-primitives/dialog-1440.png",
+    ".impeccable/review/terminal-primitives/states-1440.png",
+    ".impeccable/review/terminal-primitives/reduced-motion-1440.png",
+    ".impeccable/review/terminal-primitives/primitives-390.png",
+    ".impeccable/review/terminal-primitives/focus-390.png",
+    ".impeccable/review/terminal-primitives/hover-390.png",
+    ".impeccable/review/terminal-primitives/pressed-390.png",
+    ".impeccable/review/terminal-primitives/tooltip-390.png",
+    ".impeccable/review/terminal-primitives/validation-390.png",
+    ".impeccable/review/terminal-primitives/menu-390.png",
+    ".impeccable/review/terminal-primitives/dialog-390.png",
+    ".impeccable/review/terminal-primitives/states-390.png",
+    ".impeccable/review/terminal-primitives/reduced-motion-390.png"
+  ],
+  "errors": [],
+  "externalRequests": [],
+  "scope": "UI primitives reference only; no signatures, market data or financial operations."
+}

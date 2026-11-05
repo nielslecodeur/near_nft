@@ -1,0 +1,10 @@
+{
+  "at": "2026-11-04T15:51:21.940Z",
+  "mode": "isolated browser; synthetic transaction receipts; no wallet or chain mutation",
+  "checks": [
+    "Encrypted vault and capability persist locally; reload locks decrypted keys; password unlock and optional export restore work; wrong password, owner and namespace rejected",
+    "Intear app-approval secret is readable by connector in current tab but absent from persistent storage and lost after reload; public preferences retained",
+    "reload reuses pending payment identity; explicit user rejection permits retry; final confirmed payment is never submitted twice",
+    "wallet-return hash automatically verified against final exact receipt and URL cleaned; zero-deposit reconciliation can be explicitly repeated; failed child receipt remains failure despite top-level success and hash"
+  ]
+}

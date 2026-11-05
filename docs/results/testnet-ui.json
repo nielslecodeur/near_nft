@@ -1,0 +1,74 @@
+{
+  "at": "2026-11-04T08:58:13.636Z",
+  "network": "testnet",
+  "connected": true,
+  "checks": [
+    "manual carousel Home/End keyboard navigation; exactly three distinct models",
+    "grid alternative and reduced-motion preference",
+    "category filter and unavailable adapter blocks subscription",
+    "honest empty community after real cancellation",
+    "actual wallet session restored after reload with separate native and token balances",
+    "390, 768 and 1440px: all three routes without document overflow or page errors",
+    "insufficient demoUSD rejected before any key generation or transfer",
+    "insufficient technical NEAR rejected before account creation",
+    "RPC failure disables creation and never falls back to sandbox funds",
+    "explicit wrong-network rejection (negative RPC fixture, no transaction)"
+  ],
+  "captures": [
+    {
+      "surface": "marketplace",
+      "width": 1440,
+      "height": 1000,
+      "path": ".impeccable/review/testnet/marketplace-desktop.png"
+    },
+    {
+      "surface": "positions",
+      "width": 1440,
+      "height": 1000,
+      "path": ".impeccable/review/testnet/positions-desktop.png"
+    },
+    {
+      "surface": "agents",
+      "width": 1440,
+      "height": 1000,
+      "path": ".impeccable/review/testnet/agents-desktop.png"
+    },
+    {
+      "surface": "marketplace",
+      "width": 768,
+      "height": 1024,
+      "path": ".impeccable/review/testnet/marketplace-tablet.png"
+    },
+    {
+      "surface": "positions",
+      "width": 768,
+      "height": 1024,
+      "path": ".impeccable/review/testnet/positions-tablet.png"
+    },
+    {
+      "surface": "agents",
+      "width": 768,
+      "height": 1024,
+      "path": ".impeccable/review/testnet/agents-tablet.png"
+    },
+    {
+      "surface": "marketplace",
+      "width": 390,
+      "height": 844,
+      "path": ".impeccable/review/testnet/marketplace-mobile.png"
+    },
+    {
+      "surface": "positions",
+      "width": 390,
+      "height": 844,
+      "path": ".impeccable/review/testnet/positions-mobile.png"
+    },
+    {
+      "surface": "agents",
+      "width": 390,
+      "height": 844,
+      "path": ".impeccable/review/testnet/agents-mobile.png"
+    }
+  ],
+  "errors": []
+}

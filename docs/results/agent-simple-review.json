@@ -1,0 +1,47 @@
+{
+  "at": "2026-11-04T14:52:44.904Z",
+  "disposition": "ship",
+  "scope": "verdict pass on two material UI corrections only; not native Intear certification",
+  "findings": [
+    {
+      "id": "F1",
+      "finding": "Mobile network select clipped in Options",
+      "score": "resolved"
+    },
+    {
+      "id": "F2",
+      "finding": "Old creation provision confused with upcoming renewal charge",
+      "score": "resolved"
+    }
+  ],
+  "documentation": [
+    "docs/agent-ux-simple.md",
+    "README.md",
+    "PRODUCT.md",
+    "PROGRESS.md"
+  ],
+  "preservedDesignArtifacts": [
+    "DESIGN.md",
+    ".impeccable/design.json"
+  ],
+  "detector": {
+    "primary": 0,
+    "advisory": 45,
+    "interpretation": "advisories include pre-existing historical DESIGN differences; Orbite preserved"
+  },
+  "checks": {
+    "typescriptTests": 45,
+    "build": "passed",
+    "browserUX": "15 captures, 390/768/1440, zero page errors",
+    "vaultAndJournal": "browser checks passed",
+    "testnet": "real NFT14demoUSD with2 QA wallet API approvals, no third approval on repeat, zero downloads",
+    "existingUser": "nifelst.testnet NFT25demoUSD and75 exterior verified"
+  },
+  "remaining": [
+    "actual two Intear wallet windows on new grouped flow",
+    "mobile physical device",
+    "testnet secondary sale between real browser wallets"
+  ],
+  "temporaryQaSigner": "stopped",
+  "nativeUserKeysHandled": false
+}

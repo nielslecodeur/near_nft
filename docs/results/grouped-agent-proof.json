@@ -1,0 +1,79 @@
+{
+  "at": "2026-11-04T14:09:25.299Z",
+  "network": "testnet",
+  "transport": "Dedicated account, real chain calls through QA allowlisted wallet adapter. Two API approvals proved; actual Intear UI still needs human validation.",
+  "owner": "everkeep-demo-mw1yii9b-1.testnet",
+  "id": "336ce9eb-d6ef-4494-b215-24ba832c8590",
+  "state": "Delivered",
+  "operation": {
+    "position": "m9e003090a22e5e-0.reserve-v3.everkeep-dev-mw0weth5.testnet",
+    "allocation": {
+      "collection": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "strategy_id": "liquidity-v3",
+      "strategy_version": "1",
+      "asset": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+      "strategy": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+      "amount": "14000000",
+      "mandate_hash": "kjqjJhAMK7S4cmc2YI5IycpkHNzDpykuxsPSgAoZmmU="
+    },
+    "state": "Confirmed",
+    "attempt": "2",
+    "authorization_hash": "xswRJuHZAG5jaA8sTObcyTtDu3neiF05WhJgjgd0AhQ=",
+    "authorization_expires_at": "1793801795881894937",
+    "policy_version": "1",
+    "error": null
+  },
+  "proposal": {
+    "mission_id": "336ce9eb-d6ef-4494-b215-24ba832c8590",
+    "agent": "liquidity",
+    "agent_version": "1",
+    "mode": "demonstration",
+    "request_hash": "SrobyGIWZAxKcVr6wh+VQq/0S5jyctvZzOy17JzAbmo=",
+    "created_at": "1793801189182192049",
+    "expires_at": "1793802089182192049",
+    "status": "proposed",
+    "allocations": [
+      {
+        "collection": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+        "strategy_id": "liquidity-v3",
+        "strategy_version": "1",
+        "asset": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+        "strategy": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+        "amount": "14000000",
+        "mandate_hash": "kjqjJhAMK7S4cmc2YI5IycpkHNzDpykuxsPSgAoZmmU="
+      }
+    ],
+    "reserve": "6000000",
+    "reasons": [
+      "Méthode liquidité : échéances les plus proches d’abord et réserve minimale de 30 %.",
+      "La réserve reste dans votre compte. Chaque position est verrouillée jusqu’à son échéance ; aucune revente n’est garantie."
+    ],
+    "risks": [
+      "Capital et rendement non garantis.",
+      "Jeton demoUSD de test sans valeur monétaire.",
+      "Risque du contrat de démonstration, sans rendement de marché ni audit indépendant."
+    ],
+    "exits": [
+      "Rachat à l’échéance du contrat, sans garantie de revente préalable."
+    ],
+    "operations": [
+      "Créer une position distincte dans reserve-v3.everkeep-dev-mw0weth5.testnet, autoriser exactement 14000000 unités puis souscrire."
+    ],
+    "sources": [
+      {
+        "collection": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+        "observed_at": "1793801189182192049",
+        "version": "1",
+        "document": "docs/testnet.md#modele-operationnel",
+        "limits": "Lecture on-chain et configuration locale de démonstration ; pas de prix de marché ni d’audit externe."
+      }
+    ]
+  },
+  "approvalCounts": {
+    "analysis": 1,
+    "afterCreation": 2,
+    "afterRepeat": 2
+  },
+  "reread": "Confirmed",
+  "downloads": 0
+}

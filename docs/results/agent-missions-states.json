@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-03T16:11:21.007Z",
+  "scope": "Explicitly fictitious history rendering cases, zero financial calls",
+  "checks": [
+    "abstention/proposal/pending/partial/confirmed/private-unavailable results distinct at 390 and 1440",
+    "zero financial commands"
+  ],
+  "captures": [
+    ".impeccable/review/missions/history-results-fixture-390.png",
+    ".impeccable/review/missions/history-results-fixture-1440.png"
+  ]
+}

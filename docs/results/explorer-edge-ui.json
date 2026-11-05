@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-03T10:28:45.230Z",
+  "checks": [
+    "historical position without series can expose withdrawal despite nonzero principal, without an invented maturity",
+    "expired mandate has explicit expiry and cannot execute; signed cancellation stays available",
+    "liquidity option fully visible at 320/390/768 and no overflow",
+    "security shows unminted mandate amount, beneficiary, generation, version and expiry",
+    "inactive legacy source explains ephemeral session rather than claiming new demo restores it"
+  ],
+  "captures": [
+    ".impeccable/review/explorer/legacy-position-fixture-390.png",
+    ".impeccable/review/explorer/expired-agent-fixture-320.png",
+    ".impeccable/review/explorer/expired-agent-fixture-390.png",
+    ".impeccable/review/explorer/expired-agent-fixture-768.png",
+    ".impeccable/review/explorer/security-expired-fixture.png"
+  ],
+  "scope": "Read-only Chrome fixtures for legacy and expired mandate display. No POST or financial execution."
+}

@@ -1,0 +1,306 @@
+.marketplace-shell {
+  --signal-light: #e9f0e9;
+}
+.marketplace-shell ::selection {
+  background: #d8e7d4;
+  color: #18251f;
+}
+.marketplace-shell input,
+.marketplace-shell textarea {
+  caret-color: var(--accent);
+}
+.marketplace-shell .strategy-selector {
+  margin: 0 0 44px;
+}
+.marketplace-shell .selector-tools p {
+  margin: 0;
+}
+.marketplace-shell .selector-tools button {
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+.marketplace-shell .strategy-merry {
+  height: 440px;
+  --carousel-radius: 230px;
+}
+.marketplace-shell .single-strategy .strategy-merry {
+  --carousel-radius: 0px;
+}
+.marketplace-shell .strategy-card {
+  top: 24px;
+  width: 360px;
+  margin-left: -180px;
+  height: 375px;
+  padding: 20px;
+  border-radius: 12px;
+  gap: 0;
+  transition: transform 260ms cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: auto;
+}
+.marketplace-shell .strategy-reserve {
+  --strategy-accent: #174b39;
+}
+.marketplace-shell .strategy-card .strategy-art {
+  height: 152px;
+  width: 100%;
+  margin-bottom: 18px;
+}
+.marketplace-shell .strategy-art .nft-cover {
+  height: 100%;
+  aspect-ratio: auto;
+  padding: 14px 18px;
+  border-radius: 6px;
+  grid-template-rows: minmax(0, 1fr);
+}
+.marketplace-shell .strategy-art .cover-top,
+.marketplace-shell .strategy-art .cover-bottom {
+  display: none;
+}
+.marketplace-shell .strategy-art .cover-top > span:first-child {
+  font-size: 0.9rem;
+}
+.marketplace-shell .strategy-art .cover-bottom > span:first-child {
+  font-size: 0.8rem;
+}
+.marketplace-shell .strategy-art .nft-cover svg {
+  stroke-width: initial;
+}
+.marketplace-shell .strategy-card-name {
+  font-size: 1.45rem;
+  margin-bottom: 8px;
+}
+.marketplace-shell .strategy-card-description {
+  max-width: none;
+  font-size: 0.85rem;
+}
+.strategy-card-conditions {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 12px;
+}
+.marketplace-shell .strategy-card-status {
+  padding-top: 10px;
+  font-size: 0.75rem;
+}
+.marketplace-shell .carousel-controls {
+  gap: 20px;
+}
+.marketplace-shell .carousel-controls p {
+  min-width: 170px;
+}
+.marketplace-shell .carousel-controls button {
+  border-radius: 6px;
+}
+.marketplace-shell .strategy-grid {
+  margin: 26px 0;
+  gap: 24px;
+}
+.marketplace-shell .strategy-grid .strategy-card {
+  position: static;
+  margin: 0;
+  height: 375px;
+  max-width: 100%;
+}
+.strategy-subscription {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 88px;
+  padding: 36px 0 12px;
+  border-top: 1px solid var(--border);
+  align-items: start;
+}
+.strategy-description h2 {
+  font-size: 2.2rem;
+  letter-spacing: -0.035em;
+  margin-bottom: 22px;
+}
+.strategy-description > p {
+  max-width: 62ch;
+}
+.strategy-overview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px 32px;
+  margin: 32px 0;
+}
+.strategy-overview dt,
+.sale-card-facts dt {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+}
+.strategy-overview dd,
+.sale-card-facts dd {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.position-subscribe-form {
+  background: var(--surface-subtle);
+  padding: 28px;
+  border-radius: 12px;
+}
+.position-subscribe-form h3 {
+  font-size: 1.35rem;
+  margin: 0 0 24px;
+}
+.position-subscribe-form label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+.position-subscribe-form input {
+  background: #fff;
+  border-radius: 6px;
+}
+.position-subscribe-form p {
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.position-subscribe-form .primary {
+  width: 100%;
+  border-radius: 6px;
+  margin-top: 12px;
+}
+.position-subscribe-form .nft-offer-note {
+  font-size: 0.75rem;
+}
+.sale-card-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 20px 0 12px;
+}
+.nft-sale-strategy {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+.nft-sale-card > button:not(.nft-art-link) {
+  border-radius: 6px;
+  width: 100%;
+}
+.position-reference {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 28px;
+  margin: 22px 0;
+}
+.position-reference dt {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.position-reference dd {
+  margin: 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.position-history {
+  padding-left: 20px;
+  font-size: 0.8rem;
+}
+.position-history li {
+  padding: 8px 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.position-claim {
+  margin: 28px 0;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border);
+}
+.position-claim p {
+  max-width: 68ch;
+}
+.position-claim button {
+  border-radius: 6px;
+}
+.marketplace-shell .position-top .state-label {
+  max-width: 230px;
+}
+.marketplace-shell .exit-actions button {
+  border-radius: 6px;
+}
+@media (max-width: 1000px) {
+  .strategy-subscription {
+    gap: 44px;
+  }
+}
+@media (max-width: 700px) {
+  .marketplace-shell .series-header nav {
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .marketplace-shell .series-header nav a {
+    font-size: 0.85rem;
+  }
+  .marketplace-shell .strategy-merry {
+    height: 415px;
+    --carousel-radius: 110px;
+  }
+  .marketplace-shell .strategy-card {
+    width: calc(100% - 24px);
+    max-width: 340px;
+    height: 365px;
+    left: 50%;
+    margin-left: 0;
+    translate: -50% 0;
+    top: 24px;
+    padding: 18px;
+  }
+  .marketplace-shell .strategy-grid .strategy-card {
+    translate: none;
+    width: 100%;
+    height: 365px;
+  }
+  .marketplace-shell .carousel-controls {
+    gap: 8px;
+  }
+  .marketplace-shell .carousel-controls p {
+    min-width: 0;
+    flex: 1;
+    font-size: 0.72rem;
+  }
+  .marketplace-shell .carousel-controls button {
+    font-size: 0.75rem;
+    padding: 10px;
+  }
+  .strategy-subscription {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding-top: 28px;
+  }
+  .strategy-description h2 {
+    font-size: 1.9rem;
+  }
+  .strategy-overview {
+    gap: 22px 16px;
+  }
+  .position-subscribe-form {
+    padding: 22px;
+  }
+  .position-reference {
+    grid-template-columns: 1fr;
+  }
+  .nft-catalog-toolbar > div {
+    gap: 20px;
+  }
+  .marketplace-shell .nft-catalog-toolbar button {
+    font-size: 0.8rem;
+  }
+  .marketplace-shell .nft-catalog-toolbar > span {
+    display: none;
+  }
+  .marketplace-shell .position-top {
+    gap: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketplace-shell .strategy-card {
+    transition: none;
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Everkeep Security"
+  short_description: "Transferts NEAR et révocation des accès Everkeep"
+  default_prompt: "Utilise $everkeep-security pour implémenter ou revoir les transferts NFT-comptes et les permissions des agents Everkeep."

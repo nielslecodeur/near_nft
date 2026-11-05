@@ -1,0 +1,97 @@
+{
+  "at": "2026-11-04T20:49:22.419Z",
+  "stage": 1,
+  "checks": [
+    "1440: all4surfaces,3radii,2local fonts,tabular figures,wordmark,44pxheader target,no document overflow",
+    "390: all4surfaces,3radii,2local fonts,tabular figures,wordmark,44pxheader target,no document overflow",
+    "Text/muted/up/down contrast >=4.5 on all4surfaces, brand-label contrast >=4.5, visible keyboard focus and reduced-motion0s"
+  ],
+  "contrasts": [
+    {
+      "text": "text",
+      "surface": "bg",
+      "ratio": 17.72
+    },
+    {
+      "text": "muted",
+      "surface": "bg",
+      "ratio": 8.96
+    },
+    {
+      "text": "up",
+      "surface": "bg",
+      "ratio": 10.68
+    },
+    {
+      "text": "down",
+      "surface": "bg",
+      "ratio": 8.05
+    },
+    {
+      "text": "text",
+      "surface": "s1",
+      "ratio": 16.95
+    },
+    {
+      "text": "muted",
+      "surface": "s1",
+      "ratio": 8.57
+    },
+    {
+      "text": "up",
+      "surface": "s1",
+      "ratio": 10.21
+    },
+    {
+      "text": "down",
+      "surface": "s1",
+      "ratio": 7.69
+    },
+    {
+      "text": "text",
+      "surface": "s2",
+      "ratio": 15.82
+    },
+    {
+      "text": "muted",
+      "surface": "s2",
+      "ratio": 7.99
+    },
+    {
+      "text": "up",
+      "surface": "s2",
+      "ratio": 9.53
+    },
+    {
+      "text": "down",
+      "surface": "s2",
+      "ratio": 7.18
+    },
+    {
+      "text": "text",
+      "surface": "s3",
+      "ratio": 14.32
+    },
+    {
+      "text": "muted",
+      "surface": "s3",
+      "ratio": 7.24
+    },
+    {
+      "text": "up",
+      "surface": "s3",
+      "ratio": 8.63
+    },
+    {
+      "text": "down",
+      "surface": "s3",
+      "ratio": 6.5
+    }
+  ],
+  "captures": [
+    ".impeccable/review/terminal-tokens/tokens-1440.png",
+    ".impeccable/review/terminal-tokens/tokens-390.png"
+  ],
+  "errors": [],
+  "scope": "Design-token reference only. No product primitives, trading data, wallet calls or transactions."
+}

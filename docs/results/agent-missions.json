@@ -1,0 +1,31 @@
+{
+  "at": "2026-11-03T16:16:32.725Z",
+  "network": "isolated near-sandbox, real WASM",
+  "missionsBinarySha256": "1fd891cb6beeff7c22499666dee3fe6521f914b661cc8dbf6edae531e618c59a",
+  "checks": [
+    "mission contract and both allowed collections are keyless real WASM",
+    "wrong price and another payer cannot consume quote",
+    "exact payment confirmed once; replay rejected",
+    "payment gives no investment authority and creates no wallet/NFT",
+    "isolated deterministic worker delivers two distinct real routes; double processing blocked",
+    "capability and owner isolate private documents; plaintext absent on-chain",
+    "delivered fee cannot also be refunded",
+    "real owner ML-DSA signatures bind mission and existing single-use mandates; worker has no owner keys",
+    "replayed mission authorization rejected",
+    "first allocation mints owner NFT only after escrow and mission consent",
+    "second unfunded allocation fails; first confirmed position remains unchanged",
+    "partial resume reuses original wallet and never repeats confirmed deposit",
+    "worker cannot withdraw capital even with its own ML-DSA key",
+    "altered ML-DSA signature, amount and nonce rejected on-chain before any investment",
+    "Alice liquidity mission retains 30 demoUSD and signs separate investment consent",
+    "failed mission refunded once; late delivery fenced after refund",
+    "expired quote rejected; concurrent timeout refund and delivery choose refund permanently",
+    "failed real provider transfer remains fixed and claimable",
+    "provider claim retries only after known failure and pays exactly once"
+  ],
+  "contract": "missions.sandbox",
+  "limitations": [
+    "Deterministic demo analysis; no live financial data or production custody.",
+    "Worker has data-only child-process inputs; local API/signers remain trusted demo components."
+  ]
+}

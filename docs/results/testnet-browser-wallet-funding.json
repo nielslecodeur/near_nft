@@ -1,0 +1,14 @@
+{
+  "network": "testnet",
+  "target": "nifelst.testnet",
+  "at": "2026-11-04T14:47:41.351Z",
+  "nativeTopup": {
+    "amountNEAR": "5",
+    "transaction": "AKR7EuvWc4UuxGZwLwdLhYFjRajX76BwLwRkVz5CHB31"
+  },
+  "demoUSDGrant": {
+    "amount": "100",
+    "transaction": "29bKKMY7UMhV1vyd6JRyBd8iJq3aWGeDz8amyr2tPUZb"
+  },
+  "note": "Public references from the earlier successful browser-account funding; current balances in conversation-user-testnet.json. QA account top-ups are separate."
+}

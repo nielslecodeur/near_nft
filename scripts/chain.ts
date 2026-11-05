@@ -17,7 +17,7 @@ async function port() {
   await new Promise<void>((resolve) => server.close(() => resolve()));
   return address.port;
 }
-export async function startChain() {
+export async function startChain(options: { epochLength?: number } = {}) {
   const home = homedir() + "/.cache/everkeep-sandbox-" + Date.now();
   const binary =
     process.env.NEAR_SANDBOX_BIN_PATH ||
@@ -28,6 +28,14 @@ export async function startChain() {
   // Follow near-sandbox-rs: official fast init, ordinary funded genesis signer distinct from validator.
   await exec(binary, ["--home", home, "init", "--fast"]);
   const genesis = JSON.parse(await readFile(home + "/genesis.json", "utf8"));
+  // Fast-forward must produce boundary blocks for every epoch. The short epochs
+  // from --fast make a multi-hour demo slow; series tests use longer sandbox epochs.
+  // This changes no contract clock or maturity rule and is not available on testnet.
+  if (options.epochLength !== undefined) {
+    if (!Number.isSafeInteger(options.epochLength) || options.epochLength < 4)
+      throw new Error("Invalid sandbox epoch length");
+    genesis.epoch_length = options.epochLength;
+  }
   const key = KeyPair.fromRandom("ed25519"),
     balance = 10_000n * 10n ** 24n;
   genesis.records.push({

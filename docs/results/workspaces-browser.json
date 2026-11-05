@@ -1,0 +1,56 @@
+{
+  "checks": [
+    {
+      "width": 1440,
+      "ownedCards": 1,
+      "wallet": "UI adapter with live read-only data; no signatures",
+      "status": "pass"
+    },
+    {
+      "width": 390,
+      "ownedCards": 1,
+      "wallet": "UI adapter with live read-only data; no signatures",
+      "status": "pass"
+    },
+    {
+      "width": 390,
+      "status": "pass",
+      "fixture": "Held wallet-only read then HTTP503; explicit retry resumes real read-only RPC"
+    }
+  ],
+  "captures": [
+    "docs/screenshots/workspaces/disconnected-1440.png",
+    "docs/screenshots/workspaces/wallet-assets-1440.png",
+    "docs/screenshots/workspaces/wallet-exact-amount-1440.png",
+    "docs/screenshots/workspaces/receive-1440.png",
+    "docs/screenshots/workspaces/withdraw-details-1440.png",
+    "docs/screenshots/workspaces/position-permissions-1440.png",
+    "docs/screenshots/workspaces/position-sale-1440.png",
+    "docs/screenshots/workspaces/collection-1440.png",
+    "docs/screenshots/workspaces/collection-empty-filter-1440.png",
+    "docs/screenshots/workspaces/collection-inspect-1440.png",
+    "docs/screenshots/workspaces/agents-1440.png",
+    "docs/screenshots/workspaces/crypto-selected-1440.png",
+    "docs/screenshots/workspaces/agent-request-ready-1440.png",
+    "docs/screenshots/workspaces/agent-confirm-review-1440.png",
+    "docs/screenshots/workspaces/disconnected-390.png",
+    "docs/screenshots/workspaces/wallet-assets-390.png",
+    "docs/screenshots/workspaces/wallet-exact-amount-390.png",
+    "docs/screenshots/workspaces/receive-390.png",
+    "docs/screenshots/workspaces/withdraw-details-390.png",
+    "docs/screenshots/workspaces/position-permissions-390.png",
+    "docs/screenshots/workspaces/position-sale-390.png",
+    "docs/screenshots/workspaces/collection-390.png",
+    "docs/screenshots/workspaces/collection-empty-filter-390.png",
+    "docs/screenshots/workspaces/collection-inspect-390.png",
+    "docs/screenshots/workspaces/agents-390.png",
+    "docs/screenshots/workspaces/crypto-selected-390.png",
+    "docs/screenshots/workspaces/agent-request-ready-390.png",
+    "docs/screenshots/workspaces/agent-confirm-review-390.png",
+    "docs/screenshots/workspaces/wallet-loading-390.png",
+    "docs/screenshots/workspaces/wallet-balance-error-390.png",
+    "docs/screenshots/workspaces/wallet-recovered-390.png"
+  ],
+  "errors": [],
+  "scope": "Actual positions, owned NFT collection and agents, real read-only RPC and UI-only wallet adapter. Confirmation cancelled without signing."
+}

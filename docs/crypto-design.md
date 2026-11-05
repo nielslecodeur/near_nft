@@ -1,3 +1,25 @@
+> Parcours courant (4 novembre 2026) : [Agents, deux validations financières](agent-ux-simple.md). Avec l’accord explicite de l’utilisateur, les clés ML-DSA et capacités sont désormais conservées uniquement sous forme chiffrée dans un coffre IndexedDB local ; le mot de passe et les clés déchiffrées restent en mémoire. Export externe facultatif. Devis/paiement combinés puis création groupée dans Intear ; résultats finaux vérifiés et inconnus non rejoués. Les passages historiques ci-dessous décrivent les étapes antérieures. Contrats inchangés dans cette tranche.
+
+> Signataire testnet du 4 novembre 2026 : ML-DSA-65 réel dans le navigateur, enveloppes canoniques inchangées, clés AES-GCM dans IndexedDB avec PBKDF2-SHA256 à 310 000 itérations et sauvegarde chiffrée avant financement. La connexion classique reste distincte. Le module packages/shared/mission-authority.ts partage la même enveloppe navigateur/service. Voir [testnet.md](testnet.md).
+
+## Souscription autorisée par agent
+
+`AuthorizeSubscription{agent,asset,strategy,amount,expires_at,beneficiary}` et `CancelSubscription` utilisent l’enveloppe canonique existante et la vérification host ML-DSA réelle. L’autorisation incrémente policy_version et est liée à la génération courante. Le wallet préparé reste bloqué pour les autres opérations sensibles jusqu’au crédit ou à l’annulation confirmée. La collection n’accepte la copie du mandat que depuis ce wallet connu, puis vérifie le predecessor réel de l’agent lors de son exécution.
+
+La preuve WASM est dans `agent-subscription.json`. Elle ne prouve pas un login externe ou une exécution testnet. La rotation dans le menu Sécurité utilise les deux signatures déjà exigées, ancienne clé et preuve de possession de la nouvelle ; elle ne révoque pas automatiquement les délégations existantes.
+
+## Extensions séries et annonces
+
+`List` et `CancelListing` sont des actions de l’enveloppe ML-DSA existante. La première lie séquence, prix, token, expiration et hash de valorisation. Le hash lie réseau, wallet, collection, propriétaire, générations, actif, montants comptabilisés et termes/empreinte immuables de série. Un acheteur enregistre lui-même son consentement ML-DSA ; `commit_sale` consomme cette clé et révoque le mandat de propriétaire. Aucun nouveau droit de cession n’est donné à une clé classique d’administrateur.
+
+La collection possède une enveloppe administrative canonique distincte : `protocol=EVERKEEP_ADMIN_V1`, `network`, `verifier`, `nonce`, `expires_at`, `action`. Seules `Configure{series}` avant ouverture/sans position et `Close{mandate_hash}` existent. Vérification `env::ml_dsa_verify`, clé1952octets, signature3309octets ; nonce strict et expiration de24h au plus. La clé admin est fixée à l’initialisation par le déployeur, puis les access keys sont supprimées dans les preuves WASM.
+
+La primitive s’exécute dans le host du runtime NEAR, pas dans un service serveur et pas dans une implémentation ML-DSA maison compilée en WASM. Le transport des transactions reste classique : aucune protection postquantique de bout en bout n’est revendiquée.
+
+Les rapports settlement-feasibility.json et series-demo.json contiennent le gas total transactions+reçus mesuré en sandbox : délégation environ4Tgas, annonce environ7Tgas, achat environ25Tgas sur les premières exécutions. Cela inclut logique et appels externes ; ce n’est pas un benchmark isolé de la primitive, ni une mesure testnet. Les replays admin, mauvaises clés admin/annonce, anciennes générations et ancienne clé propriétaire sont réellement refusés dans le scénario série.
+
+L’exécution cryptographique testnet reste à faire après configuration d’un compte de déploiement. Une interrogation RPC de version de protocole n’est pas une preuve de signature exécutée.
+
 # Autorisations ML-DSA-65
 
 ## Primitive réelle

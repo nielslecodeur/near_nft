@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-03T16:12:14.405Z",
+  "checks": [
+    "three routes at 390/768/1440 with no Vite overlay, JS error or horizontal overflow",
+    "real Orbite stylesheet resolves; exact dark palette and both self-hosted font families loaded",
+    "agent selection reveals real method, fee and permissions without a spending command",
+    "actual issued-position preview is read-only, distinct from a listing; Escape restores focus",
+    "single real strategy, grid and reduced motion preserved; zero financial commands"
+  ],
+  "captures": [
+    ".impeccable/review/orbite/explorer-390.png",
+    ".impeccable/review/orbite/positions-390.png",
+    ".impeccable/review/orbite/agent-390.png",
+    ".impeccable/review/orbite/explorer-768.png",
+    ".impeccable/review/orbite/positions-768.png",
+    ".impeccable/review/orbite/agent-768.png",
+    ".impeccable/review/orbite/explorer-1440.png",
+    ".impeccable/review/orbite/positions-1440.png",
+    ".impeccable/review/orbite/agent-1440.png"
+  ],
+  "commands": 0,
+  "scope": "Actual local Chrome and read-only live sandbox state. No contract change or financial transaction in this design pass."
+}

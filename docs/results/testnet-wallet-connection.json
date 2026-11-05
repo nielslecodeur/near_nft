@@ -1,0 +1,25 @@
+{
+  "at": "2026-11-03T23:50:59.585Z",
+  "account": "everkeep-niels-mw0wq5r0.testnet",
+  "connector": "NEAR Connect 0.12.0 / genuine NEAR CLI manifest wallet",
+  "connected": true,
+  "restoredAfterReload": true,
+  "signatureValidated": true,
+  "balances": {
+    "source": "docs/results/testnet-capability.json",
+    "note": "Exact on-chain balances recorded separately, refreshed after native/FT confirmations."
+  },
+  "errors": [],
+  "updated_at": "2026-11-04T08:48:02.255Z",
+  "signatureEvidence": [
+    "5gTThDTkmocoNuYM4ZQp5vsRfyEZGcDMfSWgoHQRYd2K",
+    "4633AQaH7eX5p25fbmV4wHENa21X1DP2Vjgf5tTWWBHF",
+    "D5V1Agy4d3zrbARC3rp4UmyxXDFcN4eR3yUc5RDWx74C",
+    "HsxonwEcvG2VV2teMcfrjnYeysYUc6j6KrxYARhzS93Z",
+    "5sMqJ2voeyC5eUDuHgWVsyBNU5aCu2QeEJ3oq9mqZPCK",
+    "CXf9BxbvjwoQB3Qqs9mxp7bg81tKKPtn96tB6yefNKi8",
+    "EFRpALDdM5QA6PAGL3mHprNMtjFw4XhfNbX36gej985e",
+    "HS2Ykgko62MQw2SfXpyyTGKnrBh4dS9j7ZqPVDXfchfW",
+    "3kaqZCMHeR511WdYFwc25y8u2AS9HEm3VMptKLRqJNG9"
+  ]
+}

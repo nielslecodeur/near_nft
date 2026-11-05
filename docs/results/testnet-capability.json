@@ -1,13 +1,76 @@
 {
-  "checked_at": "2026-11-02T15:23:53.516Z",
-  "endpoint": "https://rpc.testnet.near.org",
+  "checked_at": "2026-11-04T08:46:05.099Z",
+  "endpoint": "https://test.rpc.fastnear.com",
   "chain_id": "testnet",
-  "version": {
-    "version": "2.14.0-rc.5",
-    "build": "2.14.0-rc.5",
-    "commit": "b7b4737cab46f17a6daa2ed694d7aebbd204363a",
-    "rustc_version": "1.95.0"
-  },
   "protocol_version": 88,
-  "verification": "RPC capability only; no contract deployed or executed"
+  "block": "2Fha4bTPKo8UrW4gAAtJmCvW8EpjbdPXHLAqrNDXttFG",
+  "contracts": [
+    {
+      "account": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+      "code_hash": "7KRPU27CSiF9dG3AU51t76G1maoD357MRUpXizYRs9qv",
+      "keyless": true
+    },
+    {
+      "account": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+      "code_hash": "GMAf6ULixZmFumgj2SqXAEqfxynVHXoDgJG8xRiw2Ace",
+      "keyless": true
+    },
+    {
+      "account": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "code_hash": "4wp2KSaMoSpNz4JDsUVeiuRLMjCFRzM8KPBjnjVNvMHr",
+      "keyless": true
+    },
+    {
+      "account": "missions-v3.everkeep-dev-mw0weth5.testnet",
+      "code_hash": "39KB5g7SdasSeQKjQBTTa6CrVmBXiyo1YCUeyc54NXp5",
+      "keyless": true
+    }
+  ],
+  "series": {
+    "series": {
+      "terms": {
+        "id": "liquidity-v3",
+        "name": "Réserve demoUSD testnet",
+        "opens_at": "1793723942191183810",
+        "closes_at": "1794328682191183810",
+        "matures_at": "1794415082191183810",
+        "asset": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+        "strategy": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+        "capacity": "10000000000",
+        "minimum": "10000000",
+        "allocation_bps": 2000,
+        "max_operation": "10000000",
+        "max_period": "20000000",
+        "version": "1"
+      },
+      "mandate_hash": "kjqjJhAMK7S4cmc2YI5IycpkHNzDpykuxsPSgAoZmmU="
+    },
+    "committed": "45000000",
+    "closed": false,
+    "admin_nonce": "1"
+  },
+  "wallet": {
+    "account": "everkeep-niels-mw0wq5r0.testnet",
+    "near": "2867786676230830999999998",
+    "demoUSD": "55000000",
+    "storage_usage": 182
+  },
+  "positions": [
+    {
+      "account": "paa735da79790483d.reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "owner": "everkeep-niels-mw0wq5r0.testnet",
+      "funded": true,
+      "available": "10000000",
+      "principal": "0",
+      "status": "Active"
+    },
+    {
+      "account": "m6c9705d2b156db-0.reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "owner": "everkeep-niels-mw0wq5r0.testnet",
+      "funded": true,
+      "available": "35000000",
+      "principal": "0",
+      "status": "Active"
+    }
+  ]
 }

@@ -1,0 +1,7 @@
+{
+  "at": "2026-11-04T00:20:59.871Z",
+  "asset": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+  "strategy": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+  "reserve": "1000000000",
+  "verification": "On-chain reserve read; no additional transfer submitted."
+}

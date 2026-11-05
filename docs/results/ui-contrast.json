@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-02T21:52:02.283Z",
+  "scope": "Selected operational text roles, opaque colors; not an exhaustive accessibility audit.",
+  "checks": [
+    {
+      "selector": ".breadcrumb",
+      "color": "rgb(89, 105, 92)",
+      "background": "rgb(245, 244, 239)",
+      "ratio": 5.3
+    },
+    {
+      "selector": ".stats > div > span",
+      "color": "rgb(89, 105, 92)",
+      "background": "rgb(245, 244, 239)",
+      "ratio": 5.3
+    },
+    {
+      "selector": ".allocation span",
+      "color": "rgb(89, 105, 92)",
+      "background": "rgb(255, 254, 250)",
+      "ratio": 5.78
+    },
+    {
+      "selector": ".assumption",
+      "color": "rgb(89, 105, 92)",
+      "background": "rgb(236, 239, 230)",
+      "ratio": 5.02
+    },
+    {
+      "selector": "footer",
+      "color": "rgb(89, 105, 92)",
+      "background": "rgb(245, 244, 239)",
+      "ratio": 5.3
+    },
+    {
+      "selector": ".primary",
+      "color": "rgb(255, 254, 250)",
+      "background": "rgb(23, 77, 50)",
+      "ratio": 9.71
+    }
+  ]
+}

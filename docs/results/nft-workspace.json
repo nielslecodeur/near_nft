@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-02T22:15:12.700Z",
+  "liveSandbox": true,
+  "checks": [
+    "loaded NFT identity and amounts",
+    "JSON passport export without ownership-proof claim",
+    "existing transfer dialog, Escape and focus return",
+    "all 15 ecosystem resources and category filter",
+    "Intents observation labelled read-only",
+    "six viewports for both pages",
+    "wallet state unchanged"
+  ],
+  "viewportsWithoutOverflow": [
+    1440,
+    1024,
+    768,
+    650,
+    390,
+    320
+  ],
+  "pageErrors": [],
+  "scope": "Read-only observation and cancelled transfer preparation. No new NFT minted, external integration executed or testnet transaction sent."
+}

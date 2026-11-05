@@ -1,0 +1,72 @@
+{
+  "owner": "everkeep-demo-mw1yii9b-1.testnet",
+  "network": "testnet",
+  "transport": "QA allowlisted native signer, not Intear UI",
+  "approvals": 2,
+  "transactions": [
+    {
+      "approval": 1,
+      "receiver": "missions-v3.everkeep-dev-mw0weth5.testnet",
+      "methods": [
+        "quote",
+        "pay"
+      ],
+      "hash": "4NVccjpmZEa7aEDpWzpe7LXPaNC3SZvysi1M1dY9brtR",
+      "failed": false
+    },
+    {
+      "approval": 2,
+      "receiver": "missions-v3.everkeep-dev-mw0weth5.testnet",
+      "methods": [
+        "reserve_allocation"
+      ],
+      "hash": "5Uhwaqb4XzAdF767vMrUaTgDKzzrMAhzpujwpKyPtLtG",
+      "failed": false
+    },
+    {
+      "approval": 2,
+      "receiver": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "methods": [
+        "create_plan"
+      ],
+      "hash": "9xi22rYoaSJU4RvtFfHCD6pdB9NGsJeUucTBdcrFYzL",
+      "failed": false
+    },
+    {
+      "approval": 2,
+      "receiver": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+      "methods": [
+        "register_position"
+      ],
+      "hash": "93F5bCDJgLATo5CwNw62r72b7c8xU5MxpogqjwSWPcdV",
+      "failed": false
+    },
+    {
+      "approval": 2,
+      "receiver": "m9e003090a22e5e-0.reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "methods": [
+        "execute"
+      ],
+      "hash": "8n7LWsntLzARyyQUZfMMPUHQMHbmoo1FzmSVqRpEDaM2",
+      "failed": false
+    },
+    {
+      "approval": 2,
+      "receiver": "missions-v3.everkeep-dev-mw0weth5.testnet",
+      "methods": [
+        "authorize_allocation"
+      ],
+      "hash": "AeAfqNbHAQKjRSwjKmkF3Dtez7LzEzW5cgkRifAd7Wk2",
+      "failed": false
+    },
+    {
+      "approval": 2,
+      "receiver": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+      "methods": [
+        "ft_transfer_call"
+      ],
+      "hash": "7vhfXcC6sEz71LuQxpAMmadzgZN6Kjmps84647GU5MCK",
+      "failed": false
+    }
+  ]
+}

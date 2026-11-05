@@ -1,0 +1,7 @@
+{
+  "network": "testnet",
+  "target": "everkeep-demo-mw1yii9b-1.testnet",
+  "transaction": "64QAnBxV3LcmVNemuJh1ZuwDo8bQfx7wSWF9HvUftTwY",
+  "amountNEAR": "5",
+  "purpose": "grouped-approval QA proof, dedicated controlled account"
+}

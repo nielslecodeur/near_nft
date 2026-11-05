@@ -1,0 +1,858 @@
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/space-grotesk.woff2") format("woff2");
+}
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/inter.woff2") format("woff2");
+}
+:root {
+  font-family: Inter, Arial, sans-serif;
+  color: #f0f2ea;
+  background: #090d0b;
+  color-scheme: dark;
+  --surface: #090d0b;
+  --surface-raised: #151c17;
+  --surface-subtle: #1b251e;
+  --text: #f0f2ea;
+  --text-muted: #a6b0a8;
+  --accent: #b5f36b;
+  --accent-hover: #c8fa91;
+  --on-accent: #090d0b;
+  --border: #3d4940;
+  --danger: #f2a797;
+  --danger-surface: #291b18;
+  --font-mono: Inter, Arial, sans-serif;
+}
+html {
+  scrollbar-color: #58644f #090d0b;
+}
+.orbite-app {
+  --surface: #090d0b;
+  --surface-raised: #151c17;
+  --surface-subtle: #1b251e;
+  --text: #f0f2ea;
+  --text-muted: #a6b0a8;
+  --accent: #b5f36b;
+  --accent-hover: #c8fa91;
+  --border: #3d4940;
+  --signal-light: #1b251e;
+  --on-accent: #090d0b;
+  background: var(--surface);
+  color: var(--text);
+  font-family: Inter, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  min-height: 100vh;
+}
+.orbite-app ::selection {
+  background: #b5f36b;
+  color: #090d0b;
+}
+.orbite-app :is(button, a, input, select, summary, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+}
+.orbite-app :is(input, textarea) {
+  caret-color: var(--accent);
+}
+.orbite-app :is(h1, h2, h3, h4, .wordmark, .strategy-card-name) {
+  font-family: "Space Grotesk", Arial, sans-serif;
+}
+.orbite-app :is(.hash, .audit-fields dd, code, .security-dialog textarea) {
+  font-family: Inter, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.orbite-app a {
+  color: var(--text);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+}
+.orbite-app :is(button, .button) {
+  border-color: var(--border);
+  border-radius: 7px;
+  transition:
+    background-color 160ms,
+    color 160ms,
+    transform 160ms;
+  letter-spacing: 0;
+}
+.orbite-app :is(button, .button):hover {
+  background: var(--surface-subtle);
+}
+.orbite-app :is(button, .button):active {
+  transform: translateY(1px);
+}
+.orbite-app .primary {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 650;
+}
+.orbite-app .primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.orbite-app :is(input, select, textarea) {
+  background: var(--surface-raised);
+  color: var(--text);
+  border-color: var(--border);
+  border-radius: 7px;
+  font-family: Inter, Arial, sans-serif;
+}
+.orbite-app :is(input, textarea)::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+.orbite-app .series-header {
+  max-width: 1440px;
+  margin: auto;
+  min-height: 104px;
+  border-bottom: 1px solid var(--border);
+  padding: 24px 40px;
+}
+.orbite-app .wordmark {
+  font-size: 1.4rem;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.orbite-app .series-header nav a {
+  color: var(--text-muted);
+}
+.orbite-app .series-header nav a[aria-current="page"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.orbite-app :is(.user-menu > summary, .user-menu-panel) {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+.orbite-app .user-menu-panel {
+  background: var(--surface-raised);
+}
+.orbite-app main {
+  width: 100%;
+  max-width: 1360px;
+  margin: auto;
+  padding: 0 32px 88px;
+}
+.orbite-app footer {
+  background: var(--surface);
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+.orbite-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 48px;
+  min-height: 680px;
+  padding: 40px 0 36px;
+}
+.orbite-hero-copy {
+  position: relative;
+  z-index: 1;
+  padding-bottom: 18px;
+}
+.orbite-hero h1 {
+  font-size: clamp(3.5rem, 6.5vw, 6rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-weight: 600;
+  max-width: 9ch;
+  margin: 0 0 32px;
+  text-wrap: balance;
+}
+.orbite-hero-copy > p {
+  max-width: 37ch;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+  margin: 0 0 32px;
+}
+.orbite-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.orbite-hero-actions .primary {
+  min-height: 48px;
+  padding: 13px 22px;
+}
+.orbite-hero-actions a {
+  font-size: 0.85rem;
+}
+.orbite-scene {
+  position: relative;
+  min-width: 0;
+  height: 580px;
+  isolation: isolate;
+}
+.orbite-trajectories {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: #829a65;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.orbite-scene .strategy-selector {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  height: 100%;
+  padding-top: 30px;
+}
+.orbite-scene .selector-tools {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.orbite-scene .selector-tools p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.orbite-scene .selector-tools button {
+  font-size: 0.75rem;
+  min-height: 40px;
+  padding: 8px 14px;
+}
+.orbite-app .orbite-scene .strategy-merry {
+  height: 480px;
+  overflow: visible;
+  --carousel-radius: 170px;
+}
+.orbite-app .orbite-scene .single-strategy .strategy-merry {
+  --carousel-radius: 0px;
+}
+.orbite-app .orbite-scene .strategy-card {
+  top: 0;
+  left: 49%;
+  width: 246px;
+  height: 366px;
+  margin-left: -123px;
+  padding: 16px;
+  background: var(--surface-raised);
+  border: 1px solid #6e7968;
+  border-radius: 14px;
+  transition: transform 420ms cubic-bezier(0.23, 1, 0.32, 1);
+  translate: 0 0;
+  backface-visibility: hidden;
+}
+.orbite-app .strategy-card.selected {
+  border-color: #89977b;
+}
+.orbite-app .strategy-reserve {
+  --strategy-accent: #dce4cd;
+}
+.orbite-app .orbite-scene .strategy-art {
+  height: 206px;
+  margin-bottom: 18px;
+}
+.orbite-app .orbite-scene .strategy-card-name {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+.orbite-app .orbite-scene .strategy-card-description {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.orbite-scene .strategy-card-conditions {
+  display: none;
+}
+.orbite-app .orbite-scene .strategy-card-status {
+  font-size: 0.68rem;
+  padding-top: 12px;
+  color: var(--text-muted);
+}
+.orbite-app .orbite-scene .carousel-controls {
+  position: absolute;
+  bottom: 53px;
+  left: 0;
+  right: 0;
+  gap: 10px;
+}
+.orbite-app .orbite-scene .carousel-controls button {
+  min-height: 38px;
+  font-size: 0.7rem;
+  padding: 8px 10px;
+}
+.orbite-app .orbite-scene .carousel-controls p {
+  font-size: 0.7rem;
+  min-width: 0;
+  max-width: 220px;
+}
+.orbite-app .orbite-scene .strategy-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  position: relative;
+  z-index: 3;
+}
+.orbite-app .orbite-scene .strategy-grid .strategy-card {
+  position: static;
+  margin: 0;
+  transform: none;
+  translate: 0 0;
+}
+.orbite-scene:has(.strategy-grid) .orbite-satellites {
+  visibility: hidden;
+}
+.orbite-scene-empty {
+  height: 420px;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+.orbite-app .nft-cover {
+  background: #111a14;
+  color: #ccd4b5;
+  padding: 18px;
+  aspect-ratio: 3/4;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  transition: none;
+  border-radius: 10px;
+}
+.orbite-app .nft-cover-resale {
+  background: #111a14;
+  color: #ccd4b5;
+}
+.orbite-app .nft-cover .cover-top > span:first-child {
+  font-family: "Space Grotesk", Arial, sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.orbite-app .nft-cover .cover-top > span:last-child {
+  font-size: 0.65rem;
+}
+.orbite-app .nft-cover .cover-bottom > span:first-child {
+  font-family: "Space Grotesk", Arial, sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  font-weight: 400;
+}
+.orbite-app .nft-cover .cover-bottom > span:last-child {
+  font-size: 0.65rem;
+}
+.orbite-app .strategy-art .nft-cover {
+  height: 100%;
+  padding: 0;
+  grid-template-rows: minmax(0, 1fr);
+  border-radius: 6px;
+}
+.orbite-app .strategy-art :is(.cover-top, .cover-bottom) {
+  display: none;
+}
+.orbite-app .nft-art-link:hover .nft-cover {
+  transform: none;
+}
+.orbite-satellites {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.orbite-position-card {
+  position: absolute;
+  width: 148px;
+  min-height: 0;
+  padding: 10px !important;
+  display: block !important;
+  text-align: left;
+  pointer-events: auto;
+  background: var(--surface) !important;
+  border: 1px solid #58644f !important;
+  border-radius: 12px !important;
+  transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+.orbite-position-card .nft-cover {
+  padding: 0;
+  aspect-ratio: 3/3.5;
+  border-radius: 6px;
+}
+.orbite-position-card :is(.cover-top, .cover-bottom) {
+  display: none;
+}
+.orbite-position-card .nft-cover {
+  grid-template-rows: minmax(0, 1fr);
+}
+.satellite-0 {
+  left: -3%;
+  top: 43%;
+  transform: rotate(-9deg);
+}
+.satellite-1 {
+  right: -1%;
+  top: 39%;
+  transform: rotate(10deg);
+}
+.orbite-position-card:hover,
+.orbite-position-card:focus-visible {
+  transform: rotate(0deg);
+}
+.satellite-caption {
+  display: block;
+  margin-top: 12px;
+}
+.satellite-caption strong {
+  font-family: "Space Grotesk", Arial, sans-serif;
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.satellite-caption > span {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 6px;
+}
+.orbite-agents {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 64px;
+  padding: 40px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 0 0 64px;
+  align-items: start;
+}
+.orbite-agent-list h2 {
+  font-size: 1.6rem;
+  letter-spacing: -0.025em;
+  margin: 0 0 24px;
+  font-weight: 500;
+}
+.orbite-agent-row {
+  display: flex !important;
+  width: 100%;
+  padding: 16px 0 !important;
+  gap: 20px !important;
+  border: 0 !important;
+  border-top: 1px solid var(--border) !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  justify-content: start !important;
+  text-align: left;
+  background: transparent !important;
+}
+.orbite-agent-row > svg:first-child {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  color: #dce4cd;
+}
+.orbite-agent-row > span {
+  display: block;
+  flex: 1;
+}
+.orbite-agent-row strong {
+  display: block;
+  font-family: "Space Grotesk", Arial, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+.orbite-agent-row > span > span {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.agent-row-toggle {
+  width: 18px;
+  height: 18px;
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.orbite-agent-method {
+  padding: 0;
+  max-width: 62ch;
+}
+.orbite-agent-method[hidden] {
+  display: none;
+}
+.orbite-agent-method h3 {
+  font-size: 1.35rem;
+  font-weight: 500;
+  line-height: 1.3;
+  margin: 0 0 16px;
+}
+.orbite-agent-method p {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+.orbite-agent-method dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 24px 0;
+}
+.orbite-agent-method dt {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.orbite-agent-method dd {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.orbite-agent-limit {
+  color: var(--text-muted);
+  font-size: 0.75rem !important;
+  line-height: 1.7 !important;
+}
+.orbite-app .orbite-text-link {
+  display: inline-block;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+.orbite-app .nft-catalog-toolbar {
+  scroll-margin-top: 32px;
+  margin-top: 0;
+  margin-bottom: 32px;
+  border-color: var(--border);
+}
+.orbite-app .nft-catalog-toolbar button {
+  border-color: transparent;
+  border-radius: 0;
+}
+.orbite-app .nft-catalog-toolbar button[aria-pressed="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+.orbite-app :is(.strategy-description h2, .page-title h1) {
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+.orbite-app .strategy-subscription {
+  border-top: 0;
+  gap: 72px;
+  padding-top: 8px;
+}
+.orbite-app .position-subscribe-form {
+  background: var(--surface-raised);
+  border-radius: 12px;
+  padding: 28px;
+}
+.orbite-app
+  :is(
+    .nft-offer-note,
+    .nft-market-footnote,
+    .nft-product-type,
+    .nft-purchase-condition,
+    .nft-contract-details p,
+    .nft-detail-risk
+  ) {
+  color: var(--text-muted);
+}
+.orbite-app :is(.nft-detail-sheet, .security-dialog, .orbite-preview-sheet) {
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+  --accent: #b5f36b;
+  --accent-hover: #c8fa91;
+  --surface-subtle: #1b251e;
+  --text-muted: #a6b0a8;
+  --on-accent: #090d0b;
+}
+.orbite-app
+  :is(
+    .nft-detail-head > span,
+    .nft-contract-details p,
+    .nft-detail-layout .nft-detail-risk
+  ) {
+  color: var(--text-muted);
+}
+.orbite-app .nft-detail-sheet .primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+.orbite-app :is(.nft-contract-details, .nft-detail-sheet .audit-fields) {
+  border-color: var(--border);
+}
+.orbite-app .nft-purchase-error {
+  color: var(--danger);
+}
+.orbite-app
+  :is(
+    .nft-detail-sheet,
+    .security-dialog,
+    .orbite-preview-sheet,
+    .transaction-dialog
+  )::backdrop {
+  background: rgb(3 8 5 / 0.78);
+}
+.orbite-preview-sheet {
+  width: min(700px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  padding: 32px;
+  overflow: auto;
+  border-radius: 14px;
+}
+.orbite-preview-sheet .dialog-heading {
+  display: flex;
+  align-items: start;
+  gap: 24px;
+}
+.orbite-preview-sheet h2 {
+  font-size: 1.7rem;
+  font-weight: 500;
+}
+.orbite-preview-sheet p {
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+.orbite-app .feedback.success {
+  background: #18251a;
+  color: #d4e3cb;
+  border-color: #536649;
+}
+.orbite-app .feedback.error {
+  background: var(--danger-surface);
+  color: var(--danger);
+  border-color: #87554b;
+}
+.orbite-app .state-label {
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+}
+.orbite-app .page-title {
+  padding-top: 48px;
+}
+.orbite-app .nft-sale-card {
+  max-width: 410px;
+}
+.orbite-app .nft-resale-grid {
+  gap: 48px 32px;
+}
+.orbite-app .nft-sale-card .nft-cover {
+  aspect-ratio: 3/4;
+}
+.orbite-app .orbite-agent-profile {
+  grid-column: 1/-1;
+}
+.orbite-app .agent-proposal {
+  background: var(--surface-raised);
+  border-radius: 12px;
+}
+.orbite-app .agent-workbench {
+  border-color: var(--border);
+}
+.orbite-app .nft-detail-layout > .nft-cover {
+  aspect-ratio: 3/4;
+}
+@media (max-width: 1100px) {
+  .orbite-hero {
+    gap: 24px;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
+    min-height: 640px;
+  }
+  .orbite-hero h1 {
+    font-size: 4.75rem;
+  }
+  .orbite-scene {
+    height: 540px;
+  }
+  .orbite-app .orbite-scene .strategy-card {
+    width: 220px;
+    margin-left: -110px;
+    height: 350px;
+  }
+  .orbite-position-card {
+    width: 120px;
+  }
+  .satellite-0 {
+    left: 0;
+    top: 50%;
+  }
+  .satellite-1 {
+    right: -2%;
+    top: 44%;
+  }
+  .orbite-app .orbite-scene .carousel-controls {
+    bottom: 54px;
+  }
+  .orbite-app .orbite-scene .carousel-controls button {
+    padding: 8px 6px;
+    font-size: 0.65rem;
+  }
+}
+@media (max-width: 1000px) {
+  .orbite-app .series-header {
+    padding: 24px;
+  }
+  .orbite-app main {
+    padding: 0 24px 64px;
+  }
+  .orbite-hero {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 48px 0 28px;
+    min-height: 0;
+  }
+  .orbite-hero h1 {
+    font-size: clamp(3rem, 10vw, 4.5rem);
+    max-width: 13ch;
+    margin-bottom: 24px;
+  }
+  .orbite-hero-copy {
+    padding: 0;
+  }
+  .orbite-hero-copy > p {
+    font-size: 0.95rem;
+    max-width: 39ch;
+    margin-bottom: 24px;
+  }
+  .orbite-hero-actions {
+    gap: 24px;
+  }
+  .orbite-scene {
+    height: 480px;
+    width: 100%;
+    max-width: 550px;
+    margin: 12px auto 0;
+  }
+  .orbite-app .orbite-scene .strategy-selector {
+    padding-top: 24px;
+  }
+  .orbite-app .orbite-scene .strategy-card {
+    width: 230px;
+    height: 340px;
+    margin-left: -115px;
+    left: 50%;
+    translate: 0 0;
+  }
+  .orbite-app .orbite-scene .strategy-art {
+    height: 184px;
+  }
+  .orbite-app .orbite-scene .strategy-merry {
+    height: 370px;
+    --carousel-radius: 110px;
+  }
+  .orbite-satellites {
+    display: none;
+  }
+  .orbite-trajectories {
+    inset: 0;
+    height: 390px;
+  }
+  .orbite-app .orbite-scene .carousel-controls {
+    bottom: 51px;
+  }
+  .orbite-agents {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 28px 0;
+    margin-bottom: 40px;
+  }
+  .orbite-agent-list h2 {
+    font-size: 1.45rem;
+    margin-bottom: 20px;
+  }
+  .orbite-agent-row > span > span {
+    font-size: 0.72rem;
+  }
+  .orbite-agent-method dl {
+    gap: 20px;
+  }
+  .orbite-app .strategy-subscription {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .orbite-app .position-subscribe-form {
+    padding: 24px;
+  }
+  .orbite-app .nft-catalog-toolbar > div {
+    gap: 22px;
+  }
+  .orbite-app .nft-catalog-toolbar button {
+    font-size: 0.82rem;
+  }
+  .orbite-app .page-title {
+    padding-top: 32px;
+  }
+  .orbite-app .series-header nav a {
+    font-size: 0.8rem;
+  }
+  .orbite-app .wordmark {
+    font-size: 1.15rem;
+    letter-spacing: 0.14em;
+  }
+  .orbite-preview-sheet {
+    padding: 24px;
+  }
+  .orbite-preview-sheet .dialog-heading {
+    display: block;
+  }
+  .orbite-preview-sheet .dialog-heading button {
+    margin-bottom: 16px;
+  }
+  .orbite-app .nft-detail-layout > .nft-cover {
+    max-height: 280px;
+    aspect-ratio: 1.25/1;
+  }
+  .orbite-app .nft-detail-layout > .nft-cover :is(.cover-top, .cover-bottom) {
+    display: none;
+  }
+  .orbite-app .nft-detail-layout > .nft-cover {
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+@media (max-width: 360px) {
+  .orbite-app main {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+  .orbite-app .series-header {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+  .orbite-hero h1 {
+    font-size: 2.85rem;
+  }
+  .orbite-hero-actions {
+    gap: 16px;
+  }
+  .orbite-hero-actions .primary {
+    font-size: 0.8rem;
+    padding: 12px 16px;
+  }
+  .orbite-hero-actions a {
+    font-size: 0.78rem;
+  }
+  .orbite-app .orbite-scene .carousel-controls p {
+    max-width: 110px;
+  }
+  .orbite-app .orbite-scene .carousel-controls button {
+    font-size: 0.65rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .orbite-app *,
+  .orbite-app *::before,
+  .orbite-app *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    animation: none !important;
+  }
+}

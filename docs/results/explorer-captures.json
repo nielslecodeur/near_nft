@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-03T10:08:38.001Z",
+  "captures": [
+    ".impeccable/review/explorer/explorer-320.png",
+    ".impeccable/review/explorer/positions-320.png",
+    ".impeccable/review/explorer/agent-320.png",
+    ".impeccable/review/explorer/explorer-390.png",
+    ".impeccable/review/explorer/positions-390.png",
+    ".impeccable/review/explorer/agent-390.png",
+    ".impeccable/review/explorer/explorer-768.png",
+    ".impeccable/review/explorer/positions-768.png",
+    ".impeccable/review/explorer/agent-768.png",
+    ".impeccable/review/explorer/explorer-1440.png",
+    ".impeccable/review/explorer/positions-1440.png",
+    ".impeccable/review/explorer/agent-1440.png"
+  ],
+  "scope": "Read-only real sandbox snapshots after final UI corrections. No POST."
+}

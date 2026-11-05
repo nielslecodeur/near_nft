@@ -1,0 +1,32 @@
+{
+  "stage": 4,
+  "status": "ready-for-user-review",
+  "disposition": "ship",
+  "verdictScope": "All three scored mobile fixes resolved. No regressions introduced by that batch observed; this verdict approves those fixes, not an unrestricted whole-product audit.",
+  "verdict": [
+    {
+      "finding": "Wallet account panel containment and scrolling",
+      "score": "resolved"
+    },
+    { "finding": "Initially collapsed mobile filters", "score": "resolved" },
+    { "finding": "Single-row mobile header controls", "score": "resolved" }
+  ],
+  "reviewer": "terminal_pages_finish_reviewer",
+  "scope": "Fresh independent review of actual product pages with sampled source; subsequent verdict scores the three requested mobile corrections only. Not a contract audit or real wallet signing certification.",
+  "contract": "Explicit code-led adoption of user-approved steps 1, 2 and 3; no separate comp, concept seed or QUALITY BAR artifact.",
+  "initialDisposition": "fix",
+  "initialFindings": [
+    "Contain and scroll the wallet account panel inside the mobile viewport.",
+    "Initialize mobile catalogue filters collapsed while retaining desktop expansion and user toggling.",
+    "Align mobile search, wallet and settings on one header row."
+  ],
+  "sourceReviewLimit": "Optional captures/contact sheets, unsampled source regions and historical DESIGN.md/sidecar were not read during the initial review.",
+  "detector": {
+    "runs": 1,
+    "findings": [],
+    "scope": "Changed TSX and canonical page stylesheet; no second pass."
+  },
+  "browserReport": "docs/results/terminal-pages-browser.json",
+  "builtPreviewReport": "docs/results/terminal-pages-build-smoke.json",
+  "walletTest": "Explicit UI adapter and live read-only RPC; no financial signature or transaction sent."
+}

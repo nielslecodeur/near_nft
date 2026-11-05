@@ -1,47 +1,91 @@
-import type { WalletSelector } from "@near-wallet-selector/core";
+import type { NearConnector } from "@hot-labs/near-connect";
+import { installWalletSessionStorage } from "./wallet-session";
+import { TESTNET } from "../packages/shared/network";
 import { verifyPair, type Snapshot } from "../packages/shared/index.js";
+import { parseOwnedPlans } from "../packages/shared/wallet.js";
 export const config = {
-  rpc: import.meta.env.VITE_RPC_URL || "https://rpc.testnet.near.org",
+  rpc: import.meta.env.VITE_RPC_URL || TESTNET.rpc,
   collection: import.meta.env.VITE_COLLECTION_ID || "",
   asset: import.meta.env.VITE_ASSET_ID || "",
   strategy: import.meta.env.VITE_STRATEGY_ID || "",
 };
-let selector: WalletSelector | undefined;
+let selector: NearConnector | undefined;
+let selectorPromise: Promise<NearConnector> | undefined;
 export async function walletSelector() {
-  if (!selector) {
-    const [{ setupWalletSelector }, { setupMyNearWallet }] = await Promise.all([
-      import("@near-wallet-selector/core"),
-      import("@near-wallet-selector/my-near-wallet"),
-    ]);
-    selector = await setupWalletSelector({
-      network: "testnet",
-      modules: [setupMyNearWallet()],
+  installWalletSessionStorage();
+  if (selector) return selector;
+  if (!selectorPromise)
+    selectorPromise = (async () => {
+      const { NearConnector } = await import("@hot-labs/near-connect");
+      const candidate = new NearConnector({
+        network: "testnet",
+        providers: { testnet: [config.rpc] },
+        features: {
+          testnet: true,
+          signInWithoutAddKey: true,
+          signAndSendTransaction: true,
+        },
+        excludedWallets: ["near-cli"],
+        autoConnect: true,
+        logger: { log: () => {} },
+      });
+      await Promise.race([
+        candidate.whenManifestLoaded,
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  "Le catalogue des wallets ne répond pas. Réessayez la connexion.",
+                ),
+              ),
+            20000,
+          ),
+        ),
+      ]);
+      selector = candidate;
+      return selector;
+    })().catch((error) => {
+      selectorPromise = undefined;
+      throw error;
     });
-  }
-  return selector;
+  return selectorPromise;
 }
-export async function connect() {
+export async function connect(walletId?: string) {
+  const s = await walletSelector();
+  const connected = await s.connect(walletId ? { walletId } : undefined);
+  return (await connected.getAccounts())[0]?.accountId || "";
+}
+export async function disconnect() {
+  const s = await walletSelector();
+  await s.disconnect();
+}
+export async function ownedPlans(owner: string, offset = 0) {
   if (!config.collection)
     throw new Error(
-      "Configurez VITE_COLLECTION_ID après un déploiement testnet. La sandbox locale reste disponible.",
+      "La collection Everkeep testnet n’est pas encore configurée. La connexion wallet fonctionne ; la recherche des NFT-comptes sera disponible après son déploiement.",
     );
-  const s = await walletSelector();
-  if (!s.isSignedIn()) {
-    const { setupModal } = await import("@near-wallet-selector/modal-ui");
-    setupModal(s, { contractId: config.collection }).show();
-    return "";
-  }
-  return s.store.getState().accounts[0]?.accountId ?? "";
+  const block = await rpc("block", { finality: "final" });
+  const tokens = await view(
+    config.collection,
+    "nft_tokens_for_owner",
+    { account_id: owner, from_index: String(offset), limit: 20 },
+    block.header.hash,
+  );
+  return parseOwnedPlans(tokens, owner, config.collection);
 }
 export async function rpc(method: string, params: object) {
   const response = await fetch(config.rpc, {
+    signal: AbortSignal.timeout(18000),
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: "everkeep", method, params }),
   });
   const data = await response.json();
   if (!response.ok || data.error)
-    throw new Error(data.error?.message || "RPC indisponible");
+    throw new Error(
+      data.error ? JSON.stringify(data.error) : "RPC indisponible",
+    );
   return data.result;
 }
 export async function view(
@@ -59,7 +103,10 @@ export async function view(
   });
   return JSON.parse(new TextDecoder().decode(new Uint8Array(result.result)));
 }
-export async function verified(account: string): Promise<Snapshot> {
+export async function verified(
+  account: string,
+  readOnly = false,
+): Promise<Snapshot> {
   if (!config.collection) throw new Error("Collection testnet non configurée");
   let reason = "Lecture non convergente";
   for (let retry = 0; retry < 3; retry++) {
@@ -74,7 +121,7 @@ export async function verified(account: string): Promise<Snapshot> {
       ),
     ]);
     try {
-      return verifyPair(config.collection, account, item, token);
+      return verifyPair(config.collection, account, item, token, readOnly);
     } catch (e) {
       reason = String(e);
     }
@@ -91,6 +138,9 @@ export async function transaction(
   const s = await walletSelector();
   const wallet = await s.wallet();
   const { actionCreators } = await import("@near-js/transactions");
+  window.dispatchEvent(
+    new CustomEvent("everkeep-phase", { detail: "signing" }),
+  );
   const result = await wallet.signAndSendTransaction({
     receiverId: receiver,
     actions: [
@@ -102,11 +152,18 @@ export async function transaction(
       ),
     ],
   });
+  window.dispatchEvent(
+    new CustomEvent("everkeep-phase", { detail: "pending" }),
+  );
+  if (!result)
+    throw new Error(
+      "Le wallet n’a pas encore retourné de résultat. Vérifiez l’historique avant de réessayer cette opération.",
+    );
   if (
     result &&
     ((typeof result.status === "object" && "Failure" in result.status) ||
       result.receipts_outcome?.some(
-        (r) =>
+        (r: { outcome: { status: Record<string, unknown> } }) =>
           typeof r.outcome.status === "object" && "Failure" in r.outcome.status,
       ))
   )
@@ -125,6 +182,9 @@ export async function depositPlan(s: Snapshot, amount: string) {
   const selector = await walletSelector(),
     wallet = await selector.wallet();
   const { actionCreators } = await import("@near-js/transactions");
+  window.dispatchEvent(
+    new CustomEvent("everkeep-phase", { detail: "signing" }),
+  );
   const results = await wallet.signAndSendTransactions({
     transactions: [
       {
@@ -157,11 +217,18 @@ export async function depositPlan(s: Snapshot, amount: string) {
       },
     ],
   });
-  for (const result of results || []) {
+  window.dispatchEvent(
+    new CustomEvent("everkeep-phase", { detail: "pending" }),
+  );
+  if (!results?.length)
+    throw new Error(
+      "Le wallet n’a pas encore retourné les résultats du dépôt. Vérifiez l’historique avant de réessayer.",
+    );
+  for (const result of results) {
     if (
       (typeof result.status === "object" && "Failure" in result.status) ||
       result.receipts_outcome.some(
-        (r) =>
+        (r: { outcome: { status: Record<string, unknown> } }) =>
           typeof r.outcome.status === "object" && "Failure" in r.outcome.status,
       )
     )

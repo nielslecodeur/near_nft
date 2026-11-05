@@ -1,0 +1,156 @@
+.wallet-connection {
+  margin-left: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+#near-wallet-selector-modal .middleTitle {
+  font-family: var(--font-body);
+}
+.app .wallet-connect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  min-height: 44px;
+  max-width: 100%;
+  padding: 10px 14px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+.wallet-connect > span {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wallet-connect > small {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+.app .wallet-connection .wallet-connect {
+  max-width: 100%;
+}
+.wallet-connect-error {
+  font-size: 0.75rem;
+  max-width: 35ch;
+  color: var(--danger);
+}
+.wallet-dialog {
+  width: min(660px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 28px;
+  margin: auto;
+  background: var(--surface-raised);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  font-family: var(--font-body);
+}
+.wallet-dialog::backdrop {
+  background: #252d287d;
+}
+.wallet-dialog h2 {
+  font: 650 1.5rem/1.1 var(--font-body);
+}
+.wallet-dialog h3 {
+  font: 600 1rem/1.4 var(--font-body);
+  margin-top: 26px;
+}
+.wallet-dialog p {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  margin-block: 14px;
+}
+.wallet-dialog .wallet-address {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.wallet-dialog .section-top button {
+  min-height: 44px;
+  min-width: 44px;
+}
+.wallet-dialog ul {
+  list-style: none;
+  padding: 0;
+}
+.wallet-dialog li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-block: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.wallet-dialog li > span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.wallet-dialog li button {
+  flex-shrink: 0;
+}
+.wallet-dialog-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.wallet-dialog .wallet-dialog-error {
+  color: var(--danger);
+}
+.demo-identity {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .app.surface-presentation > .sidebar {
+    flex-wrap: wrap;
+  }
+  .app > .sidebar {
+    flex-wrap: wrap;
+  }
+  .app > .sidebar .brand {
+    order: 1;
+  }
+  .app > .sidebar .wallet-connection {
+    order: 2;
+  }
+  .app > .sidebar nav {
+    order: 3;
+    flex: 1 0 100%;
+    justify-content: flex-end;
+  }
+}
+@media (max-width: 480px) {
+  .app > .sidebar {
+    flex-wrap: wrap;
+  }
+  .app .wallet-connect {
+    padding: 8px;
+    gap: 6px;
+    font-size: 0.625rem;
+  }
+  .wallet-connect > span {
+    max-width: 155px;
+  }
+  .wallet-connect > small {
+    display: none;
+  }
+  .wallet-dialog {
+    padding: 20px;
+  }
+  .wallet-dialog li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .surface-presentation > .sidebar nav {
+    flex: 1 0 100%;
+  }
+  .surface-presentation > .sidebar .brand {
+    font-size: 22px;
+  }
+}

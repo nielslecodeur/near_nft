@@ -1,0 +1,17 @@
+﻿{
+    "retry":  {
+                  "network":  "testnet",
+                  "account":  "everkeep-demo-mw1yii9b-2.testnet",
+                  "balance":  "100000000",
+                  "alreadyClaimed":  true,
+                  "transaction":  "6nZp8weUFCdTcyDn4JH9DPpJWX9C1C8jLuQXCQ8U5Ts9"
+              },
+    "first":  {
+                  "network":  "testnet",
+                  "account":  "everkeep-demo-mw1yii9b-2.testnet",
+                  "balance":  "100000000",
+                  "transaction":  "6nZp8weUFCdTcyDn4JH9DPpJWX9C1C8jLuQXCQ8U5Ts9"
+              },
+    "network":  "testnet",
+    "at":  "2026-11-04T10:46:09.0630738Z"
+}

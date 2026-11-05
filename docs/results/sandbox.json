@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-02T19:49:16.212Z",
+  "date": "2026-11-03T11:30:07.469Z",
   "sandbox": {
     "version": "2.14.0",
     "build": "2.14.0",
@@ -52,13 +52,13 @@
     "wallet et collection vérifiés au même bloc final"
   ],
   "measurements": {
-    "policy_total_gas": "3837911028044",
+    "policy_total_gas": "3930022260654",
     "message_bytes": 574,
     "public_key_bytes": 1952,
     "signature_bytes": 3309,
-    "wallet_wasm_bytes": 221782,
-    "wallet_storage_bytes": 224158,
-    "verification_block": "BD9ftqnb2UyYKeG9v3m4LCNxRb2bPH9fUcQexPgVmdYB"
+    "wallet_wasm_bytes": 272438,
+    "wallet_storage_bytes": 274826,
+    "verification_block": "6pVLRJ65QUwtvNFU6s1tzVQ4tGgVzjqZJ77b2o6MUikp"
   },
   "final": {
     "account_id": "avenir.everkeep.sandbox",
@@ -72,7 +72,12 @@
     "key_version": "8",
     "policy_version": "8",
     "nonce": "11",
-    "public_key": "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",
+    "public_key": "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",
+    "funding_permit": null,
+    "series": null,
+    "funded": true,
+    "sale": null,
+    "sale_sequence": "0",
     "status": "Active",
     "proposed_owner": null,
     "available": "916000000",
@@ -84,7 +89,7 @@
     "policy": null,
     "agent_paused": true,
     "pending": null,
-    "started_at": "1793648904944140786",
+    "started_at": "1793705360247389824",
     "horizon_years": 10,
     "target_bps": 400,
     "sync_seq": "7"

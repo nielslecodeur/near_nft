@@ -1,0 +1,58 @@
+{
+  "stage": 3,
+  "status": "reference-awaiting-user-validation",
+  "disposition": "ship",
+  "reviewer": "terminal_components_review_retry",
+  "reviewMethod": "Fresh independent review; initial reviewer failed immediately due to a usage limit and was replaced once. The replacement completed the five-section review and the verdict pass.",
+  "scope": "Initial review of the composed UI library/reference, with sampled source, followed by a verdict pass scoring the two listed fixes. Not approval of product-page integration, financial behavior or contract security.",
+  "contract": "Pinned user brief plus approved terminal tokens/primitives; precisely specified extension, no separate comp/seed/QUALITY BAR artifacts.",
+  "widths": [
+    1440,
+    390
+  ],
+  "captures": 46,
+  "captureManifest": "docs/results/terminal-components-browser.json",
+  "evidence": "All 46 files decode at expected dimensions; full-page views start at document top. Component crops use documented fixed-header isolation during capture only.",
+  "initialDisposition": "fix",
+  "sourceReviewLimit": "Independent reviewer sampled primary source; demo-fixtures.ts and unsampled portions were not read by that reviewer. Synthetic-data labels were reviewed in captures; the parent authored and inspected fixtures.",
+  "materialFixes": [
+    {
+      "id": "repeated-search-shortcut-focus",
+      "requirement": "Repeated Cmd/Ctrl+K must retain the original external focus target.",
+      "implementation": "All search open/close transitions pass through a helper with a synchronous ref; previousFocus is captured only when closed becomes open.",
+      "status": "resolved",
+      "evidence": "Both widths test open from inventory input, repeat Ctrl+K and Meta+K, Escape and restore the initiating control. Fresh source and captures reviewed."
+    },
+    {
+      "id": "trade-panel-heading-hierarchy",
+      "requirement": "No above-heading eyebrow; synthetic disclosure remains explicit.",
+      "implementation": "The specimen badge now follows the price heading and price.",
+      "status": "resolved",
+      "evidence": "Fresh desktop/mobile chart and full-page captures show heading, price, then specimen disclosure."
+    }
+  ],
+  "verdictPass": {
+    "disposition": "ship",
+    "scope": "The two listed fixes only",
+    "remaining": [],
+    "regressionsObserved": []
+  },
+  "validation": {
+    "build": "npm run build passed after the fix batch: token generation, TypeScript and Vite with three entries",
+    "components": "Complete same 46-capture matrix passed on built output after fixes; zero JavaScript/HTTP errors and zero external requests from reference",
+    "primitives": "20-capture primitive suite passed after shared component/style changes",
+    "main": "Existing Explorer renders at both widths without new styles or document overflow",
+    "pulseMeasurement": "Test-only observer records actual Web Animations API calls without altering animation behavior; verifies exactly one bounded pulse and no new calls under reduced motion"
+  },
+  "detector": {
+    "runs": 1,
+    "findings": 0,
+    "limitation": "Static root-relative HTML stylesheet resolution failed at design/design paths; linked color/variable checks incomplete. Actual CSS files were explicit targets. No second detector or suppressed rules."
+  },
+  "preserved": "Active application entry, wallet/signature/financial logic, contracts and historical root design documents",
+  "pending": [
+    "User validation of stage 3",
+    "Stage 4 pages and integration with verified product data and existing operations"
+  ],
+  "at": "2026-11-04T22:25:56.186Z"
+}

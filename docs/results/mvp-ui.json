@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-03T16:01:35.009Z",
+  "checks": [
+    "three primary routes; a single truthful strategy with no duplicated neighbours; keyboard, grid and reduced-motion states",
+    "Explorer, owned positions and Agent fit 390/768/1440 without horizontal overflow",
+    "below-minimum deposit blocked; incompatible liquidity abstains; proposal emits zero spending commands"
+  ],
+  "captures": [
+    ".impeccable/review/mvp/explorer-390.png",
+    ".impeccable/review/mvp/positions-390.png",
+    ".impeccable/review/mvp/agent-390.png",
+    ".impeccable/review/mvp/explorer-768.png",
+    ".impeccable/review/mvp/positions-768.png",
+    ".impeccable/review/mvp/agent-768.png",
+    ".impeccable/review/mvp/explorer-1440.png",
+    ".impeccable/review/mvp/positions-1440.png",
+    ".impeccable/review/mvp/agent-1440.png"
+  ],
+  "transactions": false,
+  "scope": "Actual Chrome. Transaction option uses real sandbox WASM and ML-DSA with test assets, preserving pre-existing funded positions. No external wallet signature or financial testnet transaction."
+}

@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-02T22:35:24.936Z",
+  "checks": [
+    "interactive control mechanism and explicit Alice/Bob example",
+    "separate app route, keyboard focus and browser history",
+    "offline recovery and real read loading state",
+    "exact recipient summary, invalid amount, locked parameters and preserved failed form",
+    "activity filtering",
+    "incomplete data refused without replacing the known balance",
+    "u128 max, 64-character addresses, pending controls and six widths",
+    "compact magnitude, accessible exact u128 copy and unsafe projection guard",
+    "reduced-motion modal"
+  ],
+  "viewportsWithoutOverflow": [
+    1440,
+    1024,
+    768,
+    650,
+    390,
+    320
+  ],
+  "pageErrors": [],
+  "scope": "UI-only transport, incomplete and oversized states injected deliberately. No real transaction sent by this script; actual sandbox fund flow is checked separately in browser.json."
+}

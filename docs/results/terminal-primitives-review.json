@@ -1,0 +1,47 @@
+{
+  "stage": 2,
+  "status": "reference-awaiting-user-validation",
+  "reviewer": "terminal_primitives_finish_reviewer",
+  "disposition": "ship",
+  "scope": "Full initial stage-2 UI-primitives review followed by a verdict pass scoring the single monetary-input typography fix. This is not approval of the full marketplace, later stages or financial/security behavior.",
+  "contract": "Pinned user brief and approved design-system/terminal/tokens.json; precisely specified extension, no separate comp or seed artifacts.",
+  "requiredWidths": [1440, 390],
+  "captures": 20,
+  "captureManifest": "docs/results/terminal-primitives-browser.json",
+  "initialDisposition": "fix",
+  "materialFixes": [
+    {
+      "id": "monetary-input-typography",
+      "requirement": "Numeric font and tabular figures on every price, including a monetary editing field.",
+      "implementation": "Reusable .ek-input[inputmode=decimal] and .ek-input[type=number] selectors use font-numeric and tabular-nums lining-nums.",
+      "status": "resolved",
+      "evidence": "Source inspected and fresh 1440/390 captures reviewed; browser test asserts IBM Plex Mono and tabular figures on the edited decimal input."
+    }
+  ],
+  "verdictPass": {
+    "disposition": "ship",
+    "scope": "The one listed monetary-input typography fix only.",
+    "remaining": []
+  },
+  "validation": {
+    "build": "npm run build passed, token generation + TypeScript + Vite multipage output",
+    "browser": "Same complete 20-capture matrix rerun on built output after the fix; both widths passed; zero JavaScript/HTTP errors and zero external requests from the reference",
+    "mainSmoke": "Existing Explorer renders at 1440/390, no overflow and no isolated primitive styles applied"
+  },
+  "detector": {
+    "runs": 1,
+    "findings": 0,
+    "limitation": "Static HTML root-relative stylesheet links resolved to design/design paths, so linked color/custom-property checks were incomplete. Actual component and reference CSS were also explicit targets. No second scan or suppressed rules."
+  },
+  "documentation": [
+    "design-system/terminal/PRIMITIVES.md",
+    "design-system/terminal/README.md",
+    "PROGRESS.md"
+  ],
+  "preserved": "Historical root DESIGN.md and sidecar; incumbent application entry, business logic, wallet/signature flows and contracts",
+  "pending": [
+    "User validation before stage 3",
+    "Composed marketplace components and JSON-driven CardFrame",
+    "Stage 4 product pages and integration"
+  ]
+}

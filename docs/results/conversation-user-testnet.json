@@ -1,0 +1,151 @@
+{
+  "at": "2026-11-04T14:11:57.813Z",
+  "network": "testnet",
+  "owner": "nifelst.testnet",
+  "blockHash": "72PhEm7zaFwbZSbMeaUrEFtkx1JkzAiKQkApYssL3ws3",
+  "chainTime": "1793801388788884167",
+  "near": "1330859478493645499999999",
+  "demoUSD": "75000000",
+  "missions": [
+    {
+      "id": "de5f8a15-6595-4160-a327-3169015ba085",
+      "client": "nifelst.testnet",
+      "profile": {
+        "id": "tradfi",
+        "version": "1",
+        "price": "15000000000000000000000",
+        "processing_ns": "120000000000",
+        "enabled": true
+      },
+      "request_hash": "RkmEHda4z1+PY8rOxLTNBbkWxHtLSvSfR8O08tnKFXc=",
+      "quote_expires_at": "1793788812847775674",
+      "paid_at": "1793788488473923920",
+      "deadline": "1793788608473923920",
+      "state": "Delivered",
+      "result_hash": "41W3uoy3BuCCvWs2eu+s8Ax5ksCIg1faBwM0tHiLV8k=",
+      "proposal_expires_at": "1793789393371274532",
+      "outcome": "proposed",
+      "allocation_hashes": [
+        "mtEcxm9ug7145MP592TB0t9rNx+322NDAc3OLZsnnmE="
+      ],
+      "operations": [
+        {
+          "position": "m5f7edea84343cc-0.reserve-v3.everkeep-dev-mw0weth5.testnet",
+          "allocation": {
+            "collection": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+            "strategy_id": "liquidity-v3",
+            "strategy_version": "1",
+            "asset": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+            "strategy": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+            "amount": "25000000",
+            "mandate_hash": "kjqjJhAMK7S4cmc2YI5IycpkHNzDpykuxsPSgAoZmmU="
+          },
+          "state": "Authorized",
+          "attempt": "1",
+          "authorization_hash": "aCGs+6poASs9sJli8kisMeIoTUJVuXR9Wn8Eirp5dao=",
+          "authorization_expires_at": "1793789169778008295",
+          "policy_version": "1",
+          "error": null
+        }
+      ],
+      "refund": null,
+      "provider": {
+        "beneficiary": "everkeep-dev-mw0weth5.testnet",
+        "amount": "15000000000000000000000",
+        "state": "Claimable",
+        "attempt": "0"
+      },
+      "failure": null
+    },
+    {
+      "id": "17e5b6e9-2d09-4d1b-b2d4-1010703054ec",
+      "client": "nifelst.testnet",
+      "profile": {
+        "id": "tradfi",
+        "version": "1",
+        "price": "15000000000000000000000",
+        "processing_ns": "120000000000",
+        "enabled": true
+      },
+      "request_hash": "soBV8YoKl4Y3A7zChagRE5dVC036is6cpMtpkftvIcA=",
+      "quote_expires_at": "1793790778359032362",
+      "paid_at": "1793790202716160541",
+      "deadline": "1793790322716160541",
+      "state": "Delivered",
+      "result_hash": "gkLXbKH4m1HYGIEVS2KUorKKm0Sk4prjG/Zsmmra05s=",
+      "proposal_expires_at": "1793791107762759079",
+      "outcome": "proposed",
+      "allocation_hashes": [
+        "5uou89oCPpU4UWFkUC8YzxixQvIWlrVZJnkYD6q2VHg="
+      ],
+      "operations": [
+        {
+          "position": "m5f7edea84343cc-0.reserve-v3.everkeep-dev-mw0weth5.testnet",
+          "allocation": {
+            "collection": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+            "strategy_id": "liquidity-v3",
+            "strategy_version": "1",
+            "asset": "demousd-v3.everkeep-dev-mw0weth5.testnet",
+            "strategy": "strategy-v3.everkeep-dev-mw0weth5.testnet",
+            "amount": "25000000",
+            "mandate_hash": "kjqjJhAMK7S4cmc2YI5IycpkHNzDpykuxsPSgAoZmmU="
+          },
+          "state": "Confirmed",
+          "attempt": "2",
+          "authorization_hash": "SKD0mh6WZvF6KiS7nsMBmhwslpRTe06l17Kqzt6JUzY=",
+          "authorization_expires_at": "1793790834273833677",
+          "policy_version": "3",
+          "error": null
+        }
+      ],
+      "refund": null,
+      "provider": {
+        "beneficiary": "everkeep-dev-mw0weth5.testnet",
+        "amount": "15000000000000000000000",
+        "state": "Claimable",
+        "attempt": "0"
+      },
+      "failure": null
+    }
+  ],
+  "positions": [
+    {
+      "position": "m5f7edea84343cc-0.reserve-v3.everkeep-dev-mw0weth5.testnet",
+      "owner": "nifelst.testnet",
+      "status": "Active",
+      "funded": true,
+      "deposits": "25000000",
+      "available": "25000000",
+      "reserved": "0",
+      "principal": "0",
+      "policyVersion": "3",
+      "subscription": {
+        "owner": "nifelst.testnet",
+        "amount": "25000000",
+        "state": "Funded"
+      },
+      "token": {
+        "token_id": "m5f7edea84343cc-0.reserve-v3.everkeep-dev-mw0weth5.testnet",
+        "owner_id": "nifelst.testnet",
+        "ownership_epoch": "0",
+        "sync_seq": "0",
+        "metadata": {
+          "title": "Everkeep — position NFT",
+          "description": "Compte de position de démonstration, contraintes contractuelles conservées, sans garantie",
+          "copies": 1,
+          "extra": "m5f7edea84343cc-0.reserve-v3.everkeep-dev-mw0weth5.testnet"
+        }
+      },
+      "authorization": null
+    }
+  ],
+  "ownedTokens": [
+    "m5f7edea84343cc-0.reserve-v3.everkeep-dev-mw0weth5.testnet"
+  ],
+  "humanConfirmed": [
+    "Intear connection and balances",
+    "quote signed in application",
+    "analysis paid and proposal displayed"
+  ],
+  "scope": "independent public final RPC reads; human confirmation is not automation; no private key or capability accessed"
+}

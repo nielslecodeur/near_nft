@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-02T22:35:20.263Z",
+  "checks": [
+    "real MyNearWallet provider selector without configured collection",
+    "public account session fixture restoration",
+    "separate sandbox and connected wallet",
+    "NFT discovery and real client pair verification against RPC fixtures at same final block",
+    "sold NFT refused on open",
+    "account change clears loaded plan",
+    "disconnect",
+    "unconfigured collection explained",
+    "stale enumeration discarded",
+    "320/390/768/1440 widths"
+  ],
+  "pageErrors": [],
+  "scope": "Actual provider selector opened only; no external wallet login or signature. Account sessions and RPC responses are deliberate fixtures; verifyPair and client parsing are not bypassed. No deployment or transaction sent."
+}

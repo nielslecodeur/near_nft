@@ -1,5 +1,7 @@
 # Sources et versions
 
+Complément écosystème : [analyse des 15 ressources](ecosystem.md), documentations officielles et [HEAD des dépôts repérés](results/ecosystem-sources.json). La collecte de références est distinguée d’une revue de code ou d’une intégration exécutée. [Observation publique Intents](results/ecosystem-capabilities.json) : métadonnées en lecture seule, pas de swap.
+
 Consultation : 2 novembre 2026. Les copies d'étude sont dans `.research/`, exclu de Git. Les liens ci-dessous sont épinglés aux commits lus, et non à une branche susceptible de changer.
 
 | Source | Révision consultée | Utilisation |

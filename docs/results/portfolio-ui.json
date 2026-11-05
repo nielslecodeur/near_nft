@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-02T22:30:33.034Z",
+  "liveSandboxRead": true,
+  "viewports": [
+    1440,
+    1024,
+    768,
+    650,
+    390,
+    320
+  ],
+  "checks": [
+    "empty/load",
+    "real balances and strategy identity",
+    "proposal inspection without transaction",
+    "agent commands route, focus and back",
+    "six widths without overflow",
+    "journal outcome filters and empty fixture"
+  ],
+  "pageErrors": [],
+  "mutations": [],
+  "scope": "Read-only real sandbox state; journal outcome fixtures injected separately. No agent transaction, external DeFi integration or testnet wallet validated."
+}

@@ -1,0 +1,30 @@
+{
+  "at": "2026-11-03T16:07:33.927Z",
+  "checks": [
+    "quote confirmation Escape restores keyboard focus without payment",
+    "real NEAR analysis escrow confirms without wallet grant or NFT",
+    "separate real ML-DSA authorization, exact 70 demoUSD escrow, consumption once and owner NFT; 30 reserve",
+    "distinct failed mission opens fixed native refund, paid and read back on-chain",
+    "immediate availability produces delivered abstention with full budget reserve",
+    "history and private capability resume after browser refresh",
+    "390/768/1440: no horizontal overflow, Vite overlay or JavaScript error; reduced motion enabled"
+  ],
+  "captures": [
+    ".impeccable/review/missions/catalogue-desktop.png",
+    ".impeccable/review/missions/catalogue-mobile.png",
+    ".impeccable/review/missions/request-mobile.png",
+    ".impeccable/review/missions/quote-mobile.png",
+    ".impeccable/review/missions/proposal-mobile.png",
+    ".impeccable/review/missions/proposal-desktop.png",
+    ".impeccable/review/missions/signature-confirmation-desktop.png",
+    ".impeccable/review/missions/confirmed-desktop.png",
+    ".impeccable/review/missions/failure-desktop.png",
+    ".impeccable/review/missions/refund-claimable-mobile.png",
+    ".impeccable/review/missions/abstention-mobile.png",
+    ".impeccable/review/missions/history-mobile.png",
+    ".impeccable/review/missions/mission-tablet.png"
+  ],
+  "errors": [],
+  "network": "real live sandbox 8792",
+  "mode": "demonstration"
+}
