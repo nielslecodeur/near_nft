@@ -3,6 +3,7 @@
  * on the deployed contract; nothing is computed from mock data.
  */
 import { config as rpcConfig, rpc, walletSelector } from "../client";
+import { hasWalletApprovalSession } from "../wallet-session";
 
 export const KEEPERS_CONTRACT =
   import.meta.env.VITE_KEEPERS_ID || "keepers-v1.everkeep-dev-mw0weth5.testnet";
@@ -119,31 +120,63 @@ type Outcome = {
 const failed = (s: unknown) =>
   typeof s === "object" && s !== null && "Failure" in s;
 
+/**
+ * Signs one function call with the connected wallet, then reads the final
+ * outcome back from RPC (the wallet's own return value can be partial).
+ * Same path as the Everkeep app (src/testnet-network.ts walletCall): plain
+ * near-connect actions, no @near-js serializers, which need Node's Buffer.
+ */
 async function call(
   method: string,
-  args: object,
+  args: Record<string, unknown>,
   deposit: bigint,
   gasTgas: bigint,
 ) {
   const connector = await walletSelector();
-  const wallet = await connector.wallet();
-  const { actionCreators } = await import("@near-js/transactions");
-  const result = (await wallet.signAndSendTransaction({
+  let wallet = await connector.wallet();
+  const signer = (await wallet.getAccounts())[0]?.accountId;
+  if (!signer) throw new Error("Connect a wallet before signing.");
+  // Intear needs its approval session for this page; reconnect if it was lost.
+  if (wallet.manifest.id === "intear-wallet" && !hasWalletApprovalSession()) {
+    await wallet.signOut({ network: "testnet" });
+    wallet = await connector.connect({ walletId: "intear-wallet" });
+    if ((await wallet.getAccounts())[0]?.accountId !== signer)
+      throw new Error(
+        "The selected account changed while reconnecting. Nothing was signed.",
+      );
+  }
+  const sent = (await wallet.signAndSendTransaction({
+    network: "testnet",
+    signerId: signer,
     receiverId: KEEPERS_CONTRACT,
     actions: [
-      actionCreators.functionCall(method, args, gasTgas * TGAS, deposit),
+      {
+        type: "FunctionCall",
+        params: {
+          methodName: method,
+          args,
+          gas: (gasTgas * TGAS).toString(),
+          deposit: deposit.toString(),
+        },
+      },
     ],
-  })) as Outcome | undefined;
-  if (!result)
+  })) as { transaction?: { hash: string } } | undefined;
+  const hash = sent?.transaction?.hash;
+  if (!hash)
     throw new Error(
-      "The wallet returned no result. Check your wallet history before retrying.",
+      "The wallet returned no transaction hash. Check your wallet history before retrying.",
     );
+  const result = (await rpc("tx", {
+    tx_hash: hash,
+    sender_account_id: signer,
+    wait_until: "FINAL",
+  })) as Outcome;
   if (
     failed(result.status) ||
     result.receipts_outcome?.some((r) => failed(r.outcome.status))
   )
     throw new Error(
-      `Transaction failed on chain. See ${EXPLORER}/txns/${result.transaction.hash}`,
+      `Transaction failed on chain. See ${EXPLORER}/txns/${hash}`,
     );
   return result;
 }
