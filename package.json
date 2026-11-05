@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test:baskets": "bash scripts/baskets-proof.sh",
+    "test:keepers": "bash scripts/keepers-proof.sh",
     "testnet:baskets": "tsx scripts/deploy-baskets-testnet.ts",
     "test:baskets:browser": "node scripts/browser-baskets.mjs",
     "design:tokens": "node scripts/generate-design-tokens.mjs",

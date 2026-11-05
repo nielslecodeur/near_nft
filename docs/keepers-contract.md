@@ -257,3 +257,42 @@ The per-card counters (`royalties_earned`, `deposited_total`, `withdrawn_total`,
 - **Account:** `keepers.everkeep-dev-mw0weth5.testnet`, with `creator = everkeep-dev-mw0weth5.testnet`.
 - **Upgrades:** the full-access key is kept during the hackathon, for redeploys without state migration. This will be stated in the README.
 - **Records:** the address and code hash go to `public/testnet.json` and the README, along with "do X, see Y" steps for every function.
+
+## 12. Checkpoint B results (2026-11-05)
+
+**Code:**
+
+| File | Contents |
+|---|---|
+| `contracts/keepers/src/lib.rs` | Contract logic. About 800 lines after rustfmt, about half of them doc comments and standard-trait wrappers. |
+| `contracts/keepers/src/art.rs` | On-chain SVG |
+| `contracts/keepers/src/tests.rs` | 37 unit tests |
+| `contracts/keepers/examples/render.rs` | Writes sample SVGs: `cargo run -p keepers --example render -- <dir>` |
+
+**Unit tests:** `npm run test:contracts` (WSL) runs 37 Keepers tests, all passing, alongside the 60 existing tests.
+
+| Spec item | Tests |
+|---|---|
+| Withdraw | owner-only, 1 yocto, bounds, refused while listed, partial and full, failed transfer re-credits the card even after a sale |
+| Royalty split | 10% to the card, 90% to the seller, 0 to the creator, rounding, accumulation over two sales |
+| Tier computation | every threshold boundary, up on deposit and royalty, down on withdraw |
+| Transfer | balance, tier and access move together; the listing is cancelled; approvals are cleared; the previous owner can no longer withdraw; `nft_transfer_call` return path |
+
+**Sandbox:** `npm run test:keepers` (WSL) deploys `artifacts/keepers.wasm` on a real local node and passes 10 checks with exact balance deltas. Results are in `docs/results/keepers-sandbox.json`.
+
+**Measured gas (sandbox):**
+
+| Call | Gas burnt |
+|---|---|
+| `mint` | 4.6 Tgas |
+| `buy` | 6.6 Tgas |
+| `withdraw` | 5.2 Tgas |
+
+All three are well under the §5 budgets. The front end will still attach the §5 amounts, because unused gas is refunded.
+
+**Storage:** the contract with one token uses about 2.94 NEAR of storage, mostly the 293 KB WASM. The per-mint unit test confirms that one token uses less than 40% of `STORAGE_RESERVE`.
+
+**What implementation clarified:**
+- Approval IDs in near-contract-standards start at 1.
+- `#[private]` is enforced only by the WASM entry point, so it is checked in the sandbox proof rather than in unit tests.
+- The sandbox "buy during withdraw" check sends both transactions concurrently but doesn't force their order. The exact interleaving (a sale landing between a withdraw and its failed-transfer callback) is covered by the unit test `failed_withdraw_recredits_the_card_not_the_caller`.

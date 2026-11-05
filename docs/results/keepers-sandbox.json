@@ -1,0 +1,28 @@
+{
+  "at": "2026-11-05T20:28:23.441Z",
+  "wasm": "artifacts/keepers.wasm",
+  "checks": [
+    "deploy + init",
+    "mint: creator receives exactly 1 NEAR, excess refunded, card starts matte",
+    "resale at 5 NEAR: 0.5 NEAR royalty to the card, 4.5 NEAR to seller, 0 to creator, tier matte → brushed, access moved",
+    "deposit 2 NEAR: tier brushed → holographic, metadata title updated",
+    "withdraw: previous owner refused, private callback refused, owner receives 2 NEAR, tier holographic → brushed",
+    "seller cannot empty a listed card; buyer's min_card_balance guard works",
+    "buy submitted concurrently with a withdraw+relist batch: withdrawn NEAR paid once, royalty credited to the card, books balanced",
+    "nft_transfer_call returned by receiver; nft_transfer moves balance, tier and access",
+    "NEP-178 approval transfer works; approvals cleared after transfer",
+    "NEP-171/177/181 views; final solvency check"
+  ],
+  "gas_burnt": {
+    "mint": "4572376400322",
+    "buy": "6638830782165",
+    "withdraw": "5247744444197"
+  },
+  "final_stats": {
+    "minted": 1,
+    "total_card_balances": "600000000000000000000000",
+    "total_pending_payouts": "0",
+    "storage_cost": "2942800000000000000000000",
+    "account_balance": "10617740027910932100000009"
+  }
+}
