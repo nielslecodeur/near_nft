@@ -127,17 +127,17 @@ const failed = (s: unknown) =>
  * Same path as the Everkeep app (src/testnet-network.ts walletCall): plain
  * near-connect actions, no @near-js serializers, which need Node's Buffer.
  */
-async function call(
-  method: string,
-  args: Record<string, unknown>,
-  deposit: bigint,
-  gasTgas: bigint,
-) {
+/**
+ * Connected wallet ready to sign. Intear signs every request (transactions
+ * and NEP-413 messages) with an app key that Everkeep keeps in memory only
+ * (src/wallet-session.ts), so it is gone after a page reload: reconnect
+ * Intear to get a fresh one, and refuse if the account changed meanwhile.
+ */
+async function readyWallet() {
   const connector = await walletSelector();
   let wallet = await connector.wallet();
   const signer = (await wallet.getAccounts())[0]?.accountId;
   if (!signer) throw new Error("Connect a wallet before signing.");
-  // Intear needs its approval session for this page; reconnect if it was lost.
   if (wallet.manifest.id === "intear-wallet" && !hasWalletApprovalSession()) {
     await wallet.signOut({ network: "testnet" });
     wallet = await connector.connect({ walletId: "intear-wallet" });
@@ -146,6 +146,16 @@ async function call(
         "The selected account changed while reconnecting. Nothing was signed.",
       );
   }
+  return { wallet, signer };
+}
+
+async function call(
+  method: string,
+  args: Record<string, unknown>,
+  deposit: bigint,
+  gasTgas: bigint,
+) {
+  const { wallet, signer } = await readyWallet();
   const sent = (await wallet.signAndSendTransaction({
     network: "testnet",
     signerId: signer,
@@ -240,10 +250,7 @@ export type AccountProof = {
  * account. Nothing is sent to any server.
  */
 export async function proveAccount(): Promise<AccountProof> {
-  const connector = await walletSelector();
-  const wallet = await connector.wallet();
-  const accountId = (await wallet.getAccounts())[0]?.accountId;
-  if (!accountId) throw new Error("Connect a wallet first.");
+  const { wallet, signer: accountId } = await readyWallet();
   if (
     wallet.manifest.features &&
     wallet.manifest.features.signMessage === false

@@ -46,6 +46,16 @@ export function base64Decode(text: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
 }
 
+/** NEP-413 says base64; some wallets return "ed25519:<base58>". Accept both. */
+export function decodeSignature(text: string): Uint8Array<ArrayBuffer> {
+  if (text.startsWith("ed25519:")) return base58Decode(text.slice(8));
+  try {
+    return base64Decode(text);
+  } catch {
+    return base58Decode(text);
+  }
+}
+
 const u32 = (n: number) => {
   const b = new Uint8Array(4);
   new DataView(b.buffer).setUint32(0, n, true);
@@ -82,7 +92,7 @@ export async function verifySignature(
 ): Promise<boolean> {
   if (!signed.publicKey.startsWith("ed25519:")) return false;
   const key = base58Decode(signed.publicKey.slice("ed25519:".length));
-  const signature = base64Decode(signed.signature);
+  const signature = decodeSignature(signed.signature);
   if (key.length !== 32 || signature.length !== 64) return false;
   const hash = await crypto.subtle.digest("SHA-256", nep413Bytes(params));
   const publicKey = await crypto.subtle.importKey(

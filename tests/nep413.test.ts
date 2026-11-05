@@ -78,6 +78,16 @@ test("a valid NEP-413 signature verifies", async () => {
   assert.equal(await verifySignature(await w.sign(p), p), true);
 });
 
+test("a signature returned as ed25519:<base58> also verifies", async () => {
+  const w = await wallet(),
+    p = params();
+  const signed = await w.sign(p);
+  const b58 =
+    "ed25519:" +
+    base58Encode(new Uint8Array(Buffer.from(signed.signature, "base64")));
+  assert.equal(await verifySignature({ ...signed, signature: b58 }, p), true);
+});
+
 test("signature is bound to message, recipient, nonce and key", async () => {
   const w = await wallet(),
     other = await wallet(),
