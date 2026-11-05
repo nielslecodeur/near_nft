@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
-import { LogOut, Wallet } from "lucide-react";
+import { KeyRound, LogOut, Wallet } from "lucide-react";
 import { connect, disconnect, walletSelector } from "../client";
 import { Button, Notice } from "../terminal/primitives";
 import { CollectionPage } from "./CollectionPage";
 import { KeeperPage } from "./KeeperPage";
+import { VaultPage } from "./VaultPage";
 import { shortAccount } from "./KeeperCard";
 import { EXPLORER, KEEPERS_CONTRACT } from "./chain";
 import "./keepers.css";
 
-export type Route = { page: "collection" } | { page: "keeper"; id: string };
+export type Route =
+  { page: "collection" } | { page: "keeper"; id: string } | { page: "vault" };
 
 export function parseRoute(path: string): Route {
   const keeper = path.match(/^\/keepers\/(\d+)\/?$/);
   if (keeper) return { page: "keeper", id: keeper[1] };
+  if (/^\/vault\/?$/.test(path)) return { page: "vault" };
   return { page: "collection" };
 }
 
@@ -91,7 +94,9 @@ export function KeepersApp() {
     document.title =
       route.page === "keeper"
         ? `Keeper #${route.id} · Everkeep Keepers`
-        : "Everkeep Keepers";
+        : route.page === "vault"
+          ? "The Vault · Everkeep Keepers"
+          : "Everkeep Keepers";
     document.documentElement.lang = "en";
   }, [route]);
   const navigate = useCallback((to: string) => {
@@ -134,6 +139,27 @@ export function KeepersApp() {
             Keepers <small>by Everkeep</small>
           </span>
         </a>
+        <nav className="kp-nav" aria-label="Keepers">
+          {(
+            [
+              ["/keepers", "Collection", route.page !== "vault"],
+              ["/vault", "Vault", route.page === "vault"],
+            ] as const
+          ).map(([to, label, current]) => (
+            <a
+              key={to}
+              href={to}
+              aria-current={current ? "page" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(to);
+              }}
+            >
+              {label === "Vault" && <KeyRound aria-hidden="true" />}
+              {label}
+            </a>
+          ))}
+        </nav>
         <div className="kp-header-right">
           <span className="kp-network">NEAR testnet</span>
           {wallet.account ? (
@@ -174,6 +200,8 @@ export function KeepersApp() {
         )}
         {route.page === "keeper" ? (
           <KeeperPage id={route.id} wallet={api} navigate={navigate} />
+        ) : route.page === "vault" ? (
+          <VaultPage wallet={api} navigate={navigate} />
         ) : (
           <CollectionPage wallet={api} navigate={navigate} />
         )}

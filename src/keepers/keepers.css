@@ -667,3 +667,273 @@ body {
     transition: none;
   }
 }
+
+/* Nav ---------------------------------------------------------------------- */
+.kp-nav {
+  display: flex;
+  gap: var(--space-1);
+  margin-right: auto;
+}
+.kp-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--color-muted);
+  text-decoration: none;
+}
+.kp-nav a:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+.kp-nav a[aria-current="page"] {
+  background: var(--color-s2);
+  color: var(--color-text);
+}
+.kp-nav svg {
+  width: var(--space-4) !important;
+  height: var(--space-4) !important;
+  color: var(--color-brand);
+}
+
+/* Vault -------------------------------------------------------------------- */
+.kp-vault {
+  display: grid;
+  gap: var(--space-8);
+}
+.kp-vault-head h1 {
+  margin: 0;
+  font-size: var(--type-display);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-title);
+}
+.kp-gate {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-6);
+  max-width: 42rem;
+  padding: var(--space-8);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-feature);
+  background: linear-gradient(160deg, var(--color-s2), var(--color-s1));
+  box-shadow: var(--shadow-s2);
+}
+.kp-gate h2 {
+  margin: 0;
+  font-size: var(--type-title);
+}
+.kp-gate p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: var(--line-relaxed);
+}
+.kp-gate .kp-gate-icon {
+  width: var(--space-10) !important;
+  height: var(--space-10) !important;
+  padding: var(--space-2);
+  border-radius: var(--radius-surface);
+  background: var(--color-s3);
+  color: var(--color-brand);
+}
+.kp-gate--denied .kp-gate-icon {
+  color: var(--color-down);
+}
+.kp-gate-steps {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding-left: var(--space-6);
+}
+.kp-gate-steps li {
+  padding-left: var(--space-2);
+}
+.kp-gate-steps li::marker {
+  color: var(--color-brand);
+  font-family: var(--font-numeric);
+}
+.kp-gate-steps li[data-done="true"]::marker {
+  content: "✓  ";
+}
+.kp-gate-steps strong {
+  display: block;
+}
+.kp-gate-steps span {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.kp-gate code,
+.kp-gate-steps code {
+  font-family: var(--font-numeric);
+  color: var(--color-text);
+}
+.kp-vault-open {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: stretch;
+}
+.kp-pass {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-6);
+  border-radius: var(--radius-feature);
+  border: 2px solid var(--color-control-border);
+  background:
+    radial-gradient(
+      ellipse at 100% 0%,
+      var(--color-brand-glow),
+      transparent 60%
+    ),
+    linear-gradient(160deg, var(--color-s3), var(--color-s1));
+  box-shadow: var(--shadow-s3);
+  overflow: hidden;
+}
+.kp-pass--1 {
+  border-color: #a8b0b6;
+}
+.kp-pass--2,
+.kp-pass--3 {
+  border-color: transparent;
+  background:
+    radial-gradient(
+        ellipse at 100% 0%,
+        color-mix(in srgb, #ff6ad5 16%, transparent),
+        transparent 60%
+      )
+      padding-box,
+    linear-gradient(160deg, var(--color-s3), var(--color-s1)) padding-box,
+    linear-gradient(120deg, #ff6ad5, #ffe66d, #7cf6ff, #b5f36b, #c3aed6)
+      border-box;
+}
+.kp-pass--3 {
+  animation: kp-glow 3s ease-in-out infinite alternate;
+}
+.kp-pass-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.kp-pass-top svg {
+  color: var(--color-up);
+}
+.kp-pass-top .kp-tier {
+  margin-left: auto;
+  letter-spacing: var(--tracking-body);
+  text-transform: none;
+}
+.kp-pass-account {
+  font-size: var(--type-title);
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+.kp-pass-meta {
+  color: var(--color-muted);
+}
+.kp-pass-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-up);
+  font-size: var(--type-xs);
+}
+.kp-vault-totals {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+.kp-vault-totals > div {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  background: var(--color-s1);
+}
+.kp-vault-totals dt {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+}
+.kp-vault-totals dd {
+  margin: 0;
+  font-size: var(--type-heading);
+}
+.kp-vault-section {
+  display: grid;
+  gap: var(--space-3);
+}
+.kp-vault-section h2 {
+  margin: 0;
+  font-size: var(--type-title);
+}
+.kp-vault-section .kp-hint {
+  max-width: none;
+}
+.kp-table-wrap {
+  overflow-x: auto;
+  border: var(--stroke-border) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  background: var(--color-s1);
+}
+.kp-table {
+  width: 100%;
+  min-width: 40rem;
+  border-collapse: collapse;
+}
+.kp-table th,
+.kp-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--stroke-border) solid var(--color-border);
+  text-align: left;
+  white-space: nowrap;
+}
+.kp-table thead th {
+  color: var(--color-muted);
+  font-size: var(--type-xs);
+  font-weight: var(--weight-medium);
+}
+.kp-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.kp-table tbody th a {
+  font-weight: var(--weight-semibold);
+}
+.kp-proof-icon {
+  flex: none;
+  color: var(--color-up);
+}
+@media (max-width: 900px) {
+  .kp-vault-open {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .kp-nav {
+    order: 3;
+    width: 100%;
+  }
+  .kp-gate {
+    padding: var(--space-6);
+  }
+  .kp-vault-head h1 {
+    font-size: var(--type-title);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kp-pass--3 {
+    animation: none;
+  }
+}
+.kp-gate .kp-hint {
+  max-width: none;
+}
+.kp-pass {
+  align-content: space-between;
+}

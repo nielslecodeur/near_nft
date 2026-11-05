@@ -4,6 +4,7 @@
  */
 import { config as rpcConfig, rpc, walletSelector } from "../client";
 import { hasWalletApprovalSession } from "../wallet-session";
+import { vaultMessage, verifySignature } from "./nep413";
 
 export const KEEPERS_CONTRACT =
   import.meta.env.VITE_KEEPERS_ID || "keepers-v1.everkeep-dev-mw0weth5.testnet";
@@ -221,3 +222,71 @@ export const transfer = (tokenId: string, receiverId: string) =>
   call("nft_transfer", { token_id: tokenId, receiver_id: receiverId }, 1n, 30n);
 
 export const rpcUrl = rpcConfig.rpc;
+
+// ---------------------------------------------------------------------------
+// Vault access: prove control of the account (NEP-413), then read is_holder.
+// ---------------------------------------------------------------------------
+
+export type AccountProof = {
+  accountId: string;
+  publicKey: string;
+  issuedAt: number;
+  message: string;
+};
+
+/**
+ * Asks the wallet to sign a NEP-413 message, verifies the signature in the
+ * browser, and checks on chain that the signing key is a FullAccess key of the
+ * account. Nothing is sent to any server.
+ */
+export async function proveAccount(): Promise<AccountProof> {
+  const connector = await walletSelector();
+  const wallet = await connector.wallet();
+  const accountId = (await wallet.getAccounts())[0]?.accountId;
+  if (!accountId) throw new Error("Connect a wallet first.");
+  if (
+    wallet.manifest.features &&
+    wallet.manifest.features.signMessage === false
+  )
+    throw new Error(
+      "This wallet cannot sign messages (NEP-413). Use Intear or another wallet that supports it.",
+    );
+  const issuedAt = Date.now();
+  const params = {
+    message: vaultMessage(accountId, issuedAt),
+    recipient: KEEPERS_CONTRACT,
+    nonce: crypto.getRandomValues(new Uint8Array(32)),
+  };
+  const signed = await wallet.signMessage({
+    ...params,
+    network: "testnet",
+    signerId: accountId,
+  });
+  if (!signed || signed.accountId !== accountId)
+    throw new Error("The wallet signed for a different account.");
+  if (!(await verifySignature(signed, params)))
+    throw new Error("The wallet's signature does not match the message.");
+  let permission: unknown;
+  try {
+    permission = (
+      await rpc("query", {
+        request_type: "view_access_key",
+        account_id: accountId,
+        public_key: signed.publicKey,
+        finality: "final",
+      })
+    ).permission;
+  } catch {
+    throw new Error("The signing key is not registered on this account.");
+  }
+  if (permission !== "FullAccess")
+    throw new Error(
+      "The signing key is not a full-access key of this account.",
+    );
+  return {
+    accountId,
+    publicKey: signed.publicKey,
+    issuedAt,
+    message: params.message,
+  };
+}
