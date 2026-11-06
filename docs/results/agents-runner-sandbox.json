@@ -1,0 +1,13 @@
+{
+  "at": "2026-11-06T15:27:08.517Z",
+  "checks": [
+    "setup: gallery NFTs for Alice, three Keepers listed by Bob (1.5, 0.8, 3 NEAR)",
+    "runner generates the agent keys; the wallet only adds the public keys",
+    "tick 1: Payer pays 1 USDC; Buyer picks the cheapest card within 2 NEAR (#2 at 0.8)",
+    "tick 2 (+10 s): payment not due yet; Buyer takes #1 at 1.5 NEAR",
+    "tick 3 (+70 s): second payment; the 3 NEAR card is above the mission, left alone",
+    "paused seat: the runner reads it from chain and sends nothing",
+    "after the NFT is sold: one refused attempt resets the seat, then the runner stops",
+    "the seat log shows the payments, the refusal and the reset"
+  ]
+}
