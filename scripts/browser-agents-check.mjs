@@ -17,7 +17,7 @@ await mkdir("docs/screenshots", { recursive: true });
 const DEMO = process.env.DEMO_ACCOUNT || "nifelst.testnet";
 const pages = [
   ["/agents", "Give an AI a card, not your wallet."],
-  [`/agents?as=${DEMO}`, "Money your agents control"],
+  [`/agents?as=${DEMO}`, "Your agents control"],
   ["/agents/new", "Connect your wallet to hire an agent."],
   ["/agents/1", "budget left"],
   ["/agents/999999", "No agent #999999."],
@@ -29,8 +29,9 @@ for (const width of [1280, 390]) {
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   page.on("pageerror", (e) => errors.push(e.message));
   for (const [path, text] of pages) {
-    await page.goto(BASE + path, { waitUntil: "networkidle" });
-    await page.waitForTimeout(2500); // chain reads settle
+    // "load" + a pause: the pages poll the chain, so the network is never idle for long.
+    await page.goto(BASE + path, { waitUntil: "load", timeout: 60_000 });
+    await page.waitForTimeout(5000);
     const found = await page.getByText(text).first().isVisible().catch(() => false);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
     const name = `agents${path.replace(/[/?=.]/g, "-")}-${width}.png`;

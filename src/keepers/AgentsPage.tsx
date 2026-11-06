@@ -25,6 +25,7 @@ import { EXAMPLES, parseAsk, type Intent } from "./ask";
 import { ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
 import type { Wallet } from "./KeepersApp";
 import "./agents.css";
+import "./agents-stage.css";
 
 type Nav = (to: string) => void;
 const TIERS = ["matte", "brushed", "holographic", "animated"];
@@ -494,6 +495,9 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
   const [error, setError] = useState("");
   const runner = useRunner(account);
   const askRef = useRef<HTMLInputElement>(null);
+  const [focus, setFocus] = useState(0);
+  const [tab, setTab] = useState<"activity" | "roles">("activity");
+  const [lastAt, setLastAt] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     if (!account) return;
@@ -503,13 +507,18 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       setRefund(await ag.refundOf(account));
       const o: Record<string, string | null> = {};
       const logs: FeedItem[] = [];
+      const latest: Record<string, string> = {};
       await Promise.all(
         list.map(async (s) => {
           o[s.seat_id] = await ag.nftOwner(s.nft_contract, s.token_id).catch(() => null);
-          for (const e of await ag.seatLog(s.seat_id)) if (e.status !== "pending") logs.push({ ...e, seat: s });
+          const seatEntries = await ag.seatLog(s.seat_id);
+          const last = seatEntries.find((e) => e.status !== "info");
+          if (last) latest[s.seat_id] = last.at;
+          for (const e of seatEntries) if (e.status !== "pending") logs.push({ ...e, seat: s });
         }),
       );
       setOwners(o);
+      setLastAt(latest);
       setFeed(collapse(logs.sort((a, b) => (BigInt(b.at) > BigInt(a.at) ? 1 : -1))).slice(0, 20));
       setError("");
     } catch (e) {
@@ -577,6 +586,12 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       </div>
     );
 
+  const focused = seats && seats.length ? seats[Math.min(focus, seats.length - 1)] : null;
+  const focusedJob = focused ? runner.jobs.find((j) => j.seatId === focused.seat_id) : undefined;
+  const focusedStatus = focused ? statusOf(focused, focusedJob, owners[focused.seat_id] ?? null, runner.up) : null;
+  const focusedCap = BigInt(focused?.policy?.per_day_max ?? "0");
+  const focusedPct = focused && focusedCap > 0n ? Number((BigInt(focused.spent_today) * 100n) / focusedCap) : 0;
+
   return (
     <div className="ag-page">
       {readOnly && (
@@ -584,51 +599,6 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
           Everything below is read live from chain. Connect your wallet to hire your own agents.
         </Notice>
       )}
-      <section className="ag-wallet" aria-label="Agent Wallet">
-        <div className="ag-wallet-main">
-          <p className="kp-eyebrow">Agent Wallet · {shortAccount(account)}</p>
-          <p className="ag-wallet-label">Money your agents control</p>
-          <p className="ag-wallet-total kp-num">
-            {ag.formatAsset(totals.near, "NEAR")} <span>·</span> {ag.formatAsset(totals.usdc, "USDC")}
-          </p>
-          <p className="ag-muted">
-            {totals.active} of {seats?.length ?? 0} agents active · spent today {ag.formatAsset(totals.todayNear, "NEAR")} ·{" "}
-            {ag.formatAsset(totals.todayUsdc, "USDC")} · {totals.done} done · {totals.refused} blocked by the limits
-          </p>
-        </div>
-        {!readOnly && (
-          <div className="ag-wallet-actions">
-            <Button variant="primary" icon={Plus} onClick={() => navigate("/agents/new")}>
-              New agent
-            </Button>
-            <Button
-              variant="danger"
-              icon={OctagonPause}
-              busy={busy === "pauseall"}
-              disabled={!seats?.some((s) => !s.paused) || busy !== ""}
-              onClick={() => run("pauseall", "All agents paused", pauseAll)}
-            >
-              Pause all
-            </Button>
-            <Badge tone={runner.up ? "up" : runner.checked ? "down" : "neutral"} icon={Zap}>
-              {runner.up ? "Runner online" : runner.checked ? "Runner offline" : "Checking runner"}
-            </Badge>
-          </div>
-        )}
-      </section>
-
-      {!readOnly && (
-        <AskBar
-          account={account}
-          seats={seats ?? []}
-          jobs={runner.jobs}
-          runnerUp={runner.up}
-          pauseAll={pauseAll}
-          onDone={() => void load()}
-          inputRef={askRef}
-        />
-      )}
-
       {error && (
         <Notice tone="error" title="Could not read the agents contract">
           {error}
@@ -649,129 +619,356 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
         </Notice>
       )}
 
-      <section className="kp-vault-section" aria-labelledby="ag-mine">
-        <h2 id="ag-mine">{readOnly ? "Agents" : "Your agents"}</h2>
+      <section className="ag-stage" aria-label="Agent Wallet">
+        <div className="ag-room" aria-hidden="true" />
+
+        <header className="ag-stage-head">
+          <div className="ag-stage-title">
+            <span className="ag-mark" aria-hidden="true">
+              <Bot />
+            </span>
+            <div>
+              <h1>Agent Wallet</h1>
+              <p className="ag-muted">{shortAccount(account)}</p>
+            </div>
+          </div>
+          <div className="ag-stage-total">
+            <span className="ag-muted">Your agents control</span>
+            <strong className="kp-num">
+              {ag.formatAsset(totals.near, "NEAR")} <span>+</span> {ag.formatAsset(totals.usdc, "USDC")}
+            </strong>
+            <span className="ag-muted">
+              {totals.active} of {seats?.length ?? 0} active, {totals.done} done, {totals.refused} blocked by their limits
+            </span>
+          </div>
+          {!readOnly && (
+            <div className="ag-stage-actions">
+              <Badge tone={runner.up ? "up" : runner.checked ? "down" : "neutral"} icon={Zap}>
+                {runner.up ? "Runner online" : runner.checked ? "Runner offline" : "Checking runner"}
+              </Badge>
+              <Button
+                variant="danger"
+                icon={OctagonPause}
+                busy={busy === "pauseall"}
+                disabled={!seats?.some((s) => !s.paused) || busy !== ""}
+                onClick={() => run("pauseall", "All agents paused", pauseAll)}
+              >
+                Pause all
+              </Button>
+            </div>
+          )}
+        </header>
+
+        {!readOnly && (
+          <div className="ag-stage-ask">
+            <AskBar
+              account={account}
+              seats={seats ?? []}
+              jobs={runner.jobs}
+              runnerUp={runner.up}
+              pauseAll={pauseAll}
+              onDone={() => void load()}
+              inputRef={askRef}
+            />
+          </div>
+        )}
+
         {seats === null ? (
           <Skeleton label="Loading your agents" />
         ) : seats.length === 0 ? (
-          <div className="kp-empty">
-            <p>No agent yet. Pick a role below and put it on one of your NFTs.</p>
+          <div className="ag-stage-empty">
+            <p>{readOnly ? "This wallet has no agent yet." : "No agent yet. Hire one and put it on any NFT you own."}</p>
+            {!readOnly && (
+              <Button variant="primary" icon={Plus} onClick={() => navigate("/agents/new")}>
+                Hire an agent
+              </Button>
+            )}
           </div>
         ) : (
-          <div className="ag-cards">
-            {seats.map((s) => {
-              const job = runner.jobs.find((j) => j.seatId === s.seat_id);
-              const role = roleFor(s, job);
-              const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up);
-              const cap = BigInt(s.policy?.per_day_max ?? "0");
-              const pct = cap > 0n ? Number((BigInt(s.spent_today) * 100n) / cap) : 0;
-              const Icon = role.icon;
-              return (
-                <article key={s.seat_id} className="ag-card" data-live={st.live}>
+          <Carousel label="Your agents" focus={focus} onFocus={setFocus}>
+            {[
+              ...seats.map((s) => {
+                const job = runner.jobs.find((j) => j.seatId === s.seat_id);
+                const role = roleFor(s, job);
+                const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up);
+                const Icon = role.icon;
+                const collection = collectionLabel(s.nft_contract);
+                return (
                   <a
+                    key={s.seat_id}
                     href={`/agents/${s.seat_id}`}
-                    className="ag-card-link"
+                    className="ag-pcard"
+                    data-live={st.live}
                     onClick={(e) => {
                       e.preventDefault();
                       navigate(`/agents/${s.seat_id}`);
                     }}
                   >
-                    <div className="ag-card-art">
-                      <NftArt src={images[s.seat_id]} label={`${collectionLabel(s.nft_contract)} #${s.token_id}`} />
-                      <span className="ag-role-chip">
-                        <Icon aria-hidden="true" />
-                        {role.name}
-                      </span>
-                    </div>
-                    <div className="ag-card-body">
-                      <div className="ag-card-head">
-                        <strong>{nameFor(s, job)}</strong>
-                        <Badge tone={st.tone}>{st.label}</Badge>
+                    <NftArt src={images[s.seat_id]} label={`${collection} #${s.token_id}`} />
+                    <span className="ag-pcard-status" data-tone={st.tone}>
+                      {st.label}
+                    </span>
+                    <div className="ag-pcard-info">
+                      <div className="ag-pcard-who">
+                        <span className="ag-avatar">
+                          <Icon aria-hidden="true" />
+                        </span>
+                        <span className="ag-pcard-role">
+                          <small>{role.name}</small>
+                          <span>
+                            {collection} #{s.token_id.length > 10 ? `${s.token_id.slice(0, 8)}…` : s.token_id}
+                          </span>
+                        </span>
+                        <time className="kp-num">{lastAt[s.seat_id] ? ago(lastAt[s.seat_id]) : "new"}</time>
                       </div>
-                      <p className="ag-muted">
-                        on {collectionLabel(s.nft_contract)} #{s.token_id}
+                      <h3>{nameFor(s, job)}</h3>
+                      <p className="ag-tags">
+                        #{s.kind.toLowerCase()} #{s.asset.toLowerCase()} #{slug(collection)}
                       </p>
-                      <p className="ag-card-balance kp-num">{ag.formatAsset(s.balance, s.asset)}</p>
-                      <div className="ag-meter" aria-label={`Spent today: ${pct}% of the daily cap`}>
-                        <span style={{ width: `${Math.min(100, pct)}%` }} />
+                      <div className="ag-pcard-stats">
+                        <span>
+                          <small>Status</small> {st.label}
+                        </span>
+                        <span>
+                          <small>Budget</small>
+                          <b className="kp-num">{ag.formatAsset(s.balance, s.asset)}</b>
+                        </span>
                       </div>
-                      <small className="ag-muted">
-                        {ag.formatAsset(s.spent_today, s.asset)} of {ag.formatAsset(cap, s.asset)} today · {s.done} done ·{" "}
-                        {s.refused} blocked
-                      </small>
                     </div>
                   </a>
-                  {!readOnly && <div className="ag-card-actions">
+                );
+              }),
+              ...(!readOnly
+                ? [
+                    <button key="new" type="button" className="ag-pcard ag-pcard--new" onClick={() => navigate("/agents/new")}>
+                      <Plus aria-hidden="true" />
+                      <strong>Hire an agent</strong>
+                      <span>Collector, subscriptions, allowance, payroll</span>
+                    </button>,
+                  ]
+                : []),
+            ]}
+          </Carousel>
+        )}
+
+        {focused && focus < (seats?.length ?? 0) && focusedStatus && (
+          <div className="ag-focusbar" aria-live="polite">
+            <div className="ag-focusbar-text">
+              <strong>{nameFor(focused, focusedJob)}</strong>
+              <span className="ag-muted">{focusedStatus.note}</span>
+              <div className="ag-meter" aria-label={`Spent today: ${focusedPct}% of the daily cap`}>
+                <span style={{ width: `${Math.min(100, focusedPct)}%` }} />
+              </div>
+              <span className="ag-muted kp-num">
+                {ag.formatAsset(focused.spent_today, focused.asset)} of {ag.formatAsset(focusedCap, focused.asset)} today
+              </span>
+            </div>
+            <div className="ag-buttons">
+              <Button variant="secondary" onClick={() => navigate(`/agents/${focused.seat_id}`)}>
+                Open
+              </Button>
+              {!readOnly && (
+                <>
+                  <Button
+                    variant="ghost"
+                    icon={Sparkles}
+                    onClick={() => {
+                      askRef.current?.focus();
+                      askRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+                    }}
+                  >
+                    Ask
+                  </Button>
+                  {focused.paused ? (
                     <Button
                       variant="ghost"
-                      icon={Sparkles}
-                      onClick={() => {
-                        askRef.current?.focus();
-                        askRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-                      }}
+                      icon={CirclePlay}
+                      busy={busy === `r${focused.seat_id}`}
+                      disabled={busy !== "" || !focused.policy}
+                      onClick={() => run(`r${focused.seat_id}`, "Resumed", () => ag.resumeSeat(focused))}
                     >
-                      Ask
+                      Resume
                     </Button>
-                    {s.paused ? (
-                      <Button variant="ghost" icon={CirclePlay} busy={busy === `r${s.seat_id}`} disabled={busy !== "" || !s.policy} onClick={() => run(`r${s.seat_id}`, "Resumed", () => ag.resumeSeat(s))}>
-                        Resume
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        icon={CirclePause}
-                        busy={busy === `p${s.seat_id}`}
-                        disabled={busy !== ""}
-                        onClick={() =>
-                          run(`p${s.seat_id}`, job && runner.up ? "Paused by the agent's own key, no wallet" : "Paused", () =>
-                            job && runner.up ? ag.runnerPause(s.seat_id) : ag.pauseSeat(s),
-                          )
-                        }
-                      >
-                        Pause
-                      </Button>
-                    )}
-                  </div>}
-                </article>
-              );
-            })}
-            {!readOnly && (
-              <button type="button" className="ag-card ag-card--new" onClick={() => navigate("/agents/new")}>
-                <Plus aria-hidden="true" />
-                <strong>New agent</strong>
-                <span className="ag-muted">Collector, subscriptions, allowance…</span>
-              </button>
-            )}
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      icon={CirclePause}
+                      busy={busy === `p${focused.seat_id}`}
+                      disabled={busy !== ""}
+                      onClick={() =>
+                        run(
+                          `p${focused.seat_id}`,
+                          focusedJob && runner.up ? "Paused by the agent's own key, no wallet" : "Paused",
+                          () => (focusedJob && runner.up ? ag.runnerPause(focused.seat_id) : ag.pauseSeat(focused)),
+                        )
+                      }
+                    >
+                      Pause
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )}
+
+        <nav className="ag-pills" aria-label="Agent Wallet sections">
+          <button type="button" aria-pressed={tab === "activity"} onClick={() => setTab("activity")}>
+            Activity
+          </button>
+          <button type="button" aria-pressed={tab === "roles"} onClick={() => setTab("roles")}>
+            Roles
+          </button>
+          {!readOnly && (
+            <button type="button" onClick={() => navigate("/agents/new")}>
+              Hire
+            </button>
+          )}
+        </nav>
       </section>
 
-      <section className="kp-vault-section" aria-labelledby="ag-feed">
-        <h2 id="ag-feed">Activity</h2>
-        {feed.length === 0 ? (
-          <p className="ag-muted">Nothing yet. Your agents' actions, and every attempt the contract blocked, show up here.</p>
-        ) : (
-          <ol className="ag-feed">
-            {feed.map((e) => {
-              const job = runner.jobs.find((j) => j.seatId === e.seat.seat_id);
-              return (
-                <li key={`${e.seat.seat_id}-${e.seq}`} data-status={e.status}>
-                  <span className="ag-feed-dot" aria-hidden="true" />
-                  <div>
-                    <strong>{nameFor(e.seat, job)}</strong> {verb(e)}
-                    {e.amount !== "0" && <span className="kp-num"> {ag.formatAsset(e.amount, e.seat.asset)}</span>}
-                    {e.counterparty && <span> · {shortAccount(e.counterparty)}</span>}
-                    {e.status === "refused" && <span className="ag-blocked"> blocked: {e.detail}</span>}
-                    {e.count > 1 && <span className="ag-times">×{e.count}</span>}
-                    <small className="ag-muted"> · {ago(e.at)}</small>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-      </section>
-      <RoleGallery navigate={navigate} />
+      {tab === "activity" ? (
+        <section className="kp-vault-section" aria-labelledby="ag-feed">
+          <h2 id="ag-feed">Activity</h2>
+          {feed.length === 0 ? (
+            <p className="ag-muted">Nothing yet. Every action, and every attempt the contract blocked, shows up here.</p>
+          ) : (
+            <ol className="ag-feed">
+              {feed.map((e) => {
+                const job = runner.jobs.find((j) => j.seatId === e.seat.seat_id);
+                return (
+                  <li key={`${e.seat.seat_id}-${e.seq}`} data-status={e.status}>
+                    <span className="ag-feed-dot" aria-hidden="true" />
+                    <div>
+                      <strong>{nameFor(e.seat, job)}</strong> {verb(e)}
+                      {e.amount !== "0" && <span className="kp-num"> {ag.formatAsset(e.amount, e.seat.asset)}</span>}
+                      {e.counterparty && e.action !== "deliver" && (
+                        <span>
+                          {" "}
+                          {e.action === "buy" ? "on" : e.action === "claim" ? "from" : "to"} {shortAccount(e.counterparty)}
+                        </span>
+                      )}
+                      {e.status === "refused" && <span className="ag-blocked"> blocked: {e.detail}</span>}
+                      {e.count > 1 && <span className="ag-times">×{e.count}</span>}
+                      <small className="ag-muted"> {ago(e.at)}</small>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+      ) : (
+        <RoleGallery navigate={navigate} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Horizontal, snap-to-center carousel. The card nearest the middle is the
+ * focused one (bigger, lit); its neighbours step back. Arrow keys and the
+ * side buttons move one card; clicking a side card centres it first.
+ */
+function Carousel({
+  label,
+  focus,
+  onFocus,
+  children,
+}: {
+  label: string;
+  focus: number;
+  onFocus: (i: number) => void;
+  children: ReactNode[];
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const frame = useRef(0);
+  const measure = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const mid = el.scrollLeft + el.clientWidth / 2;
+    let best = 0;
+    let dist = Infinity;
+    Array.from(el.children).forEach((c, i) => {
+      const h = c as HTMLElement;
+      const d = Math.abs(h.offsetLeft + h.offsetWidth / 2 - mid);
+      if (d < dist) {
+        dist = d;
+        best = i;
+      }
+    });
+    onFocus(best);
+  }, [onFocus]);
+  const started = useRef(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!started.current && el && children.length > 2) {
+      started.current = true;
+      const mid = el.children[Math.floor((children.length - 1) / 2)] as HTMLElement | undefined;
+      if (mid) el.scrollLeft = mid.offsetLeft + mid.offsetWidth / 2 - el.clientWidth / 2;
+    }
+    measure();
+  }, [children.length, measure]);
+  const go = (i: number) => {
+    const el = ref.current;
+    const c = el?.children[Math.max(0, Math.min(i, children.length - 1))] as HTMLElement | undefined;
+    if (!el || !c) return;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ left: c.offsetLeft + c.offsetWidth / 2 - el.clientWidth / 2, behavior: reduce ? "auto" : "smooth" });
+  };
+  return (
+    <div className="ag-carousel-wrap">
+      <button type="button" className="ag-nav ag-nav--prev" aria-label="Previous agent" disabled={focus === 0} onClick={() => go(focus - 1)}>
+        ‹
+      </button>
+      <div
+        ref={ref}
+        className="ag-carousel"
+        role="list"
+        aria-label={label}
+        tabIndex={0}
+        onScroll={() => {
+          cancelAnimationFrame(frame.current);
+          frame.current = requestAnimationFrame(measure);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowRight") {
+            e.preventDefault();
+            go(focus + 1);
+          } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            go(focus - 1);
+          }
+        }}
+      >
+        {children.map((c, i) => (
+          <div
+            key={i}
+            role="listitem"
+            className="ag-slide"
+            data-focus={i === focus}
+            data-near={Math.abs(i - focus) === 1}
+            onClickCapture={(e) => {
+              if (i !== focus) {
+                e.preventDefault();
+                e.stopPropagation();
+                go(i);
+              }
+            }}
+          >
+            {c}
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="ag-nav ag-nav--next"
+        aria-label="Next agent"
+        disabled={focus >= children.length - 1}
+        onClick={() => go(focus + 1)}
+      >
+        ›
+      </button>
     </div>
   );
 }
@@ -790,6 +987,20 @@ function verb(e: LogEntry) {
       return "was funded";
     case "withdraw":
       return "sent its budget back";
+    case "create":
+      return "was hired";
+    case "key":
+      return e.detail === "agent key set" ? "got its key" : "lost its key";
+    case "pause":
+      return "was paused";
+    case "resume":
+      return "was resumed";
+    case "policy":
+      return "got new limits";
+    case "reset":
+      return `was reset (${e.detail})`;
+    case "claim":
+      return "changed owner";
     default:
       return e.detail || e.action;
   }
