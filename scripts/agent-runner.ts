@@ -16,6 +16,7 @@
  *   PUT    /jobs/:seatId      {accountId, publicKey, kind, buyer?|payer?}
  *   DELETE /jobs/:seatId
  *   POST   /jobs/:seatId/run                         -> {result}
+ *   POST   /jobs/:seatId/pause                       -> {tx}  (signed by the agent key)
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
@@ -89,7 +90,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     res.writeHead(code, { "content-type": "application/json" });
     res.end(JSON.stringify(data));
   };
-  const m = url.pathname.match(/^\/jobs\/(\d+)(\/run)?$/);
+  const m = url.pathname.match(/^\/jobs\/(\d+)(\/run|\/pause)?$/);
   if (req.method === "GET" && url.pathname === "/health")
     return send(200, { agents: AGENTS, rpc: RPC, tick_seconds: TICK, jobs: (await store.jobs()).length });
   if (req.method === "POST" && url.pathname === "/keys") {
@@ -129,6 +130,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (m && req.method === "POST" && m[2]) {
     const job = (await store.jobs()).find((j) => j.seatId === m[1]);
     if (!job) return send(404, { error: "no job for this seat" });
+    if (m[2] === "/pause") return send(200, { tx: await runner.pause(job) });
     return send(200, { result: await runner.runJob(job) });
   }
   send(404, { error: "not found" });

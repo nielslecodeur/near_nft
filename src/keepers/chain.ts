@@ -653,3 +653,60 @@ export async function reconnectWithAgentKey(
   });
   return (await wallet.getAccounts())[0]?.accountId ?? "";
 }
+
+// ---------------------------------------------------------------------------
+// Raw multi-transaction requests (agent seats): any action type, one approval.
+// ---------------------------------------------------------------------------
+
+export type RawAction = { type: string; params: Record<string, unknown> };
+/** `"self"` is replaced by the signing account (for AddKey / DeleteKey). */
+export type RawTx = { receiverId: string; actions: RawAction[] };
+
+export const fnCall = (
+  method: string,
+  args: Record<string, unknown>,
+  deposit: bigint,
+  gasTgas: bigint,
+): RawAction => ({
+  type: "FunctionCall",
+  params: {
+    methodName: method,
+    args,
+    gas: (gasTgas * TGAS).toString(),
+    deposit: deposit.toString(),
+  },
+});
+
+/** Signs every transaction in one wallet request, then confirms each one on chain. */
+export async function sendRaw(txs: RawTx[]) {
+  const { wallet, signer } = await readyWallet();
+  const resolved = txs.map((t) => ({
+    receiverId: t.receiverId === "self" ? signer : t.receiverId,
+    actions: t.actions as never,
+  }));
+  const sent = (
+    resolved.length === 1
+      ? [
+          await wallet.signAndSendTransaction({
+            network: "testnet",
+            signerId: signer,
+            ...resolved[0],
+          }),
+        ]
+      : await wallet.signAndSendTransactions({
+          network: "testnet",
+          signerId: signer,
+          transactions: resolved,
+        })
+  ) as ({ transaction?: { hash: string } } | undefined)[] | undefined;
+  if (!sent?.length)
+    throw new Error(
+      "The wallet returned no results. Check your wallet history before retrying.",
+    );
+  const outcomes: Outcome[] = [];
+  for (const s of sent) outcomes.push(await confirm(s?.transaction?.hash, signer));
+  return { signer, outcomes };
+}
+
+/** JSON value returned by a confirmed transaction (the last receipt's result). */
+export const returnedValue = <T>(o: { status: unknown }) => returned<T>(o as Outcome);

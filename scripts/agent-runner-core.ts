@@ -263,6 +263,16 @@ export class Runner {
     return done.length ? done.join("; ") : "nothing due";
   }
 
+  /** Kill switch with no wallet: the agent key itself may pause its seat. */
+  async pause(job: Job) {
+    const r = await this.act(job, "pause", { seat_id: job.seatId }, 30_000_000_000_000n);
+    job.lastResult = `paused by the runner (tx ${r.hash})`;
+    job.lastRun = Date.now();
+    await this.opts.store.saveJob(job);
+    this.log(`seat ${job.seatId}: ${job.lastResult}`);
+    return r.hash;
+  }
+
   /** Runs every job once, in order. Errors are reported per job, never thrown. */
   async tick(now = Date.now()) {
     const out: Record<string, string> = {};

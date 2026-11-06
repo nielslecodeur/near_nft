@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { KeyRound, LogOut, Wallet } from "lucide-react";
+import { Bot, KeyRound, LogOut, Wallet } from "lucide-react";
 import { connect, disconnect, walletSelector } from "../client";
 import { Button, Notice } from "../terminal/primitives";
 import { CollectionPage } from "./CollectionPage";
 import { KeeperPage } from "./KeeperPage";
 import { VaultPage } from "./VaultPage";
 import { ProbePage } from "./ProbePage";
+import { AgentPage, AgentsPage, NewAgentPage } from "./AgentsPage";
 import { shortAccount } from "./KeeperCard";
 import { EXPLORER, KEEPERS_CONTRACT, type Version } from "./chain";
 import "./keepers.css";
@@ -14,7 +15,10 @@ export type Route =
   | { page: "collection"; version: Version }
   | { page: "keeper"; id: string; version: Version }
   | { page: "vault" }
-  | { page: "probe" };
+  | { page: "probe" }
+  | { page: "agents" }
+  | { page: "agent-new" }
+  | { page: "agent"; id: string };
 
 /** /keepers and /keepers/:id are v2; /keepers/v1[/:id] keep v1 cards reachable. */
 export function parseRoute(path: string): Route {
@@ -23,6 +27,10 @@ export function parseRoute(path: string): Route {
     return { page: "keeper", id: keeper[2], version: keeper[1] ? "v1" : "v2" };
   if (/^\/vault\/?$/.test(path)) return { page: "vault" };
   if (/^\/keepers\/probe\/?$/.test(path)) return { page: "probe" };
+  if (/^\/agents\/?$/.test(path)) return { page: "agents" };
+  if (/^\/agents\/new\/?$/.test(path)) return { page: "agent-new" };
+  const agent = path.match(/^\/agents\/(\d+)\/?$/);
+  if (agent) return { page: "agent", id: agent[1] };
   if (/^\/keepers\/v1\/?$/.test(path))
     return { page: "collection", version: "v1" };
   return { page: "collection", version: "v2" };
@@ -105,6 +113,10 @@ export function KeepersApp() {
         ? `Keeper #${route.id} · Everkeep Keepers`
         : route.page === "vault"
           ? "The Vault · Everkeep Keepers"
+          : route.page === "agent"
+            ? `Agent #${route.id} · Everkeep Keepers`
+            : route.page === "agents" || route.page === "agent-new"
+              ? "My agents · Everkeep Keepers"
           : "Everkeep Keepers";
     document.documentElement.lang = "en";
   }, [route]);
@@ -151,7 +163,8 @@ export function KeepersApp() {
         <nav className="kp-nav" aria-label="Keepers">
           {(
             [
-              ["/keepers", "Collection", route.page !== "vault"],
+              ["/keepers", "Collection", route.page === "collection" || route.page === "keeper"],
+              ["/agents", "Agents", route.page === "agents" || route.page === "agent" || route.page === "agent-new"],
               ["/vault", "Vault", route.page === "vault"],
             ] as const
           ).map(([to, label, current]) => (
@@ -165,6 +178,7 @@ export function KeepersApp() {
               }}
             >
               {label === "Vault" && <KeyRound aria-hidden="true" />}
+              {label === "Agents" && <Bot aria-hidden="true" />}
               {label}
             </a>
           ))}
@@ -219,6 +233,12 @@ export function KeepersApp() {
           <VaultPage wallet={api} navigate={navigate} />
         ) : route.page === "probe" ? (
           <ProbePage wallet={api} />
+        ) : route.page === "agents" ? (
+          <AgentsPage wallet={api} navigate={navigate} />
+        ) : route.page === "agent-new" ? (
+          <NewAgentPage wallet={api} navigate={navigate} />
+        ) : route.page === "agent" ? (
+          <AgentPage key={route.id} id={route.id} wallet={api} navigate={navigate} />
         ) : (
           <CollectionPage
             key={route.version}
