@@ -477,3 +477,12 @@ export async function mintExampleNft(account: string) {
   ]);
   return tokenId;
 }
+
+/** True when `account` can receive USDC (it exists and is registered on the token). */
+export async function usdcReady(account: string) {
+  try {
+    return (await viewOn<unknown>(USDC, "storage_balance_of", { account_id: account })) !== null;
+  } catch {
+    return false;
+  }
+}

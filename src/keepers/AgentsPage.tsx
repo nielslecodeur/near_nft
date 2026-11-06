@@ -908,6 +908,29 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   const every = Number(d.every);
   /** Splitter: the bill is shared equally; others: the amount goes to each payee. */
   const perPayee = role.id === "splitter" && amount && payees.length ? amount / BigInt(payees.length) : amount;
+
+  // Each payee must exist and be registered on USDC, or every payment would fail.
+  const [ready, setReady] = useState<Record<string, boolean>>({});
+  const payeeKey = payees.join(",");
+  useEffect(() => {
+    if (role.kind !== "Payer") return;
+    const t = setTimeout(() => {
+      for (const p of payeeKey.split(",").filter(Boolean))
+        if (!(p in ready)) void ag.usdcReady(p).then((ok) => setReady((r) => ({ ...r, [p]: ok })));
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payeeKey, role.kind]);
+  const notReady = payees.filter((p) => ready[p] === false);
+
+  // Never start with a USDC budget above what the user holds.
+  useEffect(() => {
+    if (asset !== "USDC" || usdc === null) return;
+    const b = ag.parseAsset(d.budget, "USDC");
+    if (b !== null && b > usdc) setD((x) => ({ ...x, budget: ag.formatAsset(usdc, "USDC").split(" ")[0] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usdc, role.id]);
+
   const problems = [
     !pick ? "Pick the NFT that will carry the agent." : "",
     pick && taken[`${pick.contract}:${pick.token_id}`] ? "This NFT already has an agent." : "",
@@ -917,6 +940,9 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
     asset === "USDC" && budget && usdc !== null && budget > usdc ? `You hold ${ag.formatAsset(usdc, "USDC")}: lower the budget.` : "",
     role.kind === "Payer" && (payees.length === 0 || payees.length > 10) ? "Add 1 to 10 accounts to pay." : "",
     role.payees === "one" && payees.length > 1 ? "This role pays one account." : "",
+    notReady.length
+      ? `${notReady.join(", ")} cannot receive USDC (the account does not exist or is not registered on USDC). Check the spelling.`
+      : "",
     role.kind === "Payer" && (!perPayee || !(every >= 1)) ? "Set the amount and how often." : "",
     role.kind === "Payer" && perPayee && perTx && perPayee > perTx ? "Each payment is above the cap per action." : "",
     role.kind === "Buyer" && !maxPrice ? "Set the highest price per card." : "",
@@ -1102,7 +1128,12 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
                   placeholder={role.payees === "one" ? "netflix.testnet" : "alice.testnet, bob.testnet"}
                   value={d.payees}
                   onChange={(e) => setD({ ...d, payees: e.target.value })}
-                  hint="The contract refuses any other account. Each one must be registered on USDC."
+                  hint={
+                    payees.length && payees.every((p) => ready[p])
+                      ? "✓ Every account can receive USDC. The contract refuses any other account."
+                      : "The contract refuses any other account. Each one must exist and be registered on USDC."
+                  }
+                  error={notReady.length ? `${notReady.join(", ")} cannot receive USDC: check the spelling.` : undefined}
                 />
                 <Input
                   label={role.id === "splitter" ? "Total bill (USDC)" : role.payees === "many" ? "USDC to each" : "USDC each time"}
@@ -1137,7 +1168,6 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
 
       <section className="ag-confirm" aria-label="Confirm">
         <p className="ag-summary">{summary}</p>
-        {problems.length > 0 && <p className="ag-problems">{problems[0]}</p>}
         <ol className="ag-sign-steps">
           <li data-state={seat ? "done" : phase === "creating" ? "now" : "todo"}>Signature 1: create the agent on {pick ? `${pick.label} #${pick.token_id}` : "your NFT"}, with its limits on chain (0.1 NEAR storage, refunded on close).</li>
           <li data-state={phase === "done" ? "done" : phase === "funding" ? "now" : "todo"}>
@@ -1148,6 +1178,11 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
         <Button variant="primary" icon={KeyRound} busy={busy} disabled={problems.length > 0 || busy} onClick={() => void hire()}>
           {seat ? "Fund and start it" : `Hire the ${role.name}`}
         </Button>
+        {problems.length > 0 && !busy && (
+          <p className="ag-problems" role="status">
+            <CircleX aria-hidden="true" className="ag-inline-icon" /> {problems[0]}
+          </p>
+        )}
       </section>
     </div>
   );
