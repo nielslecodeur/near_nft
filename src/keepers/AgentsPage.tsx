@@ -859,18 +859,43 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   const [seat, setSeat] = useState<Seat | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!account) return;
-    void Promise.all(ag.COLLECTIONS.map((c) => ag.nftsIn(c.id, c.label, account))).then(async (all) => {
+  const [minting, setMinting] = useState(false);
+
+  /** Loads the user's NFTs; `prefer` selects a token right after it was minted. */
+  const loadNfts = useCallback(
+    async (prefer?: { contract: string; token: string }) => {
+      if (!account) return;
+      const all = await Promise.all(ag.COLLECTIONS.map((c) => ag.nftsIn(c.id, c.label, account)));
       const list = all.flat();
       setNfts(list);
       const t: Record<string, boolean> = {};
-      await Promise.all(list.map(async (n) => (t[`${n.contract}:${n.token_id}`] = !!(await ag.seatForNft(n.contract, n.token_id).catch(() => null)))));
+      await Promise.all(
+        list.map(async (n) => (t[`${n.contract}:${n.token_id}`] = !!(await ag.seatForNft(n.contract, n.token_id).catch(() => null)))),
+      );
       setTaken(t);
-      setPick((p) => p ?? list.find((n) => !t[`${n.contract}:${n.token_id}`]) ?? null);
-    });
+      const preferred = prefer && list.find((n) => n.contract === prefer.contract && n.token_id === prefer.token);
+      setPick((p) => preferred ?? p ?? list.find((n) => !t[`${n.contract}:${n.token_id}`]) ?? null);
+    },
+    [account],
+  );
+  useEffect(() => {
+    if (!account) return;
+    void loadNfts();
     void ag.usdcBalance(account).then(setUsdc, () => setUsdc(0n));
-  }, [account]);
+  }, [account, loadNfts]);
+
+  async function mintTestNft() {
+    setMinting(true);
+    setError("");
+    try {
+      const token = await ag.mintExampleNft(account);
+      await loadNfts({ contract: ag.EXAMPLE_NFT, token });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setMinting(false);
+    }
+  }
   const images = useImages((nfts ?? []).map((n) => ({ key: `${n.contract}:${n.token_id}`, contract: n.contract, token: n.token_id })));
 
   const asset = ag.assetOf(role.kind);
@@ -1025,6 +1050,15 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
               {nfts.length === 0 && <p className="ag-muted">No NFT found in the known collections. Name one below.</p>}
             </div>
           )}
+          <div className="ag-mint">
+            <Button icon={Sparkles} busy={minting} disabled={!!seat || busy || minting} onClick={() => void mintTestNft()}>
+              Mint a free test NFT
+            </Button>
+            <span className="ag-muted">
+              On <code>{ag.EXAMPLE_NFT}</code>, NEAR's public example collection (not ours). One signature, 0.1 NEAR
+              attached; unused storage is refunded.
+            </span>
+          </div>
           <details className="ag-other">
             <summary>Use an NFT from another collection</summary>
             <form

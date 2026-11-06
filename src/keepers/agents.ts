@@ -436,3 +436,44 @@ export const pauseMany = (seats: Seat[]) =>
       actions: seats.map((s) => fnCall("pause", { seat_id: s.seat_id }, 0n, 10n)),
     },
   ]);
+
+/** NEAR's public NFT tutorial contract: anyone can mint, so anyone can try an agent. */
+export const EXAMPLE_NFT = "nft.examples.testnet";
+
+function exampleMedia(seed: number) {
+  const hue = seed % 360;
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' fill='hsl(${hue},60%,22%)'/><circle cx='60' cy='60' r='38' fill='hsl(${(hue + 40) % 360},80%,62%)'/><rect x='38' y='50' width='44' height='14' rx='7' fill='hsl(${hue},60%,14%)'/><circle cx='60' cy='86' r='4' fill='hsl(${hue},60%,14%)'/></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * Mints a plain NFT for the user on nft.examples.testnet (not our contract).
+ * 0.1 NEAR attached; the contract refunds what its storage does not use.
+ */
+export async function mintExampleNft(account: string) {
+  const now = Date.now();
+  const tokenId = `agent-${account.split(".")[0].slice(0, 20)}-${now}`;
+  await sendRaw([
+    {
+      receiverId: EXAMPLE_NFT,
+      actions: [
+        fnCall(
+          "nft_mint",
+          {
+            token_id: tokenId,
+            receiver_id: account,
+            metadata: {
+              title: `Agent carrier ${String(now).slice(-6)}`,
+              description: "A plain NFT from NEAR's public example collection, used to carry an agent.",
+              media: exampleMedia(now),
+              copies: 1,
+            },
+          },
+          YOCTO / 10n,
+          100n,
+        ),
+      ],
+    },
+  ]);
+  return tokenId;
+}

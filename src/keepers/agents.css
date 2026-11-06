@@ -619,3 +619,12 @@ button.kp-back:hover {
   background: var(--color-s3);
   font-size: var(--type-xs);
 }
+.ag-mint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.ag-mint .ag-muted {
+  flex: 1 1 16rem;
+}
