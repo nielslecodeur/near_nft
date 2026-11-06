@@ -159,7 +159,7 @@ Not covered (written in the README):
 | 2 | `contracts/agents` plus the sandbox tests in §8 | 2026-11-07 |
 | 3 ✅ | **Live, keyless: `agents-v1.everkeep-dev-mw0weth5.testnet`** (code hash `9U2S5GhWuR68DSQQ7kPdYXxWe4emkL8cVzfUP4Yr76rY`, same as the sandbox-tested wasm), registered on Circle USDC testnet. Record: `docs/results/agents-v1-testnet-deployment.json`. Third-party collection for the demo: `nft.examples.testnet` (NEAR's NFT tutorial contract) or `paras-token-v2.testnet`, both answer NEP-171 on testnet; to confirm with a real mint at Checkpoint 5. | 2026-11-06 |
 | 4 ✅ | Runner: `scripts/agent-runner-core.ts` (Buyer picks the cheapest listing within `maxPrice`/`minTier` and the on-chain room; Payer pays each `payee/amount` every `everySeconds`; reads pause/owner/key from chain before acting) and `npm run agent:runner` (127.0.0.1:8788, keys in `~/.everkeep-agents`, mode 600; the secret never leaves the runner). Sandbox proof: `npm run test:agents:runner`, 8 checks. | 2026-11-06 |
-| 5 | Agent Dock and "My agents" analytics. **Feature freeze at the end of 2026-11-10.** | 2026-11-10 |
+| 5 ✅ | Agent Dock (`/agents/new`) and My agents (`/agents`, `/agents/:id`). **Confirmed live on testnet by the user on 2026-11-06**: seat #1, a Payer on Keepers v2 #1 owned by `nifelst.testnet`, funded with 10 USDC; the runner paid 2 × 1 USDC with no wallet signature, and 1 attempt over the cap was blocked and logged on chain. Feature freeze at the end of 2026-11-10. | 2026-11-06 |
 | 6 | Stretch: "steal our agent" key, hosted runner, user story, demo on a third-party collection | 2026-11-11 → 12 |
 | F | README, video, X post (with the user's yes) | 2026-11-13 → 14 |
 
