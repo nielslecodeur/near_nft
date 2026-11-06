@@ -1092,3 +1092,17 @@ body {
   }
 }
 
+.kp-brand-mark {
+  display: grid;
+  place-items: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: 0.6rem;
+  background: linear-gradient(140deg, #2b5bd7, #0c1f4f);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.kp-brand-mark svg {
+  width: 55%;
+  height: 55%;
+  color: #fff;
+}

@@ -155,6 +155,90 @@ function NftArt({ src, label }: { src: string | null | undefined; label: string 
   );
 }
 
+/** The portrait agent card: full-bleed NFT art, identity and money on a dark fade. */
+function AgentCard({
+  href,
+  onOpen,
+  name,
+  role,
+  contract,
+  tokenId,
+  time,
+  kind,
+  asset,
+  status,
+  balance,
+  image,
+}: {
+  href?: string;
+  onOpen?: () => void;
+  name: string;
+  role: Role;
+  contract: string;
+  tokenId: string;
+  time: string;
+  kind: string;
+  asset: string;
+  status: { label: string; tone: string; live?: boolean };
+  balance: string;
+  image: string | null | undefined;
+}) {
+  const Icon = role.icon;
+  const collection = collectionLabel(contract);
+  const body = (
+    <>
+      <NftArt src={image} label={`${collection} #${tokenId}`} />
+      <span className="ag-pcard-status" data-tone={status.tone}>
+        {status.label}
+      </span>
+      <div className="ag-pcard-info">
+        <div className="ag-pcard-who">
+          <span className="ag-avatar">
+            <Icon aria-hidden="true" />
+          </span>
+          <span className="ag-pcard-role">
+            <small>{role.name}</small>
+            <span>
+              {collection} #{tokenId.length > 10 ? `${tokenId.slice(0, 8)}…` : tokenId}
+            </span>
+          </span>
+          <time className="kp-num">{time}</time>
+        </div>
+        <h3>{name}</h3>
+        <p className="ag-tags">
+          #{kind.toLowerCase()} #{asset.toLowerCase()} #{slug(collection)}
+        </p>
+        <div className="ag-pcard-stats">
+          <span>
+            <small>Status</small> {status.label}
+          </span>
+          <span>
+            <small>Budget</small>
+            <b className="kp-num">{balance}</b>
+          </span>
+        </div>
+      </div>
+    </>
+  );
+  return href ? (
+    <a
+      href={href}
+      className="ag-pcard"
+      data-live={status.live}
+      onClick={(e) => {
+        e.preventDefault();
+        onOpen?.();
+      }}
+    >
+      {body}
+    </a>
+  ) : (
+    <div className="ag-pcard" data-live={status.live}>
+      {body}
+    </div>
+  );
+}
+
 function ConnectFirst({ wallet, what }: { wallet: Wallet; what: string }) {
   return (
     <div className="kp-empty">
@@ -560,28 +644,34 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
   if (!account)
     return (
       <div className="ag-page">
-        <section className="ag-hero">
-          <p className="kp-eyebrow">Agent Wallet</p>
-          <h1>Give an AI a card, not your wallet.</h1>
-          <p className="kp-lede">
-            Put an agent on any NFT you own: a collector, a subscription payer, an allowance. Each one spends only its
-            own budget, inside limits the contract enforces. Call it any time; sell the NFT and it stops.
-          </p>
+        <section className="ag-stage ag-stage--intro" aria-labelledby="ag-intro-title">
+          <div className="ag-room" aria-hidden="true" />
+          <div className="ag-intro">
+            <span className="ag-mark" aria-hidden="true">
+              <Bot />
+            </span>
+            <h1 id="ag-intro-title">Give an AI a card, not your wallet.</h1>
+            <p>
+              Put an agent on any NFT you own: a collector, a subscription payer, an allowance. Each one spends only
+              its own budget, inside limits the contract enforces. Call it any time; sell the NFT and it stops.
+            </p>
+            <div className="ag-intro-actions">
+              <Button variant="primary" icon={WalletIcon} onClick={() => void wallet.connect()}>
+                Open my Agent Wallet
+              </Button>
+              <a
+                className="ag-intro-demo"
+                href={`/agents?as=${ag.DEMO_ACCOUNT}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(`/agents?as=${ag.DEMO_ACCOUNT}`);
+                }}
+              >
+                See a live one on testnet, no wallet needed
+              </a>
+            </div>
+          </div>
         </section>
-        <ConnectFirst wallet={wallet} what="open your Agent Wallet" />
-        <p className="ag-muted">
-          No wallet?{" "}
-          <a
-            href={`/agents?as=${ag.DEMO_ACCOUNT}`}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(`/agents?as=${ag.DEMO_ACCOUNT}`);
-            }}
-          >
-            See a live Agent Wallet on testnet, read-only
-          </a>
-          .
-        </p>
         <RoleGallery navigate={navigate} />
       </div>
     );
@@ -691,51 +781,22 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
                 const job = runner.jobs.find((j) => j.seatId === s.seat_id);
                 const role = roleFor(s, job);
                 const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up);
-                const Icon = role.icon;
-                const collection = collectionLabel(s.nft_contract);
                 return (
-                  <a
+                  <AgentCard
                     key={s.seat_id}
                     href={`/agents/${s.seat_id}`}
-                    className="ag-pcard"
-                    data-live={st.live}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      navigate(`/agents/${s.seat_id}`);
-                    }}
-                  >
-                    <NftArt src={images[s.seat_id]} label={`${collection} #${s.token_id}`} />
-                    <span className="ag-pcard-status" data-tone={st.tone}>
-                      {st.label}
-                    </span>
-                    <div className="ag-pcard-info">
-                      <div className="ag-pcard-who">
-                        <span className="ag-avatar">
-                          <Icon aria-hidden="true" />
-                        </span>
-                        <span className="ag-pcard-role">
-                          <small>{role.name}</small>
-                          <span>
-                            {collection} #{s.token_id.length > 10 ? `${s.token_id.slice(0, 8)}…` : s.token_id}
-                          </span>
-                        </span>
-                        <time className="kp-num">{lastAt[s.seat_id] ? ago(lastAt[s.seat_id]) : "new"}</time>
-                      </div>
-                      <h3>{nameFor(s, job)}</h3>
-                      <p className="ag-tags">
-                        #{s.kind.toLowerCase()} #{s.asset.toLowerCase()} #{slug(collection)}
-                      </p>
-                      <div className="ag-pcard-stats">
-                        <span>
-                          <small>Status</small> {st.label}
-                        </span>
-                        <span>
-                          <small>Budget</small>
-                          <b className="kp-num">{ag.formatAsset(s.balance, s.asset)}</b>
-                        </span>
-                      </div>
-                    </div>
-                  </a>
+                    onOpen={() => navigate(`/agents/${s.seat_id}`)}
+                    name={nameFor(s, job)}
+                    role={role}
+                    contract={s.nft_contract}
+                    tokenId={s.token_id}
+                    time={lastAt[s.seat_id] ? ago(lastAt[s.seat_id]) : "new"}
+                    kind={s.kind}
+                    asset={s.asset}
+                    status={st}
+                    balance={ag.formatAsset(s.balance, s.asset)}
+                    image={images[s.seat_id]}
+                  />
                 );
               }),
               ...(!readOnly
@@ -1221,15 +1282,17 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       <button type="button" className="kp-back" onClick={() => navigate("/agents")}>
         ← Agent Wallet
       </button>
-      <section className="ag-hero">
-        <p className="kp-eyebrow">Hire an agent</p>
-        <h1>What should it do for you?</h1>
-      </section>
       {error && (
         <Notice tone="error" title="Not done">
           {error}
         </Notice>
       )}
+      <section className="ag-stage ag-stage--hire" aria-labelledby="ag-hire-title">
+      <div className="ag-room" aria-hidden="true" />
+      <header className="ag-hire-head">
+        <h1 id="ag-hire-title">Hire an agent</h1>
+        <p className="ag-muted">Pick a job, the NFT that carries it and its limits. Two signatures, then it works on its own.</p>
+      </header>
 
       <div className="ag-roles" role="radiogroup" aria-label="Role">
         {ROLES.map((r) => {
@@ -1255,6 +1318,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
         })}
       </div>
 
+      <div className="ag-hire-layout">
       <div className="ag-hire">
         <section className="ag-panel" aria-labelledby="ag-pick">
           <h2 id="ag-pick">Which NFT carries it?</h2>
@@ -1377,6 +1441,23 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
         </section>
       </div>
 
+      <aside className="ag-hire-side">
+      <div className="ag-hire-preview" aria-label="Preview of your agent">
+        <div className="ag-slide" data-focus="true">
+          <AgentCard
+            name={d.name.trim() || role.name}
+            role={role}
+            contract={pick?.contract ?? ""}
+            tokenId={pick?.token_id ?? "?"}
+            time="new"
+            kind={role.kind}
+            asset={asset}
+            status={{ label: "Preview", tone: "brand" }}
+            balance={`${d.budget || "0"} ${asset}`}
+            image={pick ? images[`${pick.contract}:${pick.token_id}`] : null}
+          />
+        </div>
+      </div>
       <section className="ag-confirm" aria-label="Confirm">
         <p className="ag-summary">{summary}</p>
         <ol className="ag-sign-steps">
@@ -1394,6 +1475,9 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
             <CircleX aria-hidden="true" className="ag-inline-icon" /> {problems[0]}
           </p>
         )}
+      </section>
+      </aside>
+      </div>
       </section>
     </div>
   );
@@ -1522,13 +1606,27 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
       <button type="button" className="kp-back" onClick={() => navigate("/agents")}>
         ← Agent Wallet
       </button>
-      <section className="ag-detail-head">
-        <div className="ag-detail-art">
-          <NftArt src={images.art} label={`${collectionLabel(seat.nft_contract)} #${seat.token_id}`} />
+      <section className="ag-stage ag-stage--detail" aria-label={nameFor(seat, job)}>
+        <div className="ag-room" aria-hidden="true" />
+        <div className="ag-detail-card">
+          <div className="ag-slide" data-focus="true">
+            <AgentCard
+              name={nameFor(seat, job)}
+              role={role}
+              contract={seat.nft_contract}
+              tokenId={seat.token_id}
+              time={log.find((e) => e.status !== "info") ? ago(log.find((e) => e.status !== "info")!.at) : "new"}
+              kind={seat.kind}
+              asset={seat.asset}
+              status={st}
+              balance={ag.formatAsset(seat.balance, seat.asset)}
+              image={images.art}
+            />
+          </div>
         </div>
-        <div>
-          <p className="kp-eyebrow">
-            <RoleIcon aria-hidden="true" className="ag-inline-icon" /> {role.name} · {seat.kind === "Buyer" ? "spends NEAR" : "pays USDC"}
+        <div className="ag-detail-info">
+          <p className="ag-detail-role">
+            <RoleIcon aria-hidden="true" className="ag-inline-icon" /> {role.name}, {seat.kind === "Buyer" ? "spends NEAR" : "pays USDC"}
           </p>
           <h1>
             {nameFor(seat, job)} <Badge tone={st.tone}>{st.label}</Badge>
@@ -1537,11 +1635,23 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
             Lives on{" "}
             <a href={nftHref(seat.nft_contract, seat.token_id)} target={seat.nft_contract.startsWith("keepers-") ? undefined : "_blank"} rel="noreferrer">
               {collectionLabel(seat.nft_contract)} #{seat.token_id}
-            </a>{" "}
-            · owner {shortAccount(seat.owner)} · {st.note}
+            </a>
+            , owned by {shortAccount(seat.owner)}. {st.note}
           </p>
-          <p className="ag-detail-balance kp-num">{ag.formatAsset(seat.balance, seat.asset)}</p>
-          <p className="ag-muted">budget left</p>
+          <div className="ag-detail-money">
+            <span className="ag-muted">Budget left</span>
+            <strong className="kp-num">{ag.formatAsset(seat.balance, seat.asset)}</strong>
+          </div>
+          <div className="ag-stats" aria-label="This agent">
+            <Stat label="Spent today" value={ag.formatAsset(seat.spent_today, seat.asset)} sub={`daily cap ${ag.formatAsset(cap, seat.asset)}`} />
+            <Stat label="Spent in total" value={ag.formatAsset(seat.spent_total, seat.asset)} />
+            <Stat label="Done / blocked / failed" value={`${seat.done} / ${seat.refused} / ${seat.failed}`} />
+            <Stat
+              label="Gas left on its key"
+              value={gasLeft ? ag.formatAsset(gasLeft, "NEAR") : seat.agent_key ? "key removed" : "no key"}
+              sub={seat.agent_key ? `${seat.agent_key.slice(0, 16)}…` : undefined}
+            />
+          </div>
         </div>
       </section>
       {notice}
@@ -1558,17 +1668,6 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
           The agent is stopped. Your budget is still yours: withdraw it below.
         </Notice>
       )}
-
-      <section className="ag-stats" aria-label="This agent">
-        <Stat label="Spent today" value={ag.formatAsset(seat.spent_today, seat.asset)} sub={`daily cap ${ag.formatAsset(cap, seat.asset)}`} />
-        <Stat label="Spent in total" value={ag.formatAsset(seat.spent_total, seat.asset)} />
-        <Stat label="Done · blocked · failed" value={`${seat.done} · ${seat.refused} · ${seat.failed}`} />
-        <Stat
-          label="Gas left on its key"
-          value={gasLeft ? ag.formatAsset(gasLeft, "NEAR") : seat.agent_key ? "key removed" : "no key"}
-          sub={seat.agent_key ? `${seat.agent_key.slice(0, 16)}…` : undefined}
-        />
-      </section>
 
       <div className="ag-columns">
         <section className="kp-vault-section">

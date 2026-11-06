@@ -9,6 +9,7 @@ import { ProbePage } from "./ProbePage";
 import { AgentPage, AgentsPage, NewAgentPage } from "./AgentsPage";
 import { shortAccount } from "./KeeperCard";
 import { EXPLORER, KEEPERS_CONTRACT, type Version } from "./chain";
+import { AGENTS } from "./agents";
 import "./keepers.css";
 
 export type Route =
@@ -111,14 +112,16 @@ export function KeepersApp() {
   useEffect(() => {
     document.title =
       route.page === "keeper"
-        ? `Keeper #${route.id} · Everkeep Keepers`
+        ? `Keeper #${route.id} · Agent Wallet`
         : route.page === "vault"
-          ? "The Vault · Everkeep Keepers"
+          ? "The Vault · Agent Wallet"
           : route.page === "agent"
-            ? `Agent #${route.id} · Everkeep Keepers`
-            : route.page === "agents" || route.page === "agent-new"
-              ? "My agents · Everkeep Keepers"
-          : "Everkeep Keepers";
+            ? `Agent #${route.id} · Agent Wallet`
+            : route.page === "agent-new"
+              ? "Hire an agent · Agent Wallet"
+              : route.page === "collection"
+                ? "Keepers collection · Agent Wallet"
+                : "Agent Wallet";
     document.documentElement.lang = "en";
   }, [route]);
   const navigate = useCallback((to: string) => {
@@ -146,26 +149,24 @@ export function KeepersApp() {
       <header className="kp-header">
         <a
           className="kp-brand"
-          href="/keepers"
+          href="/agents"
           onClick={(e) => {
             e.preventDefault();
-            navigate("/keepers");
+            navigate("/agents");
           }}
         >
-          <svg viewBox="0 0 64 64" aria-hidden="true">
-            <rect width="64" height="64" rx="14" fill="var(--color-s3)" />
-            <circle cx="32" cy="26" r="10" fill="var(--color-brand)" />
-            <path d="M27 32h10l3 18H24z" fill="var(--color-brand)" />
-          </svg>
+          <span className="kp-brand-mark" aria-hidden="true">
+            <Bot />
+          </span>
           <span>
-            Keepers <small>by Everkeep</small>
+            Agent Wallet <small>by Everkeep</small>
           </span>
         </a>
-        <nav className="kp-nav" aria-label="Keepers">
+        <nav className="kp-nav" aria-label="Agent Wallet">
           {(
             [
-              ["/keepers", "Collection", route.page === "collection" || route.page === "keeper"],
               ["/agents", "Agents", route.page === "agents" || route.page === "agent" || route.page === "agent-new"],
+              ["/keepers", "Keepers", route.page === "collection" || route.page === "keeper"],
               ["/vault", "Vault", route.page === "vault"],
             ] as const
           ).map(([to, label, current]) => (
@@ -251,7 +252,11 @@ export function KeepersApp() {
       </main>
       <footer className="kp-footer">
         <span>
-          Contract{" "}
+          Contracts{" "}
+          <a href={`${EXPLORER}/address/${AGENTS}`} target="_blank" rel="noreferrer">
+            {AGENTS}
+          </a>
+          {" and "}
           <a
             href={`${EXPLORER}/address/${KEEPERS_CONTRACT}`}
             target="_blank"

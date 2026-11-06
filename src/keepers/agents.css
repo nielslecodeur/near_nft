@@ -6,17 +6,6 @@
 .ag-page > * {
   min-width: 0;
 }
-.ag-hero h1 {
-  margin: 0;
-  max-width: 24ch;
-  font-size: var(--type-display);
-  line-height: var(--line-tight);
-  letter-spacing: var(--tracking-title);
-  text-wrap: balance;
-}
-.ag-hero .kp-lede {
-  margin-top: var(--space-4);
-}
 .ag-muted {
   color: var(--color-muted);
   font-size: var(--type-xs);
@@ -26,54 +15,6 @@
   height: 1em;
   vertical-align: -0.12em;
 }
-
-/* Wallet header ------------------------------------------------------------ */
-.ag-wallet {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-6);
-  padding: var(--space-6);
-  border: var(--stroke-border) solid var(--color-border);
-  border-radius: var(--radius-surface);
-  background:
-    radial-gradient(ellipse 60% 120% at 0% 0%, var(--color-brand-glow), transparent 70%),
-    var(--color-s1);
-  box-shadow: var(--shadow-s1);
-}
-.ag-wallet-main {
-  display: grid;
-  gap: var(--space-2);
-  min-width: 0;
-}
-.ag-wallet-main .kp-eyebrow {
-  margin: 0;
-}
-.ag-wallet-label {
-  margin: 0;
-  color: var(--color-muted);
-}
-.ag-wallet-total {
-  margin: 0;
-  font-size: var(--type-display);
-  font-weight: var(--weight-semibold);
-  line-height: var(--line-tight);
-  overflow-wrap: anywhere;
-}
-.ag-wallet-total span {
-  color: var(--color-muted);
-}
-.ag-wallet-main > .ag-muted {
-  margin: 0;
-}
-.ag-wallet-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-}
-
 /* Ask bar ------------------------------------------------------------------ */
 .ag-ask {
   display: grid;
@@ -169,33 +110,6 @@
 .ag-checks li[data-ok="false"] svg {
   color: var(--color-down);
 }
-
-/* Agent cards -------------------------------------------------------------- */
-.ag-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
-  gap: var(--space-4);
-}
-.ag-card {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  border: var(--stroke-border) solid var(--color-border);
-  border-radius: var(--radius-surface);
-  background: var(--color-s1);
-  box-shadow: var(--shadow-s1);
-  overflow: hidden;
-}
-.ag-card[data-live="true"] {
-  border-color: color-mix(in srgb, var(--color-up) 55%, var(--color-border));
-}
-.ag-card-link {
-  display: grid;
-  align-content: start;
-  text-decoration: none;
-}
-.ag-card-art {
-  position: relative;
-}
 .ag-art {
   display: grid;
   place-items: center;
@@ -209,69 +123,6 @@
   height: 2.5rem;
   color: var(--color-muted);
 }
-.ag-role-chip {
-  position: absolute;
-  left: var(--space-3);
-  top: var(--space-3);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border-radius: 999px;
-  background: var(--color-overlay);
-  backdrop-filter: blur(8px);
-  font-size: var(--type-xs);
-  font-weight: var(--weight-semibold);
-}
-.ag-role-chip svg {
-  width: 1em;
-  height: 1em;
-  color: var(--color-brand);
-}
-.ag-card-body {
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-4);
-}
-.ag-card-body p {
-  margin: 0;
-}
-.ag-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-.ag-card-balance {
-  font-size: var(--type-heading);
-  font-weight: var(--weight-medium);
-}
-.ag-card-actions {
-  display: flex;
-  gap: var(--space-1);
-  padding: 0 var(--space-2) var(--space-2);
-}
-.ag-card--new {
-  display: grid;
-  grid-template-rows: none;
-  place-content: center;
-  justify-items: center;
-  gap: var(--space-2);
-  min-height: 14rem;
-  border-style: dashed;
-  box-shadow: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-.ag-card--new:hover {
-  border-color: var(--color-brand);
-}
-.ag-card--new svg {
-  width: 1.8rem;
-  height: 1.8rem;
-  color: var(--color-brand);
-}
 .ag-meter {
   height: var(--space-2);
   border-radius: 999px;
@@ -283,7 +134,6 @@
   height: 100%;
   background: var(--color-brand);
 }
-
 /* Activity feed ------------------------------------------------------------ */
 .ag-feed {
   list-style: none;
@@ -322,7 +172,6 @@
 .ag-blocked {
   color: var(--color-down);
 }
-
 /* Roles -------------------------------------------------------------------- */
 .ag-roles {
   display: grid;
@@ -363,7 +212,6 @@
 .ag-role:disabled {
   cursor: default;
 }
-
 /* Hire form ---------------------------------------------------------------- */
 .ag-hire,
 .ag-columns {
@@ -469,38 +317,6 @@
 .ag-sign-steps li[data-state="done"] {
   color: var(--color-up);
 }
-
-/* Agent detail ------------------------------------------------------------- */
-.ag-detail-head {
-  display: grid;
-  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
-  gap: var(--space-6);
-  align-items: center;
-}
-.ag-detail-art .ag-art {
-  aspect-ratio: 1;
-  border-radius: var(--radius-surface);
-  border: var(--stroke-border) solid var(--color-border);
-}
-.ag-detail-head h1 {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin: 0;
-  font-size: var(--type-display);
-  line-height: var(--line-tight);
-}
-.ag-detail-head p {
-  margin: var(--space-2) 0 0;
-}
-.ag-detail-head .kp-eyebrow {
-  margin: 0 0 var(--space-2);
-}
-.ag-detail-balance {
-  font-size: var(--type-heading);
-  font-weight: var(--weight-semibold);
-}
 .ag-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
@@ -577,15 +393,9 @@
 .ag-bars figcaption {
   grid-column: 1 / -1;
 }
-
 @media (max-width: 560px) {
-  .ag-wallet,
   .ag-confirm {
     padding: var(--space-4);
-  }
-  .ag-detail-head {
-    grid-template-columns: minmax(0, 6rem) minmax(0, 1fr);
-    gap: var(--space-4);
   }
   .ag-ask-input {
     font-size: var(--type-body);
@@ -598,7 +408,6 @@
     margin-bottom: var(--space-2);
   }
 }
-
 button.kp-back {
   justify-self: start;
   margin: 0;

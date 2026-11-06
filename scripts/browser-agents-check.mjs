@@ -19,7 +19,8 @@ const pages = [
   ["/agents", "Give an AI a card, not your wallet."],
   [`/agents?as=${DEMO}`, "Your agents control"],
   ["/agents/new", "Connect your wallet to hire an agent."],
-  ["/agents/1", "budget left"],
+  ["/agents/1", "Budget left"],
+  ["/agents/5", "Budget left"],
   ["/agents/999999", "No agent #999999."],
 ];
 let failed = false;

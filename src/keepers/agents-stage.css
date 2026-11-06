@@ -416,6 +416,188 @@
   color: #fff;
 }
 
+/* Inside the stage, shared panels turn to dark glass ------------------------ */
+.ag-stage .ag-stat,
+.ag-stage .ag-role,
+.ag-stage .ag-confirm,
+.ag-stage .ag-nft-pick,
+.ag-stage .ag-plan {
+  border-color: rgba(196, 214, 255, 0.14);
+  background: rgba(8, 13, 26, 0.72);
+  backdrop-filter: blur(10px);
+}
+.ag-stage .ag-role[aria-checked="true"],
+.ag-stage .ag-nft-pick[aria-pressed="true"] {
+  border-color: rgba(220, 234, 255, 0.75);
+  box-shadow: 0 0 0 1px rgba(220, 234, 255, 0.35), 0 0 1.5rem rgba(120, 170, 255, 0.25);
+  background: rgba(20, 34, 66, 0.8);
+}
+.ag-stage .ag-role > svg,
+.ag-stage .ag-ask-icon {
+  color: #9cc8ff;
+}
+
+.ag-stage .ag-stat strong {
+  font-size: var(--type-lead);
+  white-space: nowrap;
+}
+.ag-stage .ag-stat small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One accent on agent pages: ice blue for icons and data, brand green stays on primary buttons */
+.ag-page .ag-role > svg,
+.ag-page .ag-feed-dot {
+  color: #9cc8ff;
+}
+.ag-page .ag-bars > div > span:not([data-zero="true"]),
+.ag-page .ag-meter span {
+  background: #9cc8ff;
+}
+
+/* Intro (no wallet) */
+.ag-stage--intro {
+  min-height: min(32rem, 70vh);
+  place-items: center;
+}
+.ag-intro {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  max-width: 40rem;
+  text-align: center;
+}
+.ag-intro h1 {
+  margin: 0;
+  font-size: var(--type-display);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-title);
+  text-wrap: balance;
+}
+.ag-intro p {
+  margin: 0;
+  color: rgba(225, 232, 248, 0.72);
+  font-size: var(--type-lead);
+  line-height: var(--line-relaxed);
+}
+.ag-intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3) var(--space-5, var(--space-4));
+}
+.ag-intro-demo {
+  color: #9cc8ff !important;
+  font-size: var(--type-sm);
+}
+
+/* One agent: lit card on the left, identity and numbers on the right */
+.ag-stage--detail {
+  grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8);
+}
+.ag-stage--detail .ag-slide {
+  width: 100%;
+}
+.ag-detail-info {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.ag-detail-role {
+  margin: 0;
+  color: #9cc8ff;
+  font-size: var(--type-sm);
+}
+.ag-detail-info h1 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--type-display);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-title);
+}
+.ag-detail-info > p {
+  margin: 0;
+}
+.ag-detail-money {
+  display: grid;
+  gap: var(--space-1);
+}
+.ag-detail-money strong {
+  font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+  font-weight: var(--weight-semibold);
+  line-height: 1.1;
+}
+
+/* Hire: form on the left, the agent you are building on the right */
+.ag-hire-head {
+  display: grid;
+  gap: var(--space-2);
+}
+.ag-hire-head h1 {
+  margin: 0;
+  font-size: var(--type-display);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-title);
+}
+.ag-hire-head p {
+  margin: 0;
+  font-size: var(--type-sm);
+}
+.ag-hire-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  gap: var(--space-8);
+  align-items: start;
+}
+.ag-hire-layout .ag-hire {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ag-hire-side {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + var(--space-20, 5rem));
+  display: grid;
+  gap: var(--space-4);
+}
+.ag-hire-preview {
+  width: min(100%, 15.5rem);
+  justify-self: center;
+}
+.ag-hire-preview .ag-slide {
+  width: 100%;
+}
+.ag-stage .ag-confirm {
+  padding: var(--space-4);
+}
+.ag-stage .ag-summary {
+  font-size: var(--type-sm);
+}
+
+@media (max-width: 900px) {
+  .ag-stage--detail,
+  .ag-hire-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ag-stage--detail .ag-detail-card {
+    width: min(100%, 15rem);
+    justify-self: center;
+  }
+  .ag-hire-side {
+    position: static;
+  }
+  .ag-stage--detail .ag-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 760px) {
   .ag-stage {
     --ag-card-w: min(68vw, 15rem);
