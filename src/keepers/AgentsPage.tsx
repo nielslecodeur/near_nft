@@ -145,12 +145,18 @@ function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: Re
   );
 }
 
+/**
+ * NFT artwork with a fixed box (no layout shift). `undefined` = still loading,
+ * `null` = the NFT has no usable image: a neutral night tile with its name,
+ * never a stand-in character.
+ */
 function NftArt({ src, label }: { src: string | null | undefined; label: string }) {
-  return src ? (
-    <img className="ag-art" src={src} alt={label} loading="lazy" />
-  ) : (
-    <div className="ag-art ag-art--empty" aria-label={label}>
-      <Bot aria-hidden="true" />
+  const [failed, setFailed] = useState(false);
+  if (src && !failed)
+    return <img className="ag-art" src={src} alt={label} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+  return (
+    <div className="ag-art ag-art--empty" role="img" aria-label={src === undefined ? `Loading ${label}` : `${label}, no image`} data-loading={src === undefined}>
+      {src !== undefined && <span>{label}</span>}
     </div>
   );
 }
@@ -1353,11 +1359,11 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
           )}
           <div className="ag-mint">
             <Button icon={Sparkles} busy={minting} disabled={!!seat || busy || minting} onClick={() => void mintTestNft()}>
-              Mint a free test NFT
+              Mint a free Character NFT
             </Button>
             <span className="ag-muted">
-              On <code>{ag.EXAMPLE_NFT}</code>, NEAR's public example collection (not ours). One signature, 0.1 NEAR
-              attached; unused storage is refunded.
+              A real NFT on <code>{ag.EXAMPLE_NFT}</code>, NEAR's public example collection (not ours), with Characters
+              art. One signature, 0.1 NEAR attached; unused storage is refunded.
             </span>
           </div>
           <details className="ag-other">

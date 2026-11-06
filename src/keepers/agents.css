@@ -118,11 +118,6 @@
   object-fit: cover;
   background: var(--color-s3);
 }
-.ag-art--empty svg {
-  width: 2.5rem;
-  height: 2.5rem;
-  color: var(--color-muted);
-}
 .ag-meter {
   height: var(--space-2);
   border-radius: 999px;

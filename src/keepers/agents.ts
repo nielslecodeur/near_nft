@@ -2,6 +2,7 @@
  * Agent seats: reads from the agents contract and the runner, and builds the
  * wallet requests. Every number in the UI comes from these calls.
  */
+import { CHARACTERS, characterBySlug, characterFromMedia, characterMedia } from "./nft-art";
 import {
   EXPLORER,
   KEEPERS_V1,
@@ -169,6 +170,9 @@ export async function nftImage(contract: string, tokenId: string) {
     const t = await viewOn<{ metadata?: { media?: string | null } } | null>(contract, "nft_token", { token_id: tokenId });
     const m = t?.metadata?.media;
     if (!m) return null;
+    // Our character art: serve the same file from this app (instant, same bytes).
+    const character = characterFromMedia(m);
+    if (character) return character.image;
     if (/^(data:|https:)/.test(m)) return m;
     if (/^(Qm|bafy)/.test(m)) return `https://ipfs.io/ipfs/${m}`;
     return null;
@@ -440,19 +444,15 @@ export const pauseMany = (seats: Seat[]) =>
 /** NEAR's public NFT tutorial contract: anyone can mint, so anyone can try an agent. */
 export const EXAMPLE_NFT = "nft.examples.testnet";
 
-function exampleMedia(seed: number) {
-  const hue = seed % 360;
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' fill='hsl(${hue},60%,22%)'/><circle cx='60' cy='60' r='38' fill='hsl(${(hue + 40) % 360},80%,62%)'/><rect x='38' y='50' width='44' height='14' rx='7' fill='hsl(${hue},60%,14%)'/><circle cx='60' cy='86' r='4' fill='hsl(${hue},60%,14%)'/></svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
 /**
- * Mints a plain NFT for the user on nft.examples.testnet (not our contract).
- * 0.1 NEAR attached; the contract refunds what its storage does not use.
+ * Mints a Character NFT for the user on nft.examples.testnet (not our
+ * contract): a real NFT whose on-chain `media` is the character's public art
+ * URL. 0.1 NEAR attached; the contract refunds what its storage does not use.
  */
-export async function mintExampleNft(account: string) {
+export async function mintExampleNft(account: string, slug?: string) {
   const now = Date.now();
-  const tokenId = `agent-${account.split(".")[0].slice(0, 20)}-${now}`;
+  const character = (slug && characterBySlug(slug)) || CHARACTERS[now % CHARACTERS.length];
+  const tokenId = `character-${character.slug}-${now}`;
   await sendRaw([
     {
       receiverId: EXAMPLE_NFT,
@@ -463,9 +463,9 @@ export async function mintExampleNft(account: string) {
             token_id: tokenId,
             receiver_id: account,
             metadata: {
-              title: `Agent carrier ${String(now).slice(-6)}`,
-              description: "A plain NFT from NEAR's public example collection, used to carry an agent.",
-              media: exampleMedia(now),
+              title: character.name,
+              description: `${character.collection}: ${character.description}`,
+              media: characterMedia(character),
               copies: 1,
             },
           },

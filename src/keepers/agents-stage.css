@@ -621,3 +621,29 @@
     transition: none;
   }
 }
+
+/* NFT art with no usable image: a neutral night tile with the NFT's name (never a stand-in character). */
+.ag-art--empty {
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 35%, rgba(70, 110, 200, 0.28), transparent 70%),
+    linear-gradient(180deg, #0d1730, #060a14);
+  color: rgba(225, 232, 248, 0.55);
+  font-size: var(--type-xs);
+  text-align: center;
+}
+.ag-art--empty[data-loading="true"] {
+  animation: ag-pulse 1.4s ease-in-out infinite;
+}
+@keyframes ag-pulse {
+  50% {
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ag-art--empty[data-loading="true"] {
+    animation: none;
+  }
+}
