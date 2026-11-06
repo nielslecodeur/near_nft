@@ -553,3 +553,103 @@ export async function proveAccount(): Promise<AccountProof> {
     message: params.message,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Agent keys (probe): a function-call key on the owner's own account.
+// ---------------------------------------------------------------------------
+
+export type KeyPermission =
+  | "FullAccess"
+  | {
+      FunctionCall: {
+        allowance: string | null;
+        receiver_id: string;
+        method_names: string[];
+      };
+    };
+
+/** Reads one access key from chain, or null when it is not on the account. */
+export async function viewAccessKey(
+  accountId: string,
+  publicKey: string,
+): Promise<KeyPermission | null> {
+  try {
+    const key = await rpc("query", {
+      request_type: "view_access_key",
+      account_id: accountId,
+      public_key: publicKey,
+      finality: "final",
+    });
+    return key.permission as KeyPermission;
+  } catch {
+    return null;
+  }
+}
+
+/** Sends one transaction to the signer's own account with raw actions. */
+async function sendToSelf(actions: unknown[]) {
+  const { wallet, signer } = await readyWallet();
+  const sent = (await wallet.signAndSendTransaction({
+    network: "testnet",
+    signerId: signer,
+    receiverId: signer,
+    actions: actions as never,
+  })) as { transaction?: { hash: string } } | undefined;
+  return { signer, outcome: await confirm(sent?.transaction?.hash, signer) };
+}
+
+/**
+ * Method A: an AddKey action in a normal transaction. The key may call only
+ * `methodNames` on `contractId`, attaches no deposit (protocol rule), and can
+ * burn at most `allowance` yoctoNEAR of gas over its lifetime.
+ */
+export const addAgentKey = (
+  publicKey: string,
+  contractId: string,
+  methodNames: string[],
+  allowance: bigint,
+) =>
+  sendToSelf([
+    {
+      type: "AddKey",
+      params: {
+        publicKey,
+        accessKey: {
+          permission: {
+            receiverId: contractId,
+            allowance: allowance.toString(),
+            methodNames,
+          },
+        },
+      },
+    },
+  ]);
+
+export const deleteAgentKey = (publicKey: string) =>
+  sendToSelf([{ type: "DeleteKey", params: { publicKey } }]);
+
+/**
+ * Method B: reconnect the wallet and let it add the key during sign-in
+ * (near-connect `addFunctionCallKey`). Returns the account that signed in.
+ */
+export async function reconnectWithAgentKey(
+  publicKey: string,
+  contractId: string,
+  methodNames: string[],
+  allowance: bigint,
+) {
+  const connector = await walletSelector();
+  const current = await connector.wallet().catch(() => null);
+  const walletId = current?.manifest.id;
+  if (current) await current.signOut({ network: "testnet" });
+  const wallet = await connector.connect({
+    walletId,
+    addFunctionCallKey: {
+      contractId,
+      publicKey,
+      allowMethods: { anyMethod: false, methodNames },
+      gasAllowance: { kind: "limited", amount: allowance.toString() },
+    },
+  });
+  return (await wallet.getAccounts())[0]?.accountId ?? "";
+}

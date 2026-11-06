@@ -6,6 +6,7 @@
   "scripts": {
     "test:baskets": "bash scripts/baskets-proof.sh",
     "test:keepers": "bash scripts/keepers-proof.sh",
+    "test:agents": "bash scripts/agents-proof.sh",
     "testnet:baskets": "tsx scripts/deploy-baskets-testnet.ts",
     "testnet:keepers": "tsx scripts/deploy-keepers-testnet.ts",
     "preview:keepers": "bash -c \"source scripts/sandbox-env.sh && tsx scripts/keepers-preview.ts\"",

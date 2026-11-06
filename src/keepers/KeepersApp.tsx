@@ -5,6 +5,7 @@ import { Button, Notice } from "../terminal/primitives";
 import { CollectionPage } from "./CollectionPage";
 import { KeeperPage } from "./KeeperPage";
 import { VaultPage } from "./VaultPage";
+import { ProbePage } from "./ProbePage";
 import { shortAccount } from "./KeeperCard";
 import { EXPLORER, KEEPERS_CONTRACT, type Version } from "./chain";
 import "./keepers.css";
@@ -12,7 +13,8 @@ import "./keepers.css";
 export type Route =
   | { page: "collection"; version: Version }
   | { page: "keeper"; id: string; version: Version }
-  | { page: "vault" };
+  | { page: "vault" }
+  | { page: "probe" };
 
 /** /keepers and /keepers/:id are v2; /keepers/v1[/:id] keep v1 cards reachable. */
 export function parseRoute(path: string): Route {
@@ -20,6 +22,7 @@ export function parseRoute(path: string): Route {
   if (keeper)
     return { page: "keeper", id: keeper[2], version: keeper[1] ? "v1" : "v2" };
   if (/^\/vault\/?$/.test(path)) return { page: "vault" };
+  if (/^\/keepers\/probe\/?$/.test(path)) return { page: "probe" };
   if (/^\/keepers\/v1\/?$/.test(path))
     return { page: "collection", version: "v1" };
   return { page: "collection", version: "v2" };
@@ -214,6 +217,8 @@ export function KeepersApp() {
           />
         ) : route.page === "vault" ? (
           <VaultPage wallet={api} navigate={navigate} />
+        ) : route.page === "probe" ? (
+          <ProbePage wallet={api} />
         ) : (
           <CollectionPage
             key={route.version}
