@@ -21,7 +21,8 @@ export type Route =
   | { page: "agent"; id: string };
 
 /** /keepers and /keepers/:id are v2; /keepers/v1[/:id] keep v1 cards reachable. */
-export function parseRoute(path: string): Route {
+export function parseRoute(url: string): Route {
+  const path = url.split(/[?#]/)[0];
   const keeper = path.match(/^\/keepers\/(?:(v1)\/)?(\d+)\/?$/);
   if (keeper)
     return { page: "keeper", id: keeper[2], version: keeper[1] ? "v1" : "v2" };

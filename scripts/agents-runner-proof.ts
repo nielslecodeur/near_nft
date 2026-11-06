@@ -156,8 +156,22 @@ try {
   assert.equal(await ftBalance(shop.accountId), 2n * USDC);
   pass("paused seat: the runner reads it from chain and sends nothing");
 
-  // The NFT changes hands: the runner sees the seat is no longer runnable.
+  // A mission above the cap is skipped before any transaction: no gas spent.
   await alice.call(agents, "resume", { seat_id: payerSeat }, { attachedDeposit: 1n });
+  const payerJob = (await store.jobs()).find((j) => j.seatId === payerSeat)!;
+  await store.saveJob({
+    ...payerJob,
+    lastPaid: {},
+    payer: { payments: [{ payee: shop.accountId, amount: (3n * USDC).toString(), everySeconds: 60 }] },
+  });
+  const refusedBefore = (await agents.view<{ refused: number }>("seat", { seat_id: payerSeat })).refused;
+  out = await runner.tick(t0 + 300_000);
+  assert.match(out[payerSeat], /^skipped: 3000000 is above the cap per payment/);
+  assert.equal((await agents.view<{ refused: number }>("seat", { seat_id: payerSeat })).refused, refusedBefore);
+  await store.saveJob({ ...payerJob, lastPaid: {} });
+  pass("a payment above the cap is skipped by the runner: no transaction, no gas");
+
+  // The NFT changes hands: the runner sees the seat is no longer runnable.
   await alice.call(gallery, "nft_transfer", { receiver_id: bob.accountId, token_id: "1" }, { attachedDeposit: 1n, gas: GAS });
   out = await runner.tick(t0 + 400_000);
   assert.match(out[payerSeat], /^refused/);

@@ -17,6 +17,8 @@
  *   DELETE /jobs/:seatId
  *   POST   /jobs/:seatId/run                         -> {result}
  *   POST   /jobs/:seatId/pause                       -> {tx}  (signed by the agent key)
+ *   POST   /jobs/:seatId/act  {action:"buy", token_id, listing_id, price}
+ *                             {action:"pay", payee, amount, memo?}  -> {ok, tx, result}
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
@@ -90,7 +92,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     res.writeHead(code, { "content-type": "application/json" });
     res.end(JSON.stringify(data));
   };
-  const m = url.pathname.match(/^\/jobs\/(\d+)(\/run|\/pause)?$/);
+  const m = url.pathname.match(/^\/jobs\/(\d+)(\/run|\/pause|\/act)?$/);
   if (req.method === "GET" && url.pathname === "/health")
     return send(200, { agents: AGENTS, rpc: RPC, tick_seconds: TICK, jobs: (await store.jobs()).length });
   if (req.method === "POST" && url.pathname === "/keys") {
@@ -116,6 +118,8 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       accountId: b.accountId,
       publicKey: b.publicKey,
       kind: b.kind,
+      role: typeof b.role === "string" ? b.role.slice(0, 32) : prev?.role,
+      name: typeof b.name === "string" ? b.name.slice(0, 48) : prev?.name,
       buyer: b.kind === "Buyer" ? b.buyer : undefined,
       payer: b.kind === "Payer" ? b.payer : undefined,
       lastPaid: prev?.lastPaid,
@@ -131,6 +135,14 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const job = (await store.jobs()).find((j) => j.seatId === m[1]);
     if (!job) return send(404, { error: "no job for this seat" });
     if (m[2] === "/pause") return send(200, { tx: await runner.pause(job) });
+    if (m[2] === "/act") {
+      const a = await body(req);
+      if (a.action === "buy" && job.kind === "Buyer")
+        return send(200, await runner.buyNow(job, String(a.token_id), String(a.listing_id), String(a.price)));
+      if (a.action === "pay" && job.kind === "Payer" && isAccount(a.payee))
+        return send(200, await runner.payNow(job, a.payee, String(a.amount), a.memo ? String(a.memo) : undefined));
+      return send(400, { error: "action does not match this agent" });
+    }
     return send(200, { result: await runner.runJob(job) });
   }
   send(404, { error: "not found" });

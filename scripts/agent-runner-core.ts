@@ -33,6 +33,10 @@ export type Job = {
   accountId: string;
   publicKey: string;
   kind: "Buyer" | "Payer";
+  /** Role preset chosen in the UI (collector, subscription…). Display only. */
+  role?: string;
+  /** Name the owner gave the agent. Display only. */
+  name?: string;
   buyer?: BuyerMission;
   payer?: PayerMission;
   /** Payer: last payment time per payee+amount (ms). */
@@ -246,10 +250,30 @@ export class Runner {
     const payments = job.payer?.payments ?? [];
     job.lastPaid ??= {};
     const done: string[] = [];
+    // Local copies so several payments in one tick see each other's spending.
+    let left = BigInt(seat.left_today);
+    let balance = BigInt(seat.balance);
+    const cap = BigInt(seat.policy?.per_tx_max ?? "0");
     for (const p of payments) {
       const id = `${p.payee}:${p.amount}`;
       const last = job.lastPaid[id] ?? 0;
       if (now - last < p.everySeconds * 1000) continue;
+      // Do not spend gas on a payment the contract will refuse for sure. The
+      // Ask bar can still send one on purpose, to show the contract blocking it.
+      const amount = BigInt(p.amount);
+      const why = !seat.policy?.payees.includes(p.payee)
+        ? `skipped: ${p.payee} is not on the agent's list`
+        : amount > cap
+          ? `skipped: ${p.amount} is above the cap per payment, update the mission`
+          : amount > left
+            ? "waiting: daily cap reached"
+            : amount > balance
+              ? "waiting: budget too low, add budget"
+              : null;
+      if (why) {
+        done.push(why);
+        continue;
+      }
       const r = await this.act(
         job,
         "agent_pay",
@@ -258,9 +282,46 @@ export class Runner {
       );
       // A refusal is logged on chain; wait for the next period before retrying.
       job.lastPaid[id] = now;
+      if (r.ok) {
+        left -= amount;
+        balance -= amount;
+      }
       done.push(`${r.ok ? "paid" : "refused"} ${p.amount} to ${p.payee} (tx ${r.hash})`);
     }
     return done.length ? done.join("; ") : "nothing due";
+  }
+
+  /** One purchase now (Ask bar): the exact listing the user previewed. */
+  async buyNow(job: Job, tokenId: string, listingId: string, price: string) {
+    const r = await this.act(
+      job,
+      "agent_buy",
+      { seat_id: job.seatId, token_id: tokenId, listing_id: listingId, price },
+      BUY_GAS,
+    );
+    const result = `${r.ok ? "bought" : "refused or failed:"} #${tokenId} for ${price} yocto, on request (tx ${r.hash})`;
+    await this.note(job, result);
+    return { ok: r.ok, tx: r.hash, result };
+  }
+
+  /** One payment now (Ask bar). The contract still checks payee, caps and budget. */
+  async payNow(job: Job, payee: string, amount: string, memo?: string) {
+    const r = await this.act(
+      job,
+      "agent_pay",
+      { seat_id: job.seatId, payee, amount, memo: memo ?? "on request" },
+      PAY_GAS,
+    );
+    const result = `${r.ok ? "paid" : "refused"} ${amount} to ${payee}, on request (tx ${r.hash})`;
+    await this.note(job, result);
+    return { ok: r.ok, tx: r.hash, result };
+  }
+
+  private async note(job: Job, result: string) {
+    job.lastRun = Date.now();
+    job.lastResult = result;
+    await this.opts.store.saveJob(job);
+    this.log(`seat ${job.seatId}: ${result}`);
   }
 
   /** Kill switch with no wallet: the agent key itself may pause its seat. */

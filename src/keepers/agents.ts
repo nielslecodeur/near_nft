@@ -27,6 +27,8 @@ export const SEAT_STORAGE = YOCTO / 10n;
 export const KEY_ALLOWANCE = YOCTO;
 export const AGENT_METHODS = ["agent_pay", "agent_buy", "pause"];
 export const USDC_DECIMALS = 6;
+/** Account shown read-only at /agents?as=… for visitors without a wallet. */
+export const DEMO_ACCOUNT = import.meta.env.VITE_AGENTS_DEMO || "nifelst.testnet";
 
 /** Collections scanned for the user's NFTs. Any NEP-171 contract also works by name. */
 export const COLLECTIONS: { id: string; label: string }[] = [
@@ -139,6 +141,39 @@ export async function nftsIn(
     }));
   } catch {
     return [];
+  }
+}
+
+export type Listing = {
+  token_id: string;
+  owner_id: string;
+  tier: number;
+  tier_name: string;
+  list_price: string;
+  listing_id: string;
+};
+/** Every Keeper listed on the Buyer's market. */
+export async function marketListings(): Promise<Listing[]> {
+  const supply = Number(await viewOn<string>(MARKET, "nft_total_supply"));
+  const out: Listing[] = [];
+  for (let from = 0; from < supply; from += 50)
+    out.push(
+      ...(await viewOn<Listing[]>(MARKET, "listings", { from_index: String(from), limit: 50 })),
+    );
+  return out.filter((l) => l.list_price && l.listing_id);
+}
+
+/** Image of an NFT when its metadata gives a usable URL (data:, https:, ipfs). */
+export async function nftImage(contract: string, tokenId: string) {
+  try {
+    const t = await viewOn<{ metadata?: { media?: string | null } } | null>(contract, "nft_token", { token_id: tokenId });
+    const m = t?.metadata?.media;
+    if (!m) return null;
+    if (/^(data:|https:)/.test(m)) return m;
+    if (/^(Qm|bafy)/.test(m)) return `https://ipfs.io/ipfs/${m}`;
+    return null;
+  } catch {
+    return null;
   }
 }
 
@@ -309,6 +344,8 @@ export type Job = {
   accountId: string;
   publicKey: string;
   kind: Kind;
+  role?: string;
+  name?: string;
   buyer?: BuyerMission;
   payer?: { payments: Payment[] };
   lastRun?: number;
@@ -351,6 +388,17 @@ export const runnerRunNow = (seatId: string) =>
   runnerFetch<{ result: string }>(`/jobs/${seatId}/run`, { method: "POST" });
 export const runnerPause = (seatId: string) =>
   runnerFetch<{ tx: string }>(`/jobs/${seatId}/pause`, { method: "POST" });
+export type ActResult = { ok: boolean; tx: string; result: string };
+export const runnerAct = (
+  seatId: string,
+  action:
+    | { action: "buy"; token_id: string; listing_id: string; price: string }
+    | { action: "pay"; payee: string; amount: string; memo?: string },
+) =>
+  runnerFetch<ActResult>(`/jobs/${seatId}/act`, {
+    method: "POST",
+    body: JSON.stringify(action),
+  });
 export const runnerDelete = (seatId: string) =>
   runnerFetch<{ deleted: string }>(`/jobs/${seatId}`, { method: "DELETE" });
 
@@ -379,3 +427,12 @@ export function parseAsset(text: string, asset: "NEAR" | "USDC"): bigint | null 
 
 export const txLink = (hash: string) => `${EXPLORER}/txns/${hash}`;
 export const assetOf = (kind: Kind) => (kind === "Buyer" ? "NEAR" : "USDC") as "NEAR" | "USDC";
+
+/** Pauses several seats in one wallet transaction (no deposit: pause is not payable). */
+export const pauseMany = (seats: Seat[]) =>
+  sendRaw([
+    {
+      receiverId: AGENTS,
+      actions: seats.map((s) => fnCall("pause", { seat_id: s.seat_id }, 0n, 10n)),
+    },
+  ]);
