@@ -1,9 +1,9 @@
 /**
  * Character art for the NFTs we mint to carry agents (on nft.examples.testnet).
  *
- * PLACEHOLDER: public/nft-art/*.webp are generated stand-ins
- * (scripts/make-placeholder-art.py). Drop the real artwork in under the same
- * file names; no code changes.
+ * Art: public/nft-art/*.webp, imported with scripts/import-nft-art.py from the
+ * demo reference the user supplied (low resolution; replace the files under the
+ * same names with final artwork, no code changes).
  *
  * On chain, each minted token's `media` is the public URL of its file
  * (ART_PUBLIC_BASE). In the app we load the same file from our own origin so

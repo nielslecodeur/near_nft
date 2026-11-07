@@ -190,7 +190,8 @@ function AgentCard({
   image: string | null | undefined;
 }) {
   const Icon = role.icon;
-  const collection = collectionLabel(contract);
+  // Character NFTs show their collection name, whatever contract minted them.
+  const collection = image?.startsWith("/nft-art/") ? "Characters" : collectionLabel(contract);
   const body = (
     <>
       <NftArt src={image} label={`${collection} #${tokenId}`} />
