@@ -22,6 +22,7 @@ import { shortAccount } from "./KeeperCard";
 import * as ag from "./agents";
 import type { Job, LogEntry, OwnedNft, Policy, Seat } from "./agents";
 import { EXAMPLES, parseAsk, type Intent } from "./ask";
+import { characterFromMedia } from "./nft-art";
 import { ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
 import type { Wallet } from "./KeepersApp";
 import "./agents.css";
@@ -1348,9 +1349,8 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
                     onClick={() => setPick(n)}
                   >
                     <NftArt src={images[key]} label={n.title} />
-                    <strong>
-                      {n.label} #{n.token_id}
-                    </strong>
+                    <strong>{characterFromMedia(n.media) ? n.title : `${n.label} #${n.token_id}`}</strong>
+                    {characterFromMedia(n.media) && <span>Characters</span>}
                     {taken[key] && <span>has an agent</span>}
                   </button>
                 );
