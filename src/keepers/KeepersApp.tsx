@@ -11,6 +11,7 @@ import { shortAccount } from "./KeeperCard";
 import { EXPLORER, KEEPERS_CONTRACT, type Version } from "./chain";
 import { AGENTS } from "./agents";
 import "./keepers.css";
+import "./theme.css";
 
 export type Route =
   | { page: "collection"; version: Version }

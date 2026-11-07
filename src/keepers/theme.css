@@ -1,0 +1,103 @@
+/* ===========================================================================
+   Agent Wallet theme ("night"): tokens for /agents, /keepers and /vault.
+
+   Colours were sampled from the visual reference with
+   scripts/sample-reference-colors.py (PIL), not guessed:
+     background   #070E19  the room between the grid lines (51 447 px)
+     surface 1    #081227  room above the phone
+     surface 2    #17294E  the phone's search field
+     surface 3    #213667  the phone's header
+     accent       #638BB1  sampled from the price text, hue 209°; the text is
+                           tiny and anti-aliased, so the token keeps that hue
+                           and restores its saturation: #4DA3FF
+     text         #CDD3DA  sampled (anti-aliased), set to #E6EBF2 near-white
+     muted        #878796  sampled
+   One accent only. Green and red are kept for semantic movement (up/down).
+   Radii: 12px for cards and surfaces, 8px for chips, buttons and controls.
+   Motion: 200ms ease-out, transform and opacity only.
+   =========================================================================== */
+.kp-app {
+  --nx-bg: #070e19;
+  --nx-s1: #081227;
+  --nx-s2: #17294e;
+  --nx-s3: #213667;
+  --nx-accent: #4da3ff;
+  --nx-accent-soft: rgba(77, 163, 255, 0.14);
+  --nx-text: #e6ebf2;
+  --nx-muted: #878796;
+  --nx-line: rgba(140, 190, 255, 0.12);
+  --nx-line-strong: rgba(170, 210, 255, 0.42);
+  --nx-glass: rgba(8, 18, 39, 0.78);
+  --nx-glow: 0 0 1.25rem rgba(77, 163, 255, 0.28);
+  --nx-radius-card: 12px;
+  --nx-radius-chip: 8px;
+  --nx-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --nx-motion: 200ms var(--nx-ease);
+
+  /* The design-system tokens every primitive reads, mapped onto the theme. */
+  --color-bg: var(--nx-bg);
+  --color-s1: var(--nx-s1);
+  --color-s2: var(--nx-s2);
+  --color-s3: var(--nx-s3);
+  --color-text: var(--nx-text);
+  --color-muted: var(--nx-muted);
+  --color-brand: var(--nx-accent);
+  --color-on-brand: #04101f;
+  --color-border: var(--nx-line);
+  --color-highlight: rgba(140, 190, 255, 0.06);
+  --color-hover: rgba(140, 190, 255, 0.05);
+  --color-grid: rgba(140, 190, 255, 0.04);
+  --color-brand-glow: rgba(77, 163, 255, 0.1);
+  --color-control-border: rgba(170, 210, 255, 0.32);
+  --color-overlay: rgba(7, 14, 25, 0.82);
+  --radius-surface: var(--nx-radius-card);
+  --radius-feature: var(--nx-radius-card);
+  --radius-control: var(--nx-radius-chip);
+
+  color: var(--nx-text);
+  font-family: var(--font-ui);
+  /* Subtle dark gradient with a faint grid: the room, without glow on everything. */
+  background:
+    linear-gradient(var(--color-grid) 1px, transparent 1px) 0 0 / 3rem 3rem,
+    linear-gradient(90deg, var(--color-grid) 1px, transparent 1px) 0 0 / 3rem 3rem,
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(33, 54, 103, 0.55), transparent 70%),
+    var(--nx-bg);
+}
+
+/* Prices, budgets and bids: the UI font with tabular figures, not a mono face. */
+.kp-app .kp-num {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.005em;
+}
+
+/* Small timers keep a mono face (the reference's countdown). */
+.kp-app .nx-mono {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons and badges: 8px, motion on transform and opacity only. */
+.kp-app .ek-button,
+.kp-app .ek-badge {
+  border-radius: var(--nx-radius-chip);
+}
+.kp-app .ek-button {
+  transition:
+    transform var(--nx-motion),
+    opacity var(--nx-motion);
+}
+.kp-app .ek-button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kp-app .ek-button {
+    transition: none;
+  }
+}
+
+/* The page behind the app (overscroll, short pages) uses the same night. */
+body:has(.kp-app) {
+  background: var(--nx-bg, #070e19);
+}

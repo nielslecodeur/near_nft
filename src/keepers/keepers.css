@@ -1098,7 +1098,7 @@ body {
   width: var(--space-8);
   height: var(--space-8);
   border-radius: 0.6rem;
-  background: linear-gradient(140deg, #2b5bd7, #0c1f4f);
+  background: linear-gradient(140deg, var(--nx-s3, #213667), var(--nx-s1, #081227));
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 .kp-brand-mark svg {
