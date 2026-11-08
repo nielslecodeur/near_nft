@@ -168,3 +168,17 @@ Not covered (written in the README):
 **Decision Q2 (2026-11-06): USDC testnet only.**
 - **USDC testnet (Circle) only** *(chosen)*: one clear story ("pays my subscriptions in USDC").
 - **NEAR plus USDC**: more general, but more UI states to handle.
+
+## Public demo agent and MCP (2026-11-08)
+
+- `scripts/agent-mcp.ts` is an MCP server (tools: list_agents, agent_status, list_market, pay, buy, pause). The AI never holds a key; the contract decides.
+- The public demo agent is **#9** on `demo-agent.everkeep-dev-mw0weth5.testnet`, carried by a Characters NFT on `nft.examples.testnet`.
+  - Its key is in `demo/agent-key.json`: `agent_pay` only, no deposit, 0.5 NEAR of gas.
+  - Its only allowed payee is itself; limits are 1 USDC per payment and 2 USDC per day.
+- Checked through MCP demo mode (`agent-wallet-demo` in `.mcp.json`):
+  - 5 USDC to attacker.testnet: refused.
+  - 5 USDC to the allowed payee: refused, over the per-action cap.
+  - Two payments of 1 USDC: done.
+  - A third payment the same day: refused, over the daily cap.
+  - pause: refused.
+
