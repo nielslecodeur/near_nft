@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "agent-wallet": {
+      "command": "npx",
+      "args": ["tsx", "scripts/agent-mcp.ts"]
+    }
+  }
+}
