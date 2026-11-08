@@ -10,6 +10,7 @@
     "test:agents:runner": "bash scripts/agents-runner-proof.sh",
     "agent:runner": "tsx scripts/agent-runner.ts",
     "agent:mcp": "tsx scripts/agent-mcp.ts",
+    "build:mcp": "esbuild scripts/agent-mcp.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist-mcp/agent-mcp.mjs --log-level=warning \"--banner:js=import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\"",
     "testnet:baskets": "tsx scripts/deploy-baskets-testnet.ts",
     "testnet:keepers": "tsx scripts/deploy-keepers-testnet.ts",
     "testnet:agents": "tsx scripts/deploy-agents-testnet.ts",

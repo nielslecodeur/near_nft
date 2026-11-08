@@ -560,26 +560,28 @@ export function downloadJson(filename: string, data: unknown) {
 }
 
 /** What to run so an MCP agent drives this seat. */
-export const mcpCommand = (file: string) => `npx tsx scripts/agent-mcp.ts --key ${file}`;
+export const mcpCommand = (file: string) => `node scripts/agent-mcp-launch.mjs --key ./${file}`;
 
 /**
  * How to register the seat's MCP server in each tool, from a clone of this repo
  * with the key file at its root. Returns where it goes and what to paste.
  */
 export function mcpSetup(tool: AgentTool, name: string, file: string) {
-  const args = ["tsx", "scripts/agent-mcp.ts", "--key", `./${file}`];
-  const json = JSON.stringify({ mcpServers: { [name]: { command: "npx", args } } }, null, 2);
+  // The launcher starts the one-file bundle (npm run build:mcp) in under a
+  // second, or falls back to tsx from source when there is no bundle.
+  const args = ["scripts/agent-mcp-launch.mjs", "--key", `./${file}`];
+  const json = JSON.stringify({ mcpServers: { [name]: { command: "node", args } } }, null, 2);
   switch (tool) {
     case "claude-code":
       return {
         where: "In a terminal, at the root of this repo (or add the JSON to .mcp.json)",
-        snippet: `claude mcp add ${name} -- npx ${args.join(" ")}`,
+        snippet: `claude mcp add ${name} -- node ${args.join(" ")}`,
       };
     case "codex":
       return {
         where: "In ~/.codex/config.toml",
         snippet: `[mcp_servers.${name}]
-command = "npx"
+command = "node"
 args = [${args.map((a) => `"${a}"`).join(", ")}]
 cwd = "<path to this repo>"`,
       };

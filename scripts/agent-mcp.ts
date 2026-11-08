@@ -9,7 +9,8 @@
  * decided, including the refusal reason.
  *
  *   npm run agent:runner            # in another terminal
- *   claude mcp add agent-wallet -- npx tsx scripts/agent-mcp.ts
+ *   npm run build:mcp               # once: one-file bundle, starts in < 1 s
+ *   claude mcp add agent-wallet -- node scripts/agent-mcp-launch.mjs
  *
  * Key mode (--key <file>): drives YOUR agent with the key file the Agent Wallet
  * gave you when you hired "Your AI agent" (no runner needed).
