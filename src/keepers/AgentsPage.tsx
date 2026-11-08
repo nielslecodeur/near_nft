@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import {
   Ban,
-  Bot,
+  WalletCards,
   CircleCheck,
   CirclePause,
   CirclePlay,
@@ -190,6 +190,8 @@ function seatModel(
     description: character?.description ?? role.tagline,
     image,
     imageAlt: `${collection} #${s.token_id}`,
+    // Portrait Characters art fills the card; any other NFT art is shown whole, uncropped.
+    fit: character ? "cover" : "contain",
     collection,
     subtitle: role.name,
     avatar: <Icon />,
@@ -609,7 +611,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
           <div className="ag-room" aria-hidden="true" />
           <div className="ag-intro">
             <span className="ag-mark" aria-hidden="true">
-              <Bot />
+              <WalletCards />
             </span>
             <h1 id="ag-intro-title">Give an AI a card, not your wallet.</h1>
             <p>
@@ -676,7 +678,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
         <header className="ag-stage-head">
           <div className="ag-stage-title">
             <span className="ag-mark" aria-hidden="true">
-              <Bot />
+              <WalletCards />
             </span>
             <div>
               <h1>Agent Wallet</h1>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Bot, KeyRound, LogOut, Wallet } from "lucide-react";
+import { WalletCards, KeyRound, LogOut, Wallet } from "lucide-react";
 import { connect, disconnect, walletSelector } from "../client";
 import { Button, Notice } from "../terminal/primitives";
 import { CollectionPage } from "./CollectionPage";
@@ -157,7 +157,7 @@ export function KeepersApp() {
           }}
         >
           <span className="kp-brand-mark" aria-hidden="true">
-            <Bot />
+            <WalletCards />
           </span>
           <span>
             Agent Wallet <small>by Everkeep</small>
@@ -181,7 +181,7 @@ export function KeepersApp() {
               }}
             >
               {label === "Vault" && <KeyRound aria-hidden="true" />}
-              {label === "Agents" && <Bot aria-hidden="true" />}
+              {label === "Agents" && <WalletCards aria-hidden="true" />}
               {label}
             </a>
           ))}

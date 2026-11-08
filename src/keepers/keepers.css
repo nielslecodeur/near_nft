@@ -1106,3 +1106,19 @@ body {
   height: 55%;
   color: #fff;
 }
+
+/* Keepers in the shared NFTCard (phase 5) */
+.kp-grid:has(> .nx-card) {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+}
+.kp-card-large {
+  width: min(100%, 22rem);
+  justify-self: center;
+}
+
+/* Compact header on phones: logo and wallet button on one row (phase 5). */
+@media (max-width: 560px) {
+  .kp-brand small {
+    display: none;
+  }
+}

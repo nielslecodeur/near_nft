@@ -1,9 +1,9 @@
 import { CardFrame } from "../terminal/CardFrame";
 import { parseCardTheme, type CardTheme } from "../terminal/card-theme";
 import themes from "../../design-system/terminal/card-themes.json";
-import { Badge } from "../terminal/primitives";
-import { Tag } from "lucide-react";
-import { keeperArt, TIER_LABELS } from "./art";
+import { Gem } from "lucide-react";
+import { NFTCard, type NftCardModel } from "./NFTCard";
+import { keeperArt, traits, TIER_LABELS } from "./art";
 import { formatNear, type Card } from "./chain";
 
 /** Frame material for each on-chain tier (0..3), from the JSON theme config. */
@@ -46,6 +46,34 @@ export function shortAccount(id: string) {
 export const basketCount = (card: Card) =>
   (card.inventory ?? []).filter((i) => i.amount !== "0").length;
 
+/** Card model for a Keeper: its own on-chain art (immutable) in the shared NFTCard. */
+export function keeperModel(card: Card, account: string): NftCardModel {
+  const tier = Math.min(3, Math.max(0, card.tier));
+  const mine = account !== "" && card.owner_id === account;
+  const listed = !!card.list_price;
+  return {
+    id: `${card.version}-${card.token_id}`,
+    name: `Keeper #${card.token_id}${card.version === "v1" ? " (v1)" : ""}`,
+    description: mine ? "Yours" : `Owned by ${shortAccount(card.owner_id)}`,
+    image: keeperArt(card.dna, tier),
+    fit: "contain",
+    backdrop: traits(card.dna >>> 0).background,
+    imageAlt: `Keeper #${card.token_id}, ${TIER_LABELS[tier]} tier`,
+    collection: "Keepers",
+    subtitle: TIER_LABELS[tier],
+    avatar: <Gem />,
+    timer: listed ? { label: "for sale" } : undefined,
+    status: { label: TIER_LABELS[tier], tone: tier >= 2 ? "brand" : "neutral" },
+    fact:
+      card.version === "v1"
+        ? { label: "Trades", value: String(card.trades) }
+        : { label: "Basket", value: `${basketCount(card)} token${basketCount(card) === 1 ? "" : "s"}` },
+    value: listed
+      ? { label: "Price", amount: `${formatNear(card.list_price!)} NEAR` }
+      : { label: "Holds", amount: `${formatNear(card.balance)} NEAR` },
+  };
+}
+
 export function KeeperTile({
   card,
   account,
@@ -57,51 +85,14 @@ export function KeeperTile({
   href: string;
   onOpen: () => void;
 }) {
-  const mine = account !== "" && card.owner_id === account;
+  return <NFTCard model={keeperModel(card, account)} href={href} onOpen={onOpen} />;
+}
+
+/** The same card, larger, for the Keeper's own page. */
+export function KeeperCardLarge({ card, account }: { card: Card; account: string }) {
   return (
-    <a
-      className="kp-tile"
-      href={href}
-      onClick={(e) => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-        e.preventDefault();
-        onOpen();
-      }}
-    >
-      <KeeperFrame card={card} />
-      <div className="kp-tile-body">
-        <div className="kp-tile-head">
-          <strong>
-            Keeper #{card.token_id}
-            {card.version === "v1" && <span className="kp-version">v1</span>}
-          </strong>
-          <TierBadge card={card} />
-        </div>
-        <dl className="kp-tile-stats">
-          <div>
-            <dt>Holds</dt>
-            <dd className="kp-num">{formatNear(card.balance)} NEAR</dd>
-          </div>
-          <div>
-            <dt>{card.version === "v1" ? "Trades" : "Basket"}</dt>
-            <dd className="kp-num">
-              {card.version === "v1"
-                ? card.trades
-                : `${basketCount(card)} token${basketCount(card) === 1 ? "" : "s"}`}
-            </dd>
-          </div>
-        </dl>
-        <div className="kp-tile-foot">
-          <span className="kp-owner">
-            {mine ? "Yours" : shortAccount(card.owner_id)}
-          </span>
-          {card.list_price && (
-            <Badge tone="brand" icon={Tag}>
-              {formatNear(card.list_price)} NEAR
-            </Badge>
-          )}
-        </div>
-      </div>
-    </a>
+    <div className="kp-card-large">
+      <NFTCard as="div" model={keeperModel(card, account)} />
+    </div>
   );
 }

@@ -38,6 +38,14 @@
   object-position: center top;
   transition: transform var(--nx-motion);
 }
+.nx-card-art--contain {
+  height: auto;
+  inset: 0 0 auto;
+  max-height: 62%;
+  object-fit: contain;
+  object-position: center top;
+  transform-origin: center top;
+}
 .nx-card:hover .nx-card-art,
 .nx-card:focus-visible .nx-card-art {
   transform: scale(1.03);

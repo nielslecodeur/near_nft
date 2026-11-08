@@ -23,6 +23,12 @@ export type NftCardModel = {
   /** `undefined` while loading, `null` when the NFT has no usable image. */
   image: string | null | undefined;
   imageAlt: string;
+  /**
+   * "contain" for art that is not portrait (e.g. Keepers' 4:3 on-chain art):
+   * the whole picture sits at the top on `backdrop`, nothing is cropped.
+   */
+  fit?: "cover" | "contain";
+  backdrop?: string;
   collection: string;
   subtitle: string;
   avatar: ReactNode;
@@ -54,11 +60,20 @@ function useNow(active: boolean) {
   return now;
 }
 
-function Art({ src, alt }: { src: string | null | undefined; alt: string }) {
+function Art({ src, alt, fit }: { src: string | null | undefined; alt: string; fit?: "cover" | "contain" }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
   if (src && !failed)
-    return <img className="nx-card-art" src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+    return (
+      <img
+        className={fit === "contain" ? "nx-card-art nx-card-art--contain" : "nx-card-art"}
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onError={() => setFailed(true)}
+      />
+    );
   return (
     <div className="nx-card-art nx-card-art--none" role="img" aria-label={src === undefined ? `Loading ${alt}` : `${alt}, no image`}>
       {src !== undefined && <span>{alt}</span>}
@@ -87,7 +102,7 @@ export function NFTCard({
       : model.timer?.label;
   const body = (
     <>
-      <Art src={model.image} alt={model.imageAlt} />
+      <Art src={model.image} alt={model.imageAlt} fit={model.fit} />
       <div className="nx-card-panel">
         <div className="nx-card-head">
           <span className="nx-card-avatar" aria-hidden="true">
@@ -137,6 +152,7 @@ export function NFTCard({
     return (
       <a
         className="nx-card"
+        style={model.backdrop ? { background: model.backdrop } : undefined}
         data-tone={model.status.tone}
         href={href}
         onClick={(e) => {
@@ -149,7 +165,7 @@ export function NFTCard({
     );
   const Tag = as;
   return (
-    <Tag className="nx-card" data-tone={model.status.tone}>
+    <Tag className="nx-card" style={model.backdrop ? { background: model.backdrop } : undefined} data-tone={model.status.tone}>
       {body}
     </Tag>
   );

@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { Button, Input, Notice, Skeleton } from "../terminal/primitives";
-import { KeeperFrame, TierBadge, shortAccount } from "./KeeperCard";
+import { KeeperCardLarge, TierBadge, shortAccount } from "./KeeperCard";
 import { ACCESSORIES, TIER_LABELS, VISORS, traits } from "./art";
 import * as chain from "./chain";
 import {
@@ -193,7 +193,7 @@ export function KeeperPage({
       )}
       <div className="kp-detail-grid">
         <div className="kp-detail-art">
-          <KeeperFrame card={card} />
+          <KeeperCardLarge card={card} account={wallet.account} />
           <dl className="kp-traits" aria-label="Traits from on-chain DNA">
             <div>
               <dt>Visor</dt>
