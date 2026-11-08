@@ -1,0 +1,15 @@
+{
+  "tool": "Built-in Imagegen",
+  "assets": [
+    {
+      "file": "ai-infrastructure.webp",
+      "source": "exec-fa7903cf-c237-4b1e-a621-55a3eea7d207.png",
+      "prompt": "Use the attached fictional Everkeep frog executive illustration ONLY as character and cinematic style reference. Create a new original landscape 4:3 art-only sibling for the thematic basket AI Infrastructure. Same recognisable fictional green frog CEO, translucent chartreuse glasses, rich skin texture, tailored graphite suit and ivory shirt. He is standing inside an orbital computing laboratory, hand resting on an unbranded brushed metal compute module. Behind him: beautifully crafted black server racks, photonic fiber cables and a small precise laboratory wafer instrument; distant Earth through a narrow panoramic window. Pose and scene distinct from the reference, frog face dominant in upper middle and readable at thumbnail size. Dark graphite and deep forest green shadows, restrained lime-green practical LEDs, warm ivory cinematic highlights, polished high-detail 3D editorial collectible art. Full bleed opaque rectangular image, 4:3 landscape, at least1200px wide. No holographic financial charts. Absolutely no words, letters, numbers, logos, corporate branding, partnership marks, interface, badges, border, prices, graphs, or buttons. Equipment is fictional and unbranded; it must not imply a corporate partnership or actual assets held."
+    },
+    {
+      "file": "energy-transition.webp",
+      "source": "exec-0b21f316-5846-408b-9944-c2a61b133389.png",
+      "prompt": "Use the attached Everkeep fictional frog executive illustration ONLY as character and cinematic style reference. Create a new original landscape4:3 standalone illustration for Energy Transition: the same fictional green frog, translucent chartreuse glasses, deep forest green tailored jacket and ivory turtleneck, in a futuristic orbital materials-and-energy laboratory. Beside him are elegantly engineered unbranded photovoltaic panel samples, a small brushed-metal turbine cross-section, ceramic battery cell casings and copper busbars, all visibly physical precise equipment. Through a narrow window, Earth's sunlit atmosphere; warm sun reflection on the equipment, graphite walls, deep green shadows and restrained lime rim lighting. A quiet confident engineer-executive pose, hand holding a small neutral ceramic material sample, distinct from the existing seated pose. High-end polished cinematic3D editorial collectible art, full bleed opaque4:3 rectangular, face readable in thumbnail upper middle. It is symbolic editorial imagery: no company branding, no claim of corporate partnership or actual equipment ownership. Absolutely NO lettering, numbers, logos, words, price, chart, interface, frame, badge, financial symbol or buttons. No gold bars, coins or bank vault. At least1200px wide."
+    }
+  ]
+}

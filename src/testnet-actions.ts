@@ -10,6 +10,7 @@ import {
   verifyPair,
 } from "../packages/shared/index";
 import { view, rpc } from "./client";
+import { readBasketPosition } from "./basket-network";
 import {
   walletCall,
   currentDeployment,
@@ -32,6 +33,10 @@ type Command = {
 export async function testnetSnapshot(position: string) {
   const d = currentDeployment();
   if (!d) throw new Error("Modèle non configuré.");
+  if (d.baskets && position.endsWith("." + d.baskets.collection)) {
+    const block = await rpc("block", { finality: "final" });
+    return readBasketPosition(position, block.header.hash);
+  }
   if (
     !position.endsWith("." + d.collection) ||
     position.slice(0, -d.collection.length - 1).includes(".")
@@ -264,6 +269,10 @@ export async function executeTestnetCommand(c: Command) {
   }
   if (s.owner_id !== owner) throw new Error("Propriétaire courant requis.");
   switch (c.action) {
+    case "close_basket":
+      if (!s.basket || s.basket.closed_day !== null)
+        throw Error("Exposition absente ou déjà clôturée.");
+      return signedPosition(s, "CloseBasket");
     case "revoke":
       return signedPosition(s, "Revoke");
     case "cancel_agent":
@@ -311,7 +320,6 @@ export async function executeTestnetCommand(c: Command) {
       await requestVault(owner);
       const next = await createPositionKey(owner, s.account_id);
       try {
-
         await requestKeyBackup(owner);
         return await signedPosition(
           s,

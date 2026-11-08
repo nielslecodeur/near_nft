@@ -1,0 +1,35 @@
+{
+  "at": "2026-11-06T14:59:42.955Z",
+  "wasm": "artifacts/agents.wasm",
+  "checks": [
+    "deploy: agents + two NEP-171 collections + USDC (NEP-141)",
+    "Alice owns gallery #1 and #2; Bob lists market #1 at 1 NEAR",
+    "create_seat checks ownership on the NFT's own contract (Bob refused)",
+    "Alice funds the Payer seat with 10 USDC (ft_transfer_call)",
+    "access once: AddKey (function-call, agents only) + set_agent_key",
+    "agent pays 1.5 USDC to the shop with no wallet signature",
+    "refusals (cap, unknown payee) return false and are logged, no money moves",
+    "agent key cannot withdraw, change policy, move the NFT or send NEAR",
+    "only the registered agent key runs the seat (Alice's own key refused)",
+    "Buyer agent buys market #1 at 1 NEAR; the card lands in Alice's wallet",
+    "a stale listing fails at the market and the NEAR is credited back",
+    "the agent key can pause its seat but cannot resume it",
+    "after a sale the agent is refused, the seat resets, the funder keeps 8.5 USDC",
+    "Carol (new NFT owner) claims the empty seat; Bob cannot claim Alice's",
+    "Alice withdraws her set-aside 8.5 USDC",
+    "solvency: NEAR and USDC held >= owed"
+  ],
+  "gas_burnt": {
+    "agent_pay": "11837527860572",
+    "agent_buy": "22539795426537"
+  },
+  "final_stats": {
+    "usdc": "usdc.sandbox",
+    "seats_created": "2",
+    "owed_near": "2000000000000000000000000",
+    "owed_usdc": "0",
+    "storage_held": "200000000000000000000000",
+    "account_balance": "12197761106093322800000002",
+    "storage_cost": "2847090000000000000000000"
+  }
+}

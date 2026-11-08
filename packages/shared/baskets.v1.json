@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "mode": "fictional",
+  "source": "everkeep-fictional-v1",
+  "calendar": "UTC weekdays, not an exchange calendar",
+  "minimum": "1000000",
+  "maximum": "100000000000",
+  "models": [
+    {
+      "id": "ai-infrastructure",
+      "version": "1",
+      "name": "AI Infrastructure",
+      "description": "Du calcul aux services cloud : cinq entreprises de l’infrastructure IA.",
+      "limits": "Les groupes cloud sont diversifiés. Ce panier ne constitue pas une exposition pure à l’IA.",
+      "risks": [
+        "Concentration technologique et corrélations communes.",
+        "Cycles d’investissement, concurrence et dépendance aux semi-conducteurs."
+      ],
+      "art": "/art/special/ai-infrastructure.webp",
+      "components": [
+        {
+          "symbol": "NVDA",
+          "exchange": "NASDAQ",
+          "name": "NVIDIA",
+          "weight_bps": 3000,
+          "base_price": "120000000",
+          "reason": "Accélérateurs et infrastructure de calcul."
+        },
+        {
+          "symbol": "MSFT",
+          "exchange": "NASDAQ",
+          "name": "Microsoft",
+          "weight_bps": 2500,
+          "base_price": "400000000",
+          "reason": "Cloud et distribution de services IA ; activités très diversifiées."
+        },
+        {
+          "symbol": "AMZN",
+          "exchange": "NASDAQ",
+          "name": "Amazon",
+          "weight_bps": 2000,
+          "base_price": "180000000",
+          "reason": "Infrastructure AWS ; le commerce reste une autre exposition majeure."
+        },
+        {
+          "symbol": "GOOGL",
+          "exchange": "NASDAQ",
+          "name": "Alphabet, classe A",
+          "weight_bps": 1500,
+          "base_price": "160000000",
+          "reason": "Cloud, recherche et calcul ; poids de la publicité."
+        },
+        {
+          "symbol": "AVGO",
+          "exchange": "NASDAQ",
+          "name": "Broadcom",
+          "weight_bps": 1000,
+          "base_price": "150000000",
+          "reason": "Réseaux et puces spécialisées ; logiciels également présents."
+        }
+      ]
+    },
+    {
+      "id": "space-robotics",
+      "version": "1",
+      "name": "Space & Robotics",
+      "description": "Lancement spatial, communications et robotique industrielle ou médicale.",
+      "limits": "Robotique médicale et automatisation ne sont pas du spatial. Les cinq métiers ont des cycles différents.",
+      "risks": [
+        "Exécution industrielle, réglementation et besoins de financement.",
+        "Entreprises de tailles et maturités différentes ; diversification sectorielle imparfaite."
+      ],
+      "art": "/art/special/moon-executive.webp",
+      "components": [
+        {
+          "symbol": "RKLB",
+          "exchange": "NASDAQ",
+          "name": "Rocket Lab",
+          "weight_bps": 2500,
+          "base_price": "20000000",
+          "reason": "Lanceurs et systèmes spatiaux."
+        },
+        {
+          "symbol": "IRDM",
+          "exchange": "NASDAQ",
+          "name": "Iridium",
+          "weight_bps": 2000,
+          "base_price": "30000000",
+          "reason": "Communications par constellation de satellites."
+        },
+        {
+          "symbol": "TER",
+          "exchange": "NASDAQ",
+          "name": "Teradyne",
+          "weight_bps": 2000,
+          "base_price": "110000000",
+          "reason": "Test électronique et robotique collaborative."
+        },
+        {
+          "symbol": "ISRG",
+          "exchange": "NASDAQ",
+          "name": "Intuitive Surgical",
+          "weight_bps": 2000,
+          "base_price": "450000000",
+          "reason": "Chirurgie assistée par robot ; exposition au secteur médical."
+        },
+        {
+          "symbol": "ROK",
+          "exchange": "NYSE",
+          "name": "Rockwell Automation",
+          "weight_bps": 1500,
+          "base_price": "280000000",
+          "reason": "Automatisation et systèmes industriels."
+        }
+      ]
+    },
+    {
+      "id": "energy-transition",
+      "version": "1",
+      "name": "Energy Transition",
+      "description": "Production électrique, solaire, réseaux et équipements de transition.",
+      "limits": "Les activités de ces groupes ne sont pas toutes bas carbone. Tesla ajoute automobile et autres activités.",
+      "risks": [
+        "Taux d’intérêt, politiques publiques et prix de l’énergie.",
+        "Concurrence, cycles d’équipement et exposition automobile."
+      ],
+      "art": "/art/special/energy-transition.webp",
+      "components": [
+        {
+          "symbol": "NEE",
+          "exchange": "NYSE",
+          "name": "NextEra Energy",
+          "weight_bps": 2500,
+          "base_price": "75000000",
+          "reason": "Production et distribution électriques, dont renouvelables."
+        },
+        {
+          "symbol": "FSLR",
+          "exchange": "NASDAQ",
+          "name": "First Solar",
+          "weight_bps": 2500,
+          "base_price": "190000000",
+          "reason": "Modules et fabrication solaire."
+        },
+        {
+          "symbol": "GEV",
+          "exchange": "NYSE",
+          "name": "GE Vernova",
+          "weight_bps": 2000,
+          "base_price": "300000000",
+          "reason": "Équipements électriques et réseaux ; présence du gaz."
+        },
+        {
+          "symbol": "ENPH",
+          "exchange": "NASDAQ",
+          "name": "Enphase Energy",
+          "weight_bps": 1500,
+          "base_price": "85000000",
+          "reason": "Électronique solaire et stockage résidentiel."
+        },
+        {
+          "symbol": "TSLA",
+          "exchange": "NASDAQ",
+          "name": "Tesla",
+          "weight_bps": 1500,
+          "base_price": "250000000",
+          "reason": "Véhicules électriques et stockage ; groupe diversifié."
+        }
+      ]
+    }
+  ]
+}

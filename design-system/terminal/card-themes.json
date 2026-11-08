@@ -1,4 +1,11 @@
 {
+  "special": {
+    "rarity": "epic",
+    "frame": "holo",
+    "palette": { "accent": "brand", "surface": "s1" },
+    "layers": [{ "src": "$art", "depth": "background", "opacity": 1 }],
+    "liveFeed": false
+  },
   "matte": {
     "rarity": "standard",
     "frame": "matte",
@@ -50,5 +57,33 @@
       }
     ],
     "liveFeed": true
+  },
+  "keeper-matte": {
+    "rarity": "standard",
+    "frame": "matte",
+    "palette": { "accent": "brand", "surface": "s1" },
+    "layers": [{ "src": "$art", "depth": "background", "opacity": 1 }],
+    "liveFeed": false
+  },
+  "keeper-brushed": {
+    "rarity": "rare",
+    "frame": "metal",
+    "palette": { "accent": "brand", "surface": "s2" },
+    "layers": [{ "src": "$art", "depth": "background", "opacity": 1 }],
+    "liveFeed": false
+  },
+  "keeper-holographic": {
+    "rarity": "epic",
+    "frame": "holo",
+    "palette": { "accent": "brand", "surface": "s2" },
+    "layers": [{ "src": "$art", "depth": "background", "opacity": 1 }],
+    "liveFeed": false
+  },
+  "keeper-animated": {
+    "rarity": "legendary",
+    "frame": "animated",
+    "palette": { "accent": "brand", "surface": "s3" },
+    "layers": [{ "src": "$art", "depth": "background", "opacity": 1 }],
+    "liveFeed": false
   }
 }

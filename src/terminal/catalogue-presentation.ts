@@ -2,6 +2,7 @@ import type { CatalogueItem } from "../../packages/shared/catalogue";
 import type { MarketItem } from "./market-components";
 import { parseCardTheme } from "./card-theme";
 import themes from "../../design-system/terminal/card-themes.json";
+import { catalogueCardData } from "./position-card-data";
 
 // Frames are editorial treatments, never financial ratings or NFT rarity.
 export function presentCatalogueItem(item: CatalogueItem): MarketItem {
@@ -17,14 +18,13 @@ export function presentCatalogueItem(item: CatalogueItem): MarketItem {
     price: price ? { value: price[1], unit: price[2] } : null,
     lastSale: null,
     theme: parseCardTheme(
-      item.category === "crypto"
-        ? themes.holo
-        : item.category === "diversification"
-          ? themes.metal
-          : themes.matte,
+      item.visual.src.startsWith("/art/special/")
+        ? themes.special
+        : themes.matte,
     ),
     available: item.actionable,
     presentation: {
+      card: catalogueCardData(item),
       badge: item.kind === "model" ? "Modèle" : "En vente",
       priceLabel: item.money.value,
       actionLabel:

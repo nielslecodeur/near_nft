@@ -168,6 +168,7 @@ export async function testnetDeployment(): Promise<Deployment | null> {
     config.collection = deployment.collection;
     config.asset = deployment.asset;
     config.strategy = deployment.strategy;
+    config.basketCollection = deployment.baskets?.collection || "";
   }
   return deployment;
 }

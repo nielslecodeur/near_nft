@@ -3,6 +3,7 @@ use funding::FundingPermit;
 mod series_types;
 use series_types::SeriesRules;
 mod sale;
+mod basket;
 use near_sdk::json_types::{Base64VecU8, U64, U128};
 use near_sdk::serde_json::{self, json};
 use near_sdk::store::LookupMap;
@@ -44,6 +45,8 @@ pub struct Envelope {
 }
 #[near(serializers = [json])]
 pub enum Action {
+    BindBasket { basket_id: String, version: String, amount: U128, snapshot_day: U64 },
+    CloseBasket,
     AuthorizeSubscription {
         agent: AccountId,
         asset: AccountId,
@@ -190,6 +193,7 @@ impl Wallet {
         public_key: Base64VecU8,
         proof: Base64VecU8,
         series: Option<SeriesRules>,
+        basket_required: Option<bool>,
     ) -> Self {
         let id = env::current_account_id();
         require!(env::predecessor_account_id() == collection, "FACTORY_ONLY");
@@ -209,6 +213,10 @@ impl Wallet {
         ]))
         .unwrap();
         verify(&public_key.0, &proof.0, &message);
+        if basket_required.unwrap_or(false) {
+            require!(series.is_none(), "BASKET_NO_LEGACY_SERIES");
+            env::storage_write(b"everkeep:basket-required:v1", b"1");
+        }
         Self {
             collection,
             network,
@@ -248,9 +256,9 @@ impl Wallet {
     }
     pub fn snapshot(&self) -> serde_json::Value {
         json!({"account_id":env::current_account_id(),"collection_id":self.collection,"owner_id":self.owner,
-            "network":self.network,"asset":self.asset,"strategy":self.strategy,"algorithm":"ML-DSA-65",
+            "network":self.network,"asset":self.asset,"strategy":self.strategy,"algorithm":"ML-DSA-65","basket_required":env::storage_has_key(b"everkeep:basket-required:v1"),
             "ownership_epoch":U64(self.epoch),"key_version":U64(self.key_version),"policy_version":U64(self.policy_version),
-            "nonce":U64(self.nonce),"public_key":Base64VecU8(self.public_key.clone()),"funding_permit":self.funding_permit,"series":self.series,"funded":self.deposits>0,"sale":self.sale,"sale_sequence":U64(self.sale_sequence),"status":if self.funding_permit.is_some(){"SubscriptionAuthorized"}else if self.sale.is_some(){"SaleLocked"}else if self.transfer_call.is_some(){"TransferPending"}else if self.active {"Active"} else {"Syncing"},
+            "nonce":U64(self.nonce),"public_key":Base64VecU8(self.public_key.clone()),"basket":basket::read(),"funding_permit":self.funding_permit,"series":self.series,"funded":self.deposits>0,"sale":self.sale,"sale_sequence":U64(self.sale_sequence),"status":if self.funding_permit.is_some(){"SubscriptionAuthorized"}else if self.sale.is_some(){"SaleLocked"}else if self.transfer_call.is_some(){"TransferPending"}else if self.active {"Active"} else {"Syncing"},
             "proposed_owner":self.transfer_call.as_ref().map(|_|self.owner.clone()),
             "available":U128(self.available),"reserved":U128(self.reserved),"principal":U128(self.principal),
             "deposits":U128(self.deposits),"withdrawals":U128(self.withdrawals),"realized_gains":U128(self.gains),
@@ -440,6 +448,8 @@ impl Wallet {
         verify(&self.public_key, &signature.0, &message.0);
         self.nonce = self.nonce.checked_add(1).unwrap();
         match e.action {
+            Action::BindBasket { basket_id, version, amount, snapshot_day } => self.bind_basket(basket_id, version, amount, snapshot_day),
+            Action::CloseBasket => self.close_basket(),
             Action::AuthorizeSubscription {
                 agent,
                 asset,
@@ -448,6 +458,7 @@ impl Wallet {
                 expires_at,
                 beneficiary,
             } => {
+                require!(basket::read().is_none(), "BASKET_NO_AGENT_FUNDING");
                 return PromiseOrValue::Promise(self.authorize_funding(
                     agent,
                     asset,
@@ -485,6 +496,9 @@ impl Wallet {
                 amount,
                 beneficiary,
             } => {
+                if let Some(p) = basket::read() {
+                    require!(p.closed_day.is_some() && beneficiary == self.owner, "BASKET_CLOSE_BEFORE_WITHDRAW");
+                }
                 if let Some(series) = &self.series {
                     require!(
                         env::block_timestamp() >= series.terms.matures_at.0,
@@ -539,6 +553,7 @@ impl Wallet {
                 horizon_years,
                 target_bps,
             } => {
+                require!(basket::read().is_none(), "BASKET_NO_AUTONOMOUS_ALLOCATION");
                 require!(
                     policy.asset == self.asset && policy.strategy == self.strategy,
                     "POLICY_ROUTE"
@@ -739,6 +754,15 @@ impl Wallet {
             "ACCOUNT_BUSY"
         );
         require!(amount.0 > 0, "ZERO");
+        if env::storage_has_key(b"everkeep:basket-required:v1") {
+            require!(basket::read().is_some(), "BASKET_BIND_REQUIRED");
+        }
+        if let Some(mut p) = basket::read() {
+            require!(msg == env::current_account_id().as_str() && sender_id == self.owner && self.deposits == 0 && amount == p.capital && p.closed_day.is_none(), "BASKET_SINGLE_EXACT_OWNER_DEPOSIT");
+            require!(p.entry_day.0 == basket::price_day(env::block_timestamp()), "BASKET_STALE_PRICE");
+            p.created_at = U64(env::block_timestamp());
+            basket::write(&p);
+        }
         if msg == "yield" {
             require!(sender_id == self.strategy, "YIELD_SOURCE");
             self.gains = self.gains.checked_add(amount.0).unwrap();

@@ -1,0 +1,522 @@
+/* ===========================================================================
+   Agent Wallet stage: a dark room with a perspective grid, agents as tall
+   portrait cards in a snap carousel, the centred card lit.
+   =========================================================================== */
+.ag-stage {
+  --ag-night: var(--nx-bg);
+  --ag-navy: var(--nx-s3);
+  --ag-line: var(--nx-line);
+  --ag-ice: var(--nx-accent);
+  --ag-card-w: clamp(13rem, 21vw, 15.5rem);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  /* minmax(0, 1fr): the carousel scrolls inside; it must never widen the stage. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border: var(--stroke-border) solid var(--nx-line);
+  border-radius: var(--nx-radius-card);
+  background:
+    radial-gradient(ellipse 55% 45% at 50% 52%, var(--ag-navy) 0%, transparent 70%),
+    var(--ag-night);
+}
+/* The room: a ceiling and a floor grid converging on the horizon. */
+.ag-room {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.ag-room::before,
+.ag-room::after {
+  content: "";
+  position: absolute;
+  left: -60%;
+  right: -60%;
+  height: 52%;
+  background-image:
+    linear-gradient(var(--ag-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ag-line) 1px, transparent 1px);
+  background-size: 5.5rem 5.5rem;
+  background-position: center;
+}
+.ag-room::before {
+  top: 0;
+  transform-origin: center bottom;
+  transform: perspective(22rem) rotateX(-58deg);
+  mask-image: linear-gradient(to top, transparent 0%, #000 55%);
+}
+.ag-room::after {
+  bottom: 0;
+  transform-origin: center top;
+  transform: perspective(22rem) rotateX(58deg);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 55%);
+}
+/* Head: title, what the agents control, kill switch */
+.ag-stage-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-6);
+}
+.ag-stage-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.ag-stage-title h1 {
+  margin: 0;
+  font-size: var(--type-title);
+  letter-spacing: var(--tracking-title);
+}
+.ag-stage-title p {
+  margin: 0;
+}
+.ag-mark {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--nx-radius-chip);
+  background: linear-gradient(140deg, var(--nx-s3), var(--nx-s1));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.ag-mark svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  color: #fff;
+}
+.ag-stage-total {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  text-align: center;
+}
+.ag-stage-total strong {
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  font-weight: var(--weight-semibold);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.ag-stage-total strong span {
+  color: var(--ag-ice);
+  font-weight: var(--weight-regular);
+}
+.ag-stage-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ag-stage-ask {
+  width: min(100%, 44rem);
+  justify-self: center;
+}
+.ag-stage .ag-ask-form {
+  border-radius: var(--nx-radius-chip);
+  background: var(--nx-glass);
+  border-color: rgba(196, 214, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+.ag-stage .ag-chips {
+  justify-content: center;
+}
+.ag-stage .ag-chip {
+  background: var(--nx-glass);
+  border-color: var(--nx-line);
+}
+.ag-stage-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-4);
+  text-align: center;
+}
+.ag-stage-empty p {
+  margin: 0;
+  color: var(--color-muted);
+}
+/* Carousel */
+.ag-carousel-wrap {
+  position: relative;
+  margin-inline: calc(var(--space-6) * -1);
+}
+.ag-carousel {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: var(--space-6) calc(50% - var(--ag-card-w) / 2);
+  outline: none;
+}
+.ag-carousel::-webkit-scrollbar {
+  display: none;
+}
+.ag-carousel:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ag-ice);
+}
+.ag-slide {
+  flex: none;
+  width: var(--ag-card-w);
+  scroll-snap-align: center;
+  transform: scale(0.88);
+  opacity: 0.5;
+  transition:
+    transform var(--nx-motion),
+    opacity var(--nx-motion);
+}
+.ag-slide[data-near="true"] {
+  opacity: 0.78;
+}
+.ag-slide[data-focus="true"] {
+  transform: scale(1.06);
+  opacity: 1;
+}
+.ag-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  translate: 0 -50%;
+  border: 1px solid var(--nx-line-strong);
+  border-radius: 50%;
+  background: var(--nx-glass);
+  color: var(--nx-text);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+.ag-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.ag-nav--prev {
+  left: var(--space-4);
+}
+.ag-nav--next {
+  right: var(--space-4);
+}
+/* Under the carousel: the focused agent, then the section pills */
+.ag-focusbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+  width: min(100%, 44rem);
+  justify-self: center;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-card);
+  background: var(--nx-glass);
+  backdrop-filter: blur(10px);
+}
+.ag-focusbar-text {
+  display: grid;
+  flex: 1 1 14rem;
+  gap: var(--space-1);
+}
+.ag-pills {
+  justify-self: center;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-chip);
+  background: var(--nx-glass);
+  backdrop-filter: blur(10px);
+}
+.ag-pills button {
+  padding: 0.45rem 1.1rem;
+  border: 0;
+  border-radius: var(--nx-radius-chip);
+  background: none;
+  color: rgba(230, 235, 242, 0.72);
+  font: inherit;
+  font-size: var(--type-sm);
+  cursor: pointer;
+}
+.ag-pills button:hover {
+  color: #fff;
+}
+.ag-pills button[aria-pressed="true"] {
+  background: rgba(230, 235, 242, 0.14);
+  color: #fff;
+}
+/* Inside the stage, shared panels turn to dark glass ------------------------ */
+.ag-stage .ag-stat,
+.ag-stage .ag-role,
+.ag-stage .ag-confirm,
+.ag-stage .ag-nft-pick,
+.ag-stage .ag-plan {
+  border-color: var(--nx-line);
+  background: var(--nx-glass);
+  backdrop-filter: blur(10px);
+}
+.ag-stage .ag-role[aria-checked="true"],
+.ag-stage .ag-nft-pick[aria-pressed="true"] {
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 1px var(--nx-accent);
+  background: var(--nx-accent-soft);
+}
+.ag-stage .ag-role > svg,
+.ag-stage .ag-ask-icon {
+  color: var(--nx-accent);
+}
+.ag-stage .ag-stat strong {
+  font-size: var(--type-lead);
+  white-space: nowrap;
+}
+.ag-stage .ag-stat small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* One accent on agent pages: ice blue for icons and data, brand green stays on primary buttons */
+.ag-page .ag-role > svg,
+.ag-page .ag-feed-dot {
+  color: var(--nx-accent);
+}
+.ag-page .ag-bars > div > span:not([data-zero="true"]),
+.ag-page .ag-meter span {
+  background: var(--nx-accent);
+}
+/* Intro (no wallet) */
+.ag-stage--intro {
+  min-height: min(32rem, 70vh);
+  place-items: center;
+}
+.ag-intro {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  max-width: 40rem;
+  text-align: center;
+}
+.ag-intro h1 {
+  margin: 0;
+  font-size: var(--type-display);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-title);
+  text-wrap: balance;
+}
+.ag-intro p {
+  margin: 0;
+  color: rgba(230, 235, 242, 0.72);
+  font-size: var(--type-lead);
+  line-height: var(--line-relaxed);
+}
+.ag-intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3) var(--space-5, var(--space-4));
+}
+.ag-intro-demo {
+  color: var(--nx-accent) !important;
+  font-size: var(--type-sm);
+}
+/* One agent: lit card on the left, identity and numbers on the right */
+.ag-stage--detail {
+  grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8);
+}
+.ag-stage--detail .ag-slide {
+  width: 100%;
+}
+.ag-detail-info {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.ag-detail-role {
+  margin: 0;
+  color: var(--nx-accent);
+  font-size: var(--type-sm);
+}
+.ag-detail-info h1 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--type-display);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-title);
+}
+.ag-detail-info > p {
+  margin: 0;
+}
+.ag-detail-money {
+  display: grid;
+  gap: var(--space-1);
+}
+.ag-detail-money strong {
+  font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+  font-weight: var(--weight-semibold);
+  line-height: 1.1;
+}
+/* Hire: form on the left, the agent you are building on the right */
+.ag-hire-head {
+  display: grid;
+  gap: var(--space-2);
+}
+.ag-hire-head h1 {
+  margin: 0;
+  font-size: var(--type-display);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-title);
+}
+.ag-hire-head p {
+  margin: 0;
+  font-size: var(--type-sm);
+}
+.ag-hire-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  gap: var(--space-8);
+  align-items: start;
+}
+.ag-hire-layout .ag-hire {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ag-hire-side {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + var(--space-20, 5rem));
+  display: grid;
+  gap: var(--space-4);
+}
+.ag-hire-preview {
+  width: min(100%, 15.5rem);
+  justify-self: center;
+}
+.ag-hire-preview .ag-slide {
+  width: 100%;
+}
+.ag-stage .ag-confirm {
+  padding: var(--space-4);
+}
+.ag-stage .ag-summary {
+  font-size: var(--type-sm);
+}
+@media (max-width: 900px) {
+  .ag-stage--detail,
+  .ag-hire-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ag-stage--detail .ag-detail-card {
+    width: min(100%, 15rem);
+    justify-self: center;
+  }
+  .ag-hire-side {
+    position: static;
+  }
+  .ag-stage--detail .ag-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .ag-stage {
+    --ag-card-w: min(68vw, 15rem);
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+  .ag-stage-head {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: var(--space-3);
+  }
+  .ag-carousel-wrap {
+    margin-inline: calc(var(--space-4) * -1);
+  }
+  .ag-nav {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ag-slide {
+    transition: none;
+  }
+}
+/* NFT art with no usable image: a neutral night tile with the NFT's name (never a stand-in character). */
+.ag-art--empty {
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 35%, rgba(70, 110, 200, 0.28), transparent 70%),
+    linear-gradient(180deg, var(--nx-s2), var(--nx-bg));
+  color: rgba(230, 235, 242, 0.55);
+  font-size: var(--type-xs);
+  text-align: center;
+}
+.ag-art--empty[data-loading="true"] {
+  animation: ag-pulse 1.4s ease-in-out infinite;
+}
+@keyframes ag-pulse {
+  50% {
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ag-art--empty[data-loading="true"] {
+    animation: none;
+  }
+}
+
+/* Loading: card-sized skeletons where the carousel will be. */
+.ag-skeleton-row {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-6) 0;
+  overflow: hidden;
+}
+.ag-skeleton-slot {
+  flex: none;
+  width: var(--ag-card-w);
+}
+
+/* Connect your own AI (after hiring a "Your AI agent" role) */
+.ag-connect-steps {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding-left: var(--space-6);
+  max-width: 52rem;
+}
+.ag-connect-steps li {
+  display: grid;
+  gap: var(--space-2);
+  line-height: var(--line-relaxed);
+}
+.ag-code {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow-x: auto;
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-chip);
+  background: var(--nx-bg);
+  color: var(--nx-text);
+  font-family: var(--font-numeric);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+/* Link from a log line to its transaction on the explorer */
+.ag-tx {
+  margin-left: var(--space-2);
+  color: var(--nx-accent) !important;
+  font-size: var(--type-xs);
+  white-space: nowrap;
+}

@@ -50,6 +50,9 @@ pub struct Collection {
 }
 #[near]
 impl Collection {
+    pub fn basket_protocol(&self) -> serde_json::Value {
+        json!({"protocol":"everkeep-fictional-v1","asset":self.asset,"strategy":self.strategy,"no_series":self.series.is_none(),"admin_disabled":self.admin_key.is_none(),"wallet_hash":Base64VecU8(env::sha256(include_bytes!("../../../artifacts/wallet.wasm")))})
+    }
     #[init]
     pub fn new(
         network: String,
@@ -93,6 +96,7 @@ impl Collection {
         name: String,
         public_key: Base64VecU8,
         proof: Base64VecU8,
+        basket_required: Option<bool>,
     ) -> Promise {
         require!(
             (2..=24).contains(&name.len())
@@ -113,6 +117,7 @@ impl Collection {
             .parse()
             .unwrap();
         require!(!self.items.contains_key(&account), "NAME_RESERVED");
+        require!(!basket_required.unwrap_or(false) || self.series.is_none(), "BASKET_NO_LEGACY_SERIES");
         if self.admin_key.is_some() {
             require!(self.series.is_some(), "CONFIGURE_SERIES_FIRST");
         }
@@ -136,7 +141,7 @@ impl Collection {
         // No AddKey: neither creator nor owner can replace code or bypass the contract.
         Promise::new(account.clone()).create_account().transfer(env::attached_deposit().saturating_sub(NearToken::from_millinear(50)))
             .deploy_contract(include_bytes!("../../../artifacts/wallet.wasm").to_vec())
-            .function_call("new", serde_json::to_vec(&json!({"collection":env::current_account_id(),"network":self.network,"asset":self.asset,"strategy":self.strategy,"owner":owner,"public_key":public_key,"proof":proof,"series":self.series})).unwrap(), NearToken::from_yoctonear(0), Gas::from_tgas(30))
+            .function_call("new", serde_json::to_vec(&json!({"collection":env::current_account_id(),"network":self.network,"asset":self.asset,"strategy":self.strategy,"owner":owner,"public_key":public_key,"proof":proof,"series":self.series,"basket_required":basket_required})).unwrap(), NearToken::from_yoctonear(0), Gas::from_tgas(30))
             .then(Promise::new(env::current_account_id()).function_call("on_created",serde_json::to_vec(&json!({"account":account})).unwrap(),NearToken::from_yoctonear(0),Gas::from_tgas(80)))
     }
     #[private]

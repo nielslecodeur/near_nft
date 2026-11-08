@@ -1,5 +1,9 @@
 # Everkeep
 
+**Parcours courant : paniers thématiques simulés.** AI Infrastructure, Space & Robotics et Energy Transition : découvrez les cinq entreprises, souscrivez en demoUSD et retrouvez votre position NFT individuelle. Prix fictifs déterministes, quantités fixes, valorisation informative et retrait des tokens réellement détenus après clôture de la simulation. **Simulation sur testnet — aucune action réelle détenue.** L’assistant prépare gratuitement ; les missions payantes et séries historiques restent séparées. [Calcul, sources, limites et démonstration](docs/thematic-baskets.md).
+
+La collection dédiée est déployée sur testnet, sans modification des positions historiques. Souscription directe : deux validations dans Intear et coffre local chiffré, export facultatif. Pour vérifier cette tranche : `npm test`, `bash scripts/test-contracts.sh`, `npm run test:baskets`, `npm run test:baskets:browser`, `npm run build`. Les paragraphes suivants décrivent également les fonctionnalités historiques conservées.
+
 Marketplace de positions NFT sur **NEAR testnet**. Choisir un modèle officiel, créer une position avec son compte et ses fonds, ou acheter une position proposée par un autre propriétaire. Trois agents proposent des analyses payées séparément en NEAR ; tout investissement exige une autre autorisation.
 
 **Interface terminal :** les pages réutilisent les tokens, primitives et composants validés : recherche Cmd/Ctrl+K, filtres repliables, grille/liste, densité, cadres de cartes JSON et fiches avec provenance et conditions. [Guide des pages](design-system/terminal/PAGES.md). `npm run test:terminal:pages` vérifie cette interface sur le serveur de développement ; le scénario du catalogue précédent reste archivé sous `test:catalogue:legacy`.
@@ -23,9 +27,9 @@ Sur ce poste Windows/WSL : `wsl -e bash scripts/web.sh` et `wsl -e bash scripts/
 
 ## Utiliser
 
-- **Marketplace** : catégories Diversification, Crypto et Liquidité, puis filtres Tout / Catalogue officiel / Communauté. Trois modèles distincts ; seul Réserve demoUSD est opérationnel en démonstration testnet. Les deux autres attendent leurs adaptateurs. Un modèle ne représente pas un NFT déjà émis.
+- **Marketplace** : Actions thématiques (les trois paniers simulés), Crypto (modèle historique indisponible) et Liquidité (réserve historique à échéance). Créer sa position et acheter une position existante sont deux parcours distincts. Un modèle ne représente pas un NFT déjà émis.
 - **Mes positions** : NFT réels, fonds détenus, engagés et réservés, échéance, permissions et activité. La création n’est pas une publication : il faut mettre sa position en vente.
-- **Agents** : conversation avec Analyste TradFi, Spécialiste crypto ou Analyste liquidité. Paramètres reconnus et coûts examinés, devis, paiement NEAR, proposition puis consentement distinct. Démonstration déterministe sans IA par défaut ; remboursement contractuel en cas d’échec connu ou délai dépassé avant livraison.
+- **Agents** : préparation thématique gratuite selon l’angle Diversification, Analyse thématique ou Liquidité, puis souscription autorisée par l’utilisateur. Les analyses historiques payantes (TradFi, Crypto, Liquidité) restent accessibles dans une section repliable, avec devis et paiement NEAR distincts du capital. Mode déterministe, sans IA par défaut.
 
 Le header lit séparément les NEAR et demoUSD du wallet. Les réserves de stockage et de gas sont détaillées, sans total converti artificiellement.
 

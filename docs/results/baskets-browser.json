@@ -1,0 +1,34 @@
+{
+  "captures": [
+    "docs/screenshots/baskets/explorer-1440.png",
+    "docs/screenshots/baskets/composition-1440.png",
+    "docs/screenshots/baskets/subscription-review-1440.png",
+    "docs/screenshots/baskets/agent-proposal-1440.png",
+    "docs/screenshots/baskets/owned-history-fixture-1440.png",
+    "docs/screenshots/baskets/closed-fixture-1440.png",
+    "docs/screenshots/baskets/explorer-768.png",
+    "docs/screenshots/baskets/composition-768.png",
+    "docs/screenshots/baskets/subscription-review-768.png",
+    "docs/screenshots/baskets/agent-proposal-768.png",
+    "docs/screenshots/baskets/owned-history-fixture-768.png",
+    "docs/screenshots/baskets/closed-fixture-768.png",
+    "docs/screenshots/baskets/explorer-390.png",
+    "docs/screenshots/baskets/composition-390.png",
+    "docs/screenshots/baskets/subscription-review-390.png",
+    "docs/screenshots/baskets/agent-proposal-390.png",
+    "docs/screenshots/baskets/owned-history-fixture-390.png",
+    "docs/screenshots/baskets/closed-fixture-390.png"
+  ],
+  "checks": [
+    "1440: real catalogue, three artworks, keyboard flip, exact weights, invalid amount, review, free agent proposal and amount preserved",
+    "1440: synthetic owned amounts/quantities/date/history, transfer acquisition disclaimer, close then exact principal withdraw UI; no wallet execution",
+    "768: real catalogue, three artworks, keyboard flip, exact weights, invalid amount, review, free agent proposal and amount preserved",
+    "768: synthetic owned amounts/quantities/date/history, transfer acquisition disclaimer, close then exact principal withdraw UI; no wallet execution",
+    "390: real catalogue, three artworks, keyboard flip, exact weights, invalid amount, review, free agent proposal and amount preserved",
+    "390: synthetic owned amounts/quantities/date/history, transfer acquisition disclaimer, close then exact principal withdraw UI; no wallet execution"
+  ],
+  "errors": [],
+  "signatures": 0,
+  "rpc": "read-only actual testnet for main app; explicit synthetic owned UI fixture",
+  "financialProof": "docs/results/baskets-sandbox.json"
+}

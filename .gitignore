@@ -23,3 +23,8 @@ test-results/
 playwright-report/
 .impeccable/review/
 .impeccable/live/
+# NEAR agent skills (third-party, reinstall with: npx skills experimental_install)
+.claude/skills/
+
+# Agent key files downloaded from the Agent Wallet ("Your AI agent"): private, never commit.
+agent-*-key.json

@@ -17,6 +17,36 @@
       "reserve-v3.everkeep-dev-mw0weth5.testnet": "4wp2KSaMoSpNz4JDsUVeiuRLMjCFRzM8KPBjnjVNvMHr",
       "missions-v3.everkeep-dev-mw0weth5.testnet": "39KB5g7SdasSeQKjQBTTa6CrVmBXiyo1YCUeyc54NXp5"
     },
-    "deployed_at": "2026-11-03T16:38:37.481Z"
+    "deployed_at": "2026-11-03T16:38:37.481Z",
+    "baskets": {
+      "collection": "baskets-v1.everkeep-dev-mw0weth5.testnet",
+      "code_hash": "75cn5Nj8QybFqYD1yDApWYPnHPq6apCPiDNQHGMetehg",
+      "wallet_code_hash": "CLZfwzTxtY918Vbu7i47YYWxhnzrQaFogsb74Mez7pf7",
+      "protocol": "everkeep-fictional-v1"
+    }
+  },
+  "keepers": {
+    "contract": "keepers-v2.everkeep-dev-mw0weth5.testnet",
+    "code_hash": "D5iY3Vaqqy7GG3AhTRvLf77C9KFN4FbMsoW42eYGWAEy",
+    "creator": "everkeep-dev-mw0weth5.testnet",
+    "network": "testnet",
+    "tokens": [
+      "wrap.testnet",
+      "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+      "demousd-v3.everkeep-dev-mw0weth5.testnet",
+      "usdt.fakes.testnet"
+    ]
+  },
+  "keepers_v1": {
+    "contract": "keepers-v1.everkeep-dev-mw0weth5.testnet",
+    "code_hash": "B4W6DaiWnaWgotrqsVeNNe14UNHdtmmJcSWCd8mi57h7",
+    "creator": "everkeep-dev-mw0weth5.testnet",
+    "network": "testnet"
+  },
+  "agents": {
+    "contract": "agents-v1.everkeep-dev-mw0weth5.testnet",
+    "code_hash": "9U2S5GhWuR68DSQQ7kPdYXxWe4emkL8cVzfUP4Yr76rY",
+    "network": "testnet",
+    "usdc": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af"
   }
 }

@@ -1,0 +1,269 @@
+/* NFTCard: tall card, artwork behind a lower information panel (theme tokens only). */
+.nx-card {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-card);
+  background: var(--nx-s1);
+  color: var(--nx-text);
+  text-decoration: none;
+  transition:
+    transform var(--nx-motion),
+    opacity var(--nx-motion);
+}
+/* Border and glow change instantly; only transform and opacity animate. */
+.nx-card:hover,
+.nx-card:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--nx-line-strong);
+  box-shadow: var(--nx-glow);
+  outline: none;
+}
+.nx-card:focus-visible {
+  border-color: var(--nx-accent);
+}
+
+/* Artwork */
+.nx-card-art {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  transition: transform var(--nx-motion);
+}
+.nx-card-art--contain {
+  height: auto;
+  inset: 0 0 auto;
+  max-height: 62%;
+  object-fit: contain;
+  object-position: center top;
+  transform-origin: center top;
+}
+.nx-card:hover .nx-card-art,
+.nx-card:focus-visible .nx-card-art {
+  transform: scale(1.03);
+}
+.nx-card-art--none {
+  display: grid;
+  place-items: center;
+  padding: 1rem 1rem 55%;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 30%, var(--nx-accent-soft), transparent 70%),
+    linear-gradient(180deg, var(--nx-s2), var(--nx-bg));
+  color: var(--nx-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+/* Information panel: a dark fade over the art, content at the bottom */
+.nx-card-panel {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  gap: 0.3rem;
+  padding: 2rem 0.85rem 0.85rem;
+  /* Dark enough under the first text row even on very light artwork. */
+  background: linear-gradient(
+    to top,
+    rgba(7, 14, 25, 0.97) 0%,
+    rgba(7, 14, 25, 0.92) 70%,
+    rgba(7, 14, 25, 0.6) 88%,
+    rgba(7, 14, 25, 0) 100%
+  );
+}
+.nx-card-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.nx-card-avatar {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--nx-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--nx-line-strong);
+}
+.nx-card-avatar svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--nx-accent);
+}
+.nx-card-who {
+  display: grid;
+  min-width: 0;
+  line-height: 1.15;
+}
+.nx-card-who small {
+  color: var(--nx-muted);
+  font-size: 0.68rem;
+}
+.nx-card-who > span {
+  overflow: hidden;
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-card-timer {
+  color: var(--nx-text);
+  font-size: 0.68rem;
+  opacity: 0.85;
+}
+.nx-card-name {
+  margin: 0.15rem 0 0;
+  overflow: hidden;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-card-desc {
+  margin: 0;
+  overflow: hidden;
+  color: var(--nx-muted);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-card-foot {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+.nx-card-facts {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  font-size: 0.7rem;
+}
+.nx-card-facts > span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+.nx-card-facts small,
+.nx-card-value small {
+  color: var(--nx-muted);
+  font-size: 0.66rem;
+}
+.nx-chip {
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--nx-radius-chip);
+  background: rgba(230, 235, 242, 0.08);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+.nx-chip[data-tone="up"] {
+  color: var(--color-up);
+}
+.nx-chip[data-tone="down"] {
+  color: var(--color-down);
+}
+.nx-chip[data-tone="brand"] {
+  color: var(--nx-accent);
+}
+.nx-card-value {
+  display: grid;
+  justify-items: end;
+  gap: 0.1rem;
+}
+.nx-card-value strong {
+  color: var(--nx-accent);
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.nx-card-error {
+  margin: 0.3rem 0 0;
+  color: var(--color-down);
+  font-size: 0.72rem;
+}
+
+/* Loading skeleton: same box, pulsing bars */
+.nx-card--skeleton {
+  background: linear-gradient(180deg, var(--nx-s2), var(--nx-s1));
+}
+.nx-card--skeleton:hover {
+  transform: none;
+  box-shadow: none;
+}
+.nx-skel {
+  display: block;
+  height: 0.7rem;
+  border-radius: var(--nx-radius-chip);
+  background: rgba(230, 235, 242, 0.08);
+  animation: nx-pulse 1.4s ease-out infinite;
+}
+.nx-skel--row {
+  width: 60%;
+}
+.nx-skel--title {
+  width: 75%;
+  height: 1.1rem;
+}
+.nx-skel--line {
+  width: 90%;
+}
+.nx-skel--foot {
+  width: 100%;
+  height: 1.6rem;
+}
+@keyframes nx-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Empty slot */
+.nx-card--empty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-style: dashed;
+  background: var(--nx-glass);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+.nx-card--empty svg {
+  width: 2rem;
+  height: 2rem;
+  color: var(--nx-accent);
+}
+.nx-card--empty span {
+  color: var(--nx-muted);
+  font-size: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-card,
+  .nx-card-art {
+    transition: none;
+  }
+  .nx-card:hover,
+  .nx-card:focus-visible {
+    transform: none;
+  }
+  .nx-card:hover .nx-card-art {
+    transform: none;
+  }
+  .nx-skel {
+    animation: none;
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "disposition": "ship",
+  "scope": "Verdict passes score the listed layout fixes only, not whole-product or contract security certification.",
+  "initialReview": {
+    "evidence": "All 29 captures inspected through contact sheets; tablet grid inspected full-size; component, adapter and canonical CSS sampled. Remaining integrations/tests read selectively.",
+    "disposition": "fix",
+    "findings": ["Compact list expanded illustrations instead of constrained thumbnails.", "Tablet grid heights and bottom actions did not align."]
+  },
+  "resolution": [
+    { "finding": "Compact list", "status": "resolved", "change": "208px desktop/tablet and 112px mobile thumbnail from existing tokens, adjacent facts/actions, bounded row height." },
+    { "finding": "Grid alignment", "status": "resolved", "change": "Stretch grid cells and wrappers; front/info fill the cell; bottom actions align while flip height remains stable." },
+    { "finding": "Mobile list action overflow and clipping", "status": "resolved", "change": "Actions stack; mobile row is 304px from existing tokens; complete buttons and bottom spacing verified visually and by rectangle assertions." }
+  ],
+  "finalVerdict": "Mobile action clipping resolved. Both stacked buttons fully visible inside each card with clear bottom spacing. Labels contained; thumbnails compact. Earlier grid alignment remains resolved. Remaining clear; disposition ship at scored-fix scope.",
+  "limitations": ["No live active sale available; listing-type cards covered with labelled UI fixtures.", "Frog illustration without embedded interface unavailable; original SVG artwork retained.", "No native wallet signature or NEAR transaction executed.", "No real valuation history supplied; no production performance fabricated."]
+}

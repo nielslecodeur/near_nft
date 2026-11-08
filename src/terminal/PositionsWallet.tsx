@@ -23,7 +23,8 @@ import {
   NumberText,
   Skeleton,
 } from "./primitives";
-import { CardFrame } from "./CardFrame";
+import { PositionCard } from "./PositionCard";
+import { ownedCardData } from "./position-card-data";
 import { parseCardTheme } from "./card-theme";
 import themes from "../../design-system/terminal/card-themes.json";
 import { ownedAssetTotals, positionPresentation } from "./owned-positions";
@@ -350,7 +351,7 @@ export function OwnedCollection({
       (filter === "all" ||
         (filter === "sale" ? state.listed : BigInt(state.withdrawable) > 0n)) &&
       normalized(
-        `${position.account_id} ${position.collection_id} ${known ? "Réserve demoUSD" : "Position historique"}`,
+        `${position.account_id} ${position.collection_id} ${position.basket?.model.name || (known ? "Réserve demoUSD" : "Position historique")}`,
       ).includes(normalized(query).trim())
     );
   });
@@ -421,67 +422,26 @@ export function OwnedCollection({
       ) : (
         <div className="ek-owned-card-grid">
           {filtered.map((position) => {
-            const state = positionPresentation(position, data),
-              known =
-                position.collection_id === deployment?.collection &&
-                position.series?.mandate_hash === deployment.mandate_hash;
+            const known =
+              position.collection_id === deployment?.collection &&
+              position.series?.mandate_hash === deployment.mandate_hash;
             return (
-              <article
+              <PositionCard
                 key={position.account_id}
-                className="ek-owned-card"
-                data-selected={selected === position.account_id || undefined}
-              >
-                <button
-                  className="ek-owned-art"
-                  aria-label={"Consulter la carte " + position.account_id}
-                  onClick={() => onOpen(position.account_id)}
-                >
-                  <CardFrame
-                    theme={parseCardTheme(themes.metal)}
-                    art={catalogueEditorial.liquidity.visual.src}
-                    alt="Illustration orbitale de la position. Le visuel ne représente pas les actifs détenus."
-                  />
-                </button>
-                <div className="ek-owned-card-info">
-                  <Badge>{state.status}</Badge>
-                  <h3>{known ? "Réserve demoUSD" : "Position historique"}</h3>
-                  <p className="ek-owned-identifier">
-                    {position.account_id.split(".")[0]}
-                  </p>
-                  <dl>
-                    <div>
-                      <dt>Actifs du compte</dt>
-                      <dd>
-                        <NumberText>
-                          {known ? displayAmount(state.total) : state.total}
-                        </NumberText>{" "}
-                        {known ? "demoUSD" : "unités brutes"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Échéance</dt>
-                      <dd>
-                        {position.series
-                          ? new Date(
-                              Number(
-                                BigInt(position.series.terms.matures_at) /
-                                  1_000_000n,
-                              ),
-                            ).toLocaleDateString("fr-FR")
-                          : "Sans échéance contractuelle"}
-                      </dd>
-                    </div>
-                  </dl>
-                  <Button
-                    onClick={() => onOpen(position.account_id)}
-                    variant={
-                      selected === position.account_id ? "primary" : "secondary"
-                    }
-                  >
-                    Consulter la position
-                  </Button>
-                </div>
-              </article>
+                name={
+                  position.basket?.model.name ||
+                  (known ? "Réserve demoUSD" : "Position historique")
+                }
+                art={
+                  position.basket?.model.art ||
+                  catalogueEditorial.liquidity.visual.src
+                }
+                alt={catalogueEditorial.liquidity.visual.alt}
+                theme={parseCardTheme(themes.special)}
+                data={ownedCardData(position, data, deployment?.asset)}
+                selected={selected === position.account_id}
+                onOpen={() => onOpen(position.account_id)}
+              />
             );
           })}
         </div>

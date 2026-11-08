@@ -1,0 +1,25 @@
+{
+  "network": "testnet",
+  "contract": "agents-v1.everkeep-dev-mw0weth5.testnet",
+  "deployer": "everkeep-dev-mw0weth5.testnet",
+  "code_hash": "9U2S5GhWuR68DSQQ7kPdYXxWe4emkL8cVzfUP4Yr76rY",
+  "keyless": true,
+  "usdc": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+  "usdc_registered": true,
+  "deployed_at": "2026-11-06T15:19:47.048Z",
+  "transactions": [
+    "9fQet8LBq6jGZitBLcWMzj68587EkxsEBSTp9i6XcMHr",
+    "4REi9B9ELbwD1yR87CJC45kLT8bNrnq2d2trZPWpiY22"
+  ],
+  "config": {
+    "usdc": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+    "seat_storage": "100000000000000000000000",
+    "log_size": 50,
+    "max_payees": 10,
+    "agent_methods": [
+      "agent_pay",
+      "agent_buy",
+      "pause"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "reviewer": "Fresh Impeccable finish reviewer, read-only",
+  "scope": "Ordinary extension of Everkeep terminal UI; no financial certification or real browser signature proof",
+  "requiredCaptures": "All18 captures in baskets-browser.json, widths1440/768/390; owned states explicitly synthetic",
+  "initialDisposition": "fix",
+  "initialContract": {
+    "persistence": "DESIGN.md and sidecar match; PRODUCT.md needed current product addendum. All18 captures decode and show named states. Detector empty.",
+    "fidelity": "Typography, substantive themed raster art, background RGB7/8/12, catalogue/navigation, subscription review, owned accounting, fictional mode and authorization separation match. Card-back action initially buried below scroll.",
+    "ceiling": "Retain established visual system; improve back action hierarchy.",
+    "material_fixes": ["Keep creation CTA outside bounded keyboard-accessible back content with scroll affordance", "Document current thematic product and label superseded product descriptions historical"],
+    "keep": "Terminal colors/type, real themed artwork, exact values, token/value distinction and user consent"
+  },
+  "verdictPass": {
+    "disposition": "ship",
+    "scope": "Only the two scored fixes",
+    "fixes": [
+      {"id":"back-action","status":"resolved","evidence":"Recaptured768/390 states retain CTA and explicit hint; source has focusable inner scroll area"},
+      {"id":"product-documentation","status":"resolved","evidence":"PRODUCT.md current baskets, fictional mode, informative value, real-token withdrawal and free assistant; old descriptions historical"}
+    ],
+    "remaining": "Clear within the scored fix batch"
+  },
+  "limits": ["Reviewer has no browser", "No contract audit", "No native Intear approval executed", "Historical provider not integrated", "Informational gains are not paid"]
+}

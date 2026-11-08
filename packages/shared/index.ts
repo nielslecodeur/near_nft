@@ -16,6 +16,15 @@ export type Policy = {
 };
 export type Action =
   | {
+      BindBasket: {
+        basket_id: string;
+        version: string;
+        amount: string;
+        snapshot_day: string;
+      };
+    }
+  | "CloseBasket"
+  | {
       AuthorizeSubscription: {
         agent: string;
         asset: string;
@@ -44,6 +53,8 @@ export type Action =
   | { Transfer: { owner_id: string; public_key: string } }
   | { TransferCall: { owner_id: string; public_key: string; msg: string } };
 export type Snapshot = {
+  basket_required?: boolean;
+  basket?: import("./baskets.js").BasketPosition | null;
   funding_permit?: {
     agent: string;
     amount: string;

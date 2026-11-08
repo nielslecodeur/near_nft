@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "agent-wallet": {
+      "command": "node",
+      "args": ["scripts/agent-mcp-launch.mjs"]
+    },
+    "agent-wallet-demo": {
+      "command": "node",
+      "args": ["scripts/agent-mcp-launch.mjs", "--demo"]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "network": "testnet",
+  "collection": {
+    "collection": "baskets-v1.everkeep-dev-mw0weth5.testnet",
+    "code_hash": "75cn5Nj8QybFqYD1yDApWYPnHPq6apCPiDNQHGMetehg",
+    "wallet_code_hash": "CLZfwzTxtY918Vbu7i47YYWxhnzrQaFogsb74Mez7pf7",
+    "protocol": "everkeep-fictional-v1"
+  },
+  "transactions": [
+    "8qn9Es897KenUauewj8DS5hG9H3bJDZrQPdX9tddBTLr"
+  ],
+  "legacyCollection": "reserve-v3.everkeep-dev-mw0weth5.testnet",
+  "legacyUntouched": true,
+  "noUserTransactions": true
+}

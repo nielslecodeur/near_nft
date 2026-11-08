@@ -1,0 +1,36 @@
+{
+  "checks": [
+    {
+      "width": 1440,
+      "build": "pass",
+      "fonts": [
+        "Inter",
+        "IBM Plex Mono"
+      ],
+      "routes": [
+        "Explorer",
+        "model detail",
+        "Positions",
+        "Agents"
+      ],
+      "wallet": "not connected, no signatures"
+    },
+    {
+      "width": 390,
+      "build": "pass",
+      "fonts": [
+        "Inter",
+        "IBM Plex Mono"
+      ],
+      "routes": [
+        "Explorer",
+        "model detail",
+        "Positions",
+        "Agents"
+      ],
+      "wallet": "not connected, no signatures"
+    }
+  ],
+  "errors": [],
+  "scope": "Vite production preview, actual RPC reads, navigation and token/font checks, no financial signing"
+}
