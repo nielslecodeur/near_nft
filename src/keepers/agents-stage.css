@@ -22,7 +22,6 @@
     radial-gradient(ellipse 55% 45% at 50% 52%, var(--ag-navy) 0%, transparent 70%),
     var(--ag-night);
 }
-
 /* The room: a ceiling and a floor grid converging on the horizon. */
 .ag-room {
   position: absolute;
@@ -55,7 +54,6 @@
   transform: perspective(22rem) rotateX(58deg);
   mask-image: linear-gradient(to bottom, transparent 0%, #000 55%);
 }
-
 /* Head: title, what the agents control, kill switch */
 .ag-stage-head {
   display: grid;
@@ -139,7 +137,6 @@
   margin: 0;
   color: var(--color-muted);
 }
-
 /* Carousel */
 .ag-carousel-wrap {
   position: relative;
@@ -205,169 +202,6 @@
 .ag-nav--next {
   right: var(--space-4);
 }
-
-/* Portrait agent card */
-.ag-pcard {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 9 / 14;
-  overflow: hidden;
-  border: 1px solid var(--nx-line);
-  border-radius: var(--nx-radius-card);
-  background: var(--nx-s1);
-  color: #fff;
-  text-decoration: none;
-  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.55);
-}
-.ag-slide[data-focus="true"] .ag-pcard {
-  border-color: var(--nx-line-strong);
-}
-.ag-pcard:hover,
-.ag-pcard:focus-visible {
-  border-color: var(--nx-line-strong);
-  box-shadow:
-    var(--nx-glow),
-    0 1.5rem 3rem rgba(0, 0, 0, 0.55);
-}
-.ag-pcard .ag-art {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  aspect-ratio: auto;
-  object-fit: cover;
-}
-.ag-pcard::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(7, 14, 25, 0.96) 0%, rgba(7, 14, 25, 0.72) 38%, rgba(7, 14, 25, 0) 68%);
-  pointer-events: none;
-}
-.ag-pcard-status {
-  position: absolute;
-  top: 0.7rem;
-  right: 0.7rem;
-  z-index: 1;
-  padding: 0.15rem 0.55rem;
-  border-radius: var(--nx-radius-chip);
-  background: rgba(7, 14, 25, 0.7);
-  font-size: var(--type-xs);
-  backdrop-filter: blur(6px);
-}
-.ag-pcard-status[data-tone="up"] {
-  color: var(--color-up);
-}
-.ag-pcard-status[data-tone="down"] {
-  color: var(--color-down);
-}
-.ag-pcard-info {
-  position: absolute;
-  inset: auto 0 0;
-  z-index: 1;
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.85rem 0.9rem 0.95rem;
-}
-.ag-pcard-who {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.5rem;
-}
-.ag-avatar {
-  display: grid;
-  place-items: center;
-  width: 1.9rem;
-  height: 1.9rem;
-  border-radius: 50%;
-  background: var(--nx-accent-soft);
-  box-shadow: inset 0 0 0 1px var(--nx-line-strong);
-}
-.ag-avatar svg {
-  width: 0.95rem;
-  height: 0.95rem;
-  color: var(--nx-accent);
-}
-.ag-pcard-role {
-  display: grid;
-  min-width: 0;
-  line-height: 1.15;
-}
-.ag-pcard-role small {
-  color: rgba(230, 235, 242, 0.62);
-  font-size: 0.68rem;
-}
-.ag-pcard-role span {
-  overflow: hidden;
-  font-size: 0.74rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ag-pcard-who time {
-  color: rgba(230, 235, 242, 0.7);
-  font-size: 0.68rem;
-}
-.ag-pcard h3 {
-  margin: 0.15rem 0 0;
-  font-size: 1.3rem;
-  font-weight: var(--weight-semibold);
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-}
-.ag-tags {
-  margin: 0;
-  overflow: hidden;
-  color: rgba(230, 235, 242, 0.55);
-  font-size: 0.68rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ag-pcard-stats {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-top: 0.2rem;
-  font-size: 0.74rem;
-}
-.ag-pcard-stats small {
-  color: rgba(230, 235, 242, 0.6);
-  font-size: 0.68rem;
-}
-.ag-pcard-stats > span:last-child {
-  display: grid;
-  justify-items: end;
-}
-.ag-pcard-stats b {
-  color: var(--nx-accent);
-  font-weight: var(--weight-semibold);
-}
-.ag-pcard--new {
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  border-style: dashed;
-  background: var(--nx-glass);
-  font: inherit;
-  text-align: center;
-  cursor: pointer;
-}
-.ag-pcard--new::after {
-  display: none;
-}
-.ag-pcard--new svg {
-  width: 2rem;
-  height: 2rem;
-  color: var(--nx-accent);
-}
-.ag-pcard--new span {
-  color: rgba(230, 235, 242, 0.6);
-  font-size: var(--type-xs);
-}
-
 /* Under the carousel: the focused agent, then the section pills */
 .ag-focusbar {
   display: flex;
@@ -415,7 +249,6 @@
   background: rgba(230, 235, 242, 0.14);
   color: #fff;
 }
-
 /* Inside the stage, shared panels turn to dark glass ------------------------ */
 .ag-stage .ag-stat,
 .ag-stage .ag-role,
@@ -436,7 +269,6 @@
 .ag-stage .ag-ask-icon {
   color: var(--nx-accent);
 }
-
 .ag-stage .ag-stat strong {
   font-size: var(--type-lead);
   white-space: nowrap;
@@ -446,7 +278,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 /* One accent on agent pages: ice blue for icons and data, brand green stays on primary buttons */
 .ag-page .ag-role > svg,
 .ag-page .ag-feed-dot {
@@ -456,7 +287,6 @@
 .ag-page .ag-meter span {
   background: var(--nx-accent);
 }
-
 /* Intro (no wallet) */
 .ag-stage--intro {
   min-height: min(32rem, 70vh);
@@ -493,7 +323,6 @@
   color: var(--nx-accent) !important;
   font-size: var(--type-sm);
 }
-
 /* One agent: lit card on the left, identity and numbers on the right */
 .ag-stage--detail {
   grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
@@ -536,7 +365,6 @@
   font-weight: var(--weight-semibold);
   line-height: 1.1;
 }
-
 /* Hire: form on the left, the agent you are building on the right */
 .ag-hire-head {
   display: grid;
@@ -580,7 +408,6 @@
 .ag-stage .ag-summary {
   font-size: var(--type-sm);
 }
-
 @media (max-width: 900px) {
   .ag-stage--detail,
   .ag-hire-layout {
@@ -597,7 +424,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-
 @media (max-width: 760px) {
   .ag-stage {
     --ag-card-w: min(68vw, 15rem);
@@ -621,7 +447,6 @@
     transition: none;
   }
 }
-
 /* NFT art with no usable image: a neutral night tile with the NFT's name (never a stand-in character). */
 .ag-art--empty {
   display: grid;
@@ -646,4 +471,17 @@
   .ag-art--empty[data-loading="true"] {
     animation: none;
   }
+}
+
+/* Loading: card-sized skeletons where the carousel will be. */
+.ag-skeleton-row {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-6) 0;
+  overflow: hidden;
+}
+.ag-skeleton-slot {
+  flex: none;
+  width: var(--ag-card-w);
 }

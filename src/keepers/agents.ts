@@ -352,6 +352,8 @@ export type Job = {
   name?: string;
   buyer?: BuyerMission;
   payer?: { payments: Payment[] };
+  /** Payer: last payment time per "payee:amount" (ms), kept by the runner. */
+  lastPaid?: Record<string, number>;
   lastRun?: number;
   lastResult?: string;
 };

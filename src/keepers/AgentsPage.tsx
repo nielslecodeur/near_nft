@@ -22,7 +22,8 @@ import { shortAccount } from "./KeeperCard";
 import * as ag from "./agents";
 import type { Job, LogEntry, OwnedNft, Policy, Seat } from "./agents";
 import { EXAMPLES, parseAsk, type Intent } from "./ask";
-import { characterFromMedia } from "./nft-art";
+import { CHARACTERS, characterFromMedia } from "./nft-art";
+import { NFTCard, NFTCardEmpty, NFTCardSkeleton, type NftCardModel } from "./NFTCard";
 import { ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
 import type { Wallet } from "./KeepersApp";
 import "./agents.css";
@@ -162,89 +163,41 @@ function NftArt({ src, label }: { src: string | null | undefined; label: string 
   );
 }
 
-/** The portrait agent card: full-bleed NFT art, identity and money on a dark fade. */
-function AgentCard({
-  href,
-  onOpen,
-  name,
-  role,
-  contract,
-  tokenId,
-  time,
-  kind,
-  asset,
-  status,
-  balance,
-  image,
-}: {
-  href?: string;
-  onOpen?: () => void;
-  name: string;
-  role: Role;
-  contract: string;
-  tokenId: string;
-  time: string;
-  kind: string;
-  asset: string;
-  status: { label: string; tone: string; live?: boolean };
-  balance: string;
-  image: string | null | undefined;
-}) {
+/**
+ * Card model for an agent seat. Real data only: the timer counts down to the
+ * next scheduled payment (or shows the last action), the fact is what it spent
+ * today, the value is its budget.
+ */
+function seatModel(
+  s: Seat,
+  job: Job | undefined,
+  role: Role,
+  st: Status,
+  image: string | null | undefined,
+  last?: string,
+): NftCardModel {
   const Icon = role.icon;
-  // Character NFTs show their collection name, whatever contract minted them.
-  const collection = image?.startsWith("/nft-art/") ? "Characters" : collectionLabel(contract);
-  const body = (
-    <>
-      <NftArt src={image} label={`${collection} #${tokenId}`} />
-      <span className="ag-pcard-status" data-tone={status.tone}>
-        {status.label}
-      </span>
-      <div className="ag-pcard-info">
-        <div className="ag-pcard-who">
-          <span className="ag-avatar">
-            <Icon aria-hidden="true" />
-          </span>
-          <span className="ag-pcard-role">
-            <small>{role.name}</small>
-            <span>
-              {collection} #{tokenId.length > 10 ? `${tokenId.slice(0, 8)}…` : tokenId}
-            </span>
-          </span>
-          <time className="kp-num">{time}</time>
-        </div>
-        <h3>{name}</h3>
-        <p className="ag-tags">
-          #{kind.toLowerCase()} #{asset.toLowerCase()} #{slug(collection)}
-        </p>
-        <div className="ag-pcard-stats">
-          <span>
-            <small>Status</small> {status.label}
-          </span>
-          <span>
-            <small>Budget</small>
-            <b className="kp-num">{balance}</b>
-          </span>
-        </div>
-      </div>
-    </>
-  );
-  return href ? (
-    <a
-      href={href}
-      className="ag-pcard"
-      data-live={status.live}
-      onClick={(e) => {
-        e.preventDefault();
-        onOpen?.();
-      }}
-    >
-      {body}
-    </a>
-  ) : (
-    <div className="ag-pcard" data-live={status.live}>
-      {body}
-    </div>
-  );
+  const character = image?.startsWith("/nft-art/") ? CHARACTERS.find((c) => image === c.image) : undefined;
+  const collection = character ? character.collection : collectionLabel(s.nft_contract);
+  let until: number | undefined;
+  if (st.live && job?.payer?.payments.length) {
+    const next = job.payer.payments.map((p) => (job.lastPaid?.[`${p.payee}:${p.amount}`] ?? 0) + p.everySeconds * 1000);
+    until = Math.min(...next);
+  }
+  return {
+    id: s.seat_id,
+    name: nameFor(s, job),
+    description: character?.description ?? role.tagline,
+    image,
+    imageAlt: `${collection} #${s.token_id}`,
+    collection,
+    subtitle: role.name,
+    avatar: <Icon />,
+    timer: until ? { until } : { label: last ? ago(last) : "new" },
+    status: { label: st.label, tone: st.tone },
+    fact: { label: "Today", value: ag.formatAsset(s.spent_today, s.asset) },
+    value: { label: "Budget", amount: ag.formatAsset(s.balance, s.asset) },
+  };
 }
 
 function ConnectFirst({ wallet, what }: { wallet: Wallet; what: string }) {
@@ -772,7 +725,13 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
         )}
 
         {seats === null ? (
-          <Skeleton label="Loading your agents" />
+          <div className="ag-skeleton-row">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="ag-skeleton-slot">
+                <NFTCardSkeleton label="Loading your agents" />
+              </div>
+            ))}
+          </div>
         ) : seats.length === 0 ? (
           <div className="ag-stage-empty">
             <p>{readOnly ? "This wallet has no agent yet." : "No agent yet. Hire one and put it on any NFT you own."}</p>
@@ -790,30 +749,22 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
                 const role = roleFor(s, job);
                 const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up);
                 return (
-                  <AgentCard
+                  <NFTCard
                     key={s.seat_id}
                     href={`/agents/${s.seat_id}`}
                     onOpen={() => navigate(`/agents/${s.seat_id}`)}
-                    name={nameFor(s, job)}
-                    role={role}
-                    contract={s.nft_contract}
-                    tokenId={s.token_id}
-                    time={lastAt[s.seat_id] ? ago(lastAt[s.seat_id]) : "new"}
-                    kind={s.kind}
-                    asset={s.asset}
-                    status={st}
-                    balance={ag.formatAsset(s.balance, s.asset)}
-                    image={images[s.seat_id]}
+                    model={seatModel(s, job, role, st, images[s.seat_id], lastAt[s.seat_id])}
                   />
                 );
               }),
               ...(!readOnly
                 ? [
-                    <button key="new" type="button" className="ag-pcard ag-pcard--new" onClick={() => navigate("/agents/new")}>
-                      <Plus aria-hidden="true" />
-                      <strong>Hire an agent</strong>
-                      <span>Collector, subscriptions, allowance, payroll</span>
-                    </button>,
+                    <NFTCardEmpty
+                      key="new"
+                      title="Hire an agent"
+                      hint="Collector, subscriptions, allowance, payroll"
+                      onClick={() => navigate("/agents/new")}
+                    />,
                   ]
                 : []),
             ]}
@@ -973,8 +924,14 @@ function Carousel({
     const el = ref.current;
     if (!started.current && el && children.length > 2) {
       started.current = true;
-      const mid = el.children[Math.floor((children.length - 1) / 2)] as HTMLElement | undefined;
-      if (mid) el.scrollLeft = mid.offsetLeft + mid.offsetWidth / 2 - el.clientWidth / 2;
+      // After layout settles (fonts, card sizes), centre the middle card once.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          const mid = el.children[Math.floor((children.length - 1) / 2)] as HTMLElement | undefined;
+          if (mid) el.scrollLeft = mid.offsetLeft + mid.offsetWidth / 2 - el.clientWidth / 2;
+          measure();
+        }),
+      );
     }
     measure();
   }, [children.length, measure]);
@@ -1451,17 +1408,22 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       <aside className="ag-hire-side">
       <div className="ag-hire-preview" aria-label="Preview of your agent">
         <div className="ag-slide" data-focus="true">
-          <AgentCard
-            name={d.name.trim() || role.name}
-            role={role}
-            contract={pick?.contract ?? ""}
-            tokenId={pick?.token_id ?? "?"}
-            time="new"
-            kind={role.kind}
-            asset={asset}
-            status={{ label: "Preview", tone: "brand" }}
-            balance={`${d.budget || "0"} ${asset}`}
-            image={pick ? images[`${pick.contract}:${pick.token_id}`] : null}
+          <NFTCard
+            as="div"
+            model={{
+              id: "preview",
+              name: d.name.trim() || role.name,
+              description: characterFromMedia(pick?.media)?.description ?? role.tagline,
+              image: pick ? images[`${pick.contract}:${pick.token_id}`] : null,
+              imageAlt: pick ? `${pick.label} #${pick.token_id}` : "Pick an NFT",
+              collection: characterFromMedia(pick?.media) ? "Characters" : (pick?.label ?? "Your NFT"),
+              subtitle: role.name,
+              avatar: <RoleIcon />,
+              timer: { label: "new" },
+              status: { label: "Preview", tone: "brand" },
+              fact: { label: "Cap/day", value: `${d.perDay || "0"} ${asset}` },
+              value: { label: "Budget", amount: `${d.budget || "0"} ${asset}` },
+            }}
           />
         </div>
       </div>
@@ -1617,18 +1579,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         <div className="ag-room" aria-hidden="true" />
         <div className="ag-detail-card">
           <div className="ag-slide" data-focus="true">
-            <AgentCard
-              name={nameFor(seat, job)}
-              role={role}
-              contract={seat.nft_contract}
-              tokenId={seat.token_id}
-              time={log.find((e) => e.status !== "info") ? ago(log.find((e) => e.status !== "info")!.at) : "new"}
-              kind={seat.kind}
-              asset={seat.asset}
-              status={st}
-              balance={ag.formatAsset(seat.balance, seat.asset)}
-              image={images.art}
-            />
+            <NFTCard as="div" model={seatModel(seat, job, role, st, images.art, log.find((e) => e.status !== "info")?.at)} />
           </div>
         </div>
         <div className="ag-detail-info">
