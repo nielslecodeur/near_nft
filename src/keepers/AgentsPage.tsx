@@ -545,6 +545,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
   const [seats, setSeats] = useState<Seat[] | null>(null);
   const [owners, setOwners] = useState<Record<string, string | null>>({});
   const [feed, setFeed] = useState<(FeedItem & { count: number; firstAt: string })[]>([]);
+  const [feedTx, setFeedTx] = useState<Record<string, string>>({});
   const [refund, setRefund] = useState({ near: "0", usdc: "0" });
   const [error, setError] = useState("");
   const runner = useRunner(account);
@@ -573,7 +574,21 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       );
       setOwners(o);
       setLastAt(latest);
-      setFeed(collapse(logs.sort((a, b) => (BigInt(b.at) > BigInt(a.at) ? 1 : -1))).slice(0, 20));
+      const shown = collapse(logs.sort((a, b) => (BigInt(b.at) > BigInt(a.at) ? 1 : -1))).slice(0, 20);
+      setFeed(shown);
+      // Explorer links: match each entry to the owner's transaction (best effort, never blocks the page).
+      if (shown.length)
+        void ag
+          .ownerTxs(account, BigInt(shown.at(-1)!.at) - 60_000_000_000n)
+          .then((txs) => {
+            const m: Record<string, string> = {};
+            for (const e of shown) {
+              const h = ag.txForEntry(e, txs);
+              if (h) m[`${e.seat.seat_id}-${e.seq}`] = h;
+            }
+            setFeedTx(m);
+          })
+          .catch(() => {});
       setError("");
     } catch (e) {
       setError((e as Error).message);
@@ -879,6 +894,11 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
                       )}
                       {e.status === "refused" && <span className="ag-blocked"> blocked: {e.detail}</span>}
                       {e.count > 1 && <span className="ag-times">×{e.count}</span>}
+                      {feedTx[`${e.seat.seat_id}-${e.seq}`] && (
+                        <a className="ag-tx" href={ag.txLink(feedTx[`${e.seat.seat_id}-${e.seq}`])} target="_blank" rel="noreferrer" aria-label="View the transaction">
+                          tx ↗
+                        </a>
+                      )}
                       <small className="ag-muted"> {ago(e.at)}</small>
                     </div>
                   </li>
@@ -1578,6 +1598,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
   const account = wallet.account;
   const [seat, setSeat] = useState<Seat | null | undefined>();
   const [log, setLog] = useState<LogEntry[]>([]);
+  const [logTx, setLogTx] = useState<Record<string, string>>({});
   const [nftOwner, setNftOwner] = useState<string | null>(null);
   const [gasLeft, setGasLeft] = useState<string | null | undefined>();
   const [fund, setFund] = useState("");
@@ -1589,7 +1610,20 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
     const s = await ag.getSeat(id);
     setSeat(s);
     if (!s) return;
-    setLog(await ag.seatLog(id));
+    const entries = await ag.seatLog(id);
+    setLog(entries);
+    if (entries.length)
+      void ag
+        .ownerTxs(s.owner, BigInt(entries.at(-1)!.at) - 60_000_000_000n)
+        .then((txs) => {
+          const m: Record<string, string> = {};
+          for (const e of entries) {
+            const h = ag.txForEntry(e, txs);
+            if (h) m[e.seq] = h;
+          }
+          setLogTx(m);
+        })
+        .catch(() => {});
     setNftOwner(await ag.nftOwner(s.nft_contract, s.token_id).catch(() => null));
     setGasLeft(s.agent_key ? await ag.keyAllowance(s.owner, s.agent_key) : undefined);
     void runner.reload();
@@ -1898,6 +1932,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
                 <th>Amount</th>
                 <th>With</th>
                 <th>Detail</th>
+                <th>On chain</th>
               </tr>
             </thead>
             <tbody>
@@ -1919,6 +1954,15 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
                   <td className="kp-num">{e.amount !== "0" ? ag.formatAsset(e.amount, seat.asset) : ""}</td>
                   <td>{e.counterparty ? shortAccount(e.counterparty) : ""}</td>
                   <td>{e.detail}</td>
+                  <td>
+                    {logTx[e.seq] ? (
+                      <a className="ag-tx" href={ag.txLink(logTx[e.seq])} target="_blank" rel="noreferrer">
+                        {logTx[e.seq].slice(0, 6)}… ↗
+                      </a>
+                    ) : (
+                      <span className="ag-muted">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -512,3 +512,11 @@
   line-height: 1.6;
   white-space: pre;
 }
+
+/* Link from a log line to its transaction on the explorer */
+.ag-tx {
+  margin-left: var(--space-2);
+  color: var(--nx-accent) !important;
+  font-size: var(--type-xs);
+  white-space: nowrap;
+}

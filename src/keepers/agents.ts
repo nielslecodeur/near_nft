@@ -542,3 +542,81 @@ export function downloadJson(filename: string, data: unknown) {
 
 /** What to run so an MCP agent drives this seat. */
 export const mcpCommand = (file: string) => `npx tsx scripts/agent-mcp.ts --key ${file}`;
+
+// ---------------------------------------------------------------------------
+// Explorer links for the on-chain log: the contract logs actions, not their
+// transaction hash, so each entry is matched to the owner's transaction to the
+// agents contract (NearBlocks v3, public, CORS open): same method family,
+// latest transaction at or before the entry's time, within a minute.
+// ---------------------------------------------------------------------------
+
+type IndexedTx = { hash: string; ts: bigint; method: string; ok: boolean };
+const NEARBLOCKS = "https://api-testnet.nearblocks.io/v3";
+const txCache = new Map<string, { at: number; txs: IndexedTx[] }>();
+
+const METHODS: Record<string, string[]> = {
+  pay: ["agent_pay"],
+  buy: ["agent_buy"],
+  deliver: ["agent_buy"],
+  fund: ["fund", "ft_transfer_call"],
+  withdraw: ["withdraw"],
+  create: ["create_seat"],
+  key: ["set_agent_key"],
+  pause: ["pause"],
+  resume: ["resume"],
+  policy: ["set_policy"],
+  claim: ["claim_seat"],
+  reset: ["agent_pay", "agent_buy", "claim_seat"],
+};
+
+/** The owner's recent transactions to the agents contract, newest first (cached 20 s). */
+export async function ownerTxs(owner: string, oldest: bigint): Promise<IndexedTx[]> {
+  const hit = txCache.get(owner);
+  if (hit && Date.now() - hit.at < 20_000 && (hit.txs.at(-1)?.ts ?? 0n) <= oldest) return hit.txs;
+  const txs: IndexedTx[] = [];
+  let next: string | undefined;
+  for (let page = 0; page < 5; page++) {
+    const url = `${NEARBLOCKS}/accounts/${AGENTS}/txns?limit=100&signer=${encodeURIComponent(owner)}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!r.ok) break;
+    const d = (await r.json()) as {
+      data?: { transaction_hash: string; block_timestamp: string; actions?: { method?: string }[]; outcomes?: { status?: boolean } }[];
+      meta?: { next_page?: string };
+    };
+    for (const t of d.data ?? [])
+      txs.push({
+        hash: t.transaction_hash,
+        ts: BigInt(t.block_timestamp),
+        method: t.actions?.[0]?.method ?? "",
+        ok: t.outcomes?.status !== false,
+      });
+    next = d.meta?.next_page;
+    if (!next || (txs.at(-1)?.ts ?? 0n) <= oldest) break;
+  }
+  // USDC top-ups are sent to the USDC contract (ft_transfer_call), not to the agents contract.
+  try {
+    const r = await fetch(`${NEARBLOCKS}/accounts/${USDC}/txns?limit=50&signer=${encodeURIComponent(owner)}`, {
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (r.ok) {
+      const d = (await r.json()) as { data?: { transaction_hash: string; block_timestamp: string; actions?: { method?: string }[] }[] };
+      for (const t of d.data ?? [])
+        if (t.actions?.[0]?.method === "ft_transfer_call")
+          txs.push({ hash: t.transaction_hash, ts: BigInt(t.block_timestamp), method: "ft_transfer_call", ok: true });
+      txs.sort((a, b) => (b.ts > a.ts ? 1 : b.ts < a.ts ? -1 : 0));
+    }
+  } catch {
+    // No link for top-ups if the explorer is unreachable; everything else still works.
+  }
+  txCache.set(owner, { at: Date.now(), txs });
+  return txs;
+}
+
+/** Transaction hash for one log entry, or null when it cannot be matched. */
+export function txForEntry(e: { action: string; at: string }, txs: IndexedTx[]) {
+  const methods = METHODS[e.action];
+  if (!methods) return null;
+  const at = BigInt(e.at);
+  const best = txs.find((t) => t.ts <= at && at - t.ts <= 60_000_000_000n && methods.includes(t.method));
+  return best?.hash ?? null;
+}
