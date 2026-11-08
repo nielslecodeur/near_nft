@@ -520,3 +520,112 @@
   font-size: var(--type-xs);
   white-space: nowrap;
 }
+
+/* Import an agent: identity fields, connect screen, first-move check */
+.ag-avatar-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-3);
+  grid-column: 1 / -1;
+}
+.ag-avatar-preview {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--nx-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--nx-line-strong);
+}
+.ag-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ag-avatar-preview svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  color: var(--nx-accent);
+}
+.ag-avatar-preview--lg {
+  width: 4rem;
+  height: 4rem;
+}
+.ag-upload {
+  position: relative;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--nx-line-strong);
+  border-radius: var(--nx-radius-chip);
+  color: var(--nx-text);
+  font-size: var(--type-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ag-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ag-upload:focus-within {
+  border-color: var(--nx-accent);
+}
+.ag-connect-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.ag-connect-head h1 {
+  margin: 0;
+  font-size: var(--type-heading);
+  line-height: var(--line-tight);
+}
+.ag-connect-head p {
+  margin: var(--space-2) 0 0;
+}
+.ag-firstmove {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-chip);
+  background: var(--nx-glass);
+}
+.ag-firstmove-dot {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--nx-muted);
+  animation: ag-pulse 1.4s ease-out infinite;
+}
+.ag-firstmove[data-done="true"] {
+  border-color: var(--color-up);
+}
+.ag-firstmove[data-done="true"] .ag-firstmove-dot {
+  background: var(--color-up);
+  animation: none;
+}
+.nx-card-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+@media (max-width: 560px) {
+  .ag-avatar-field {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .ag-upload {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ag-firstmove-dot {
+    animation: none;
+  }
+}

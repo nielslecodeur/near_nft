@@ -495,7 +495,24 @@ export async function usdcReady(account: string) {
 // remembers, in this browser, which seats are "yours" (role, name, public key).
 // ---------------------------------------------------------------------------
 
-export type ByoRecord = { seatId: string; role: string; name?: string; publicKey: string };
+export type AgentTool = "claude-code" | "codex" | "cursor" | "other";
+export const AGENT_TOOLS: { id: AgentTool; label: string }[] = [
+  { id: "claude-code", label: "Claude Code" },
+  { id: "codex", label: "Codex" },
+  { id: "cursor", label: "Cursor" },
+  { id: "other", label: "Other MCP agent" },
+];
+export type ByoRecord = {
+  seatId: string;
+  role: string;
+  name?: string;
+  publicKey: string;
+  /** Imported agent identity (shown on the card), kept in this browser. */
+  tool?: AgentTool;
+  avatar?: string;
+  source?: string;
+  hiredAt?: number;
+};
 const BYO_STORE = "agentwallet.byo";
 
 export function byoAgents(): Record<string, ByoRecord> {
@@ -542,6 +559,38 @@ export function downloadJson(filename: string, data: unknown) {
 
 /** What to run so an MCP agent drives this seat. */
 export const mcpCommand = (file: string) => `npx tsx scripts/agent-mcp.ts --key ${file}`;
+
+/**
+ * How to register the seat's MCP server in each tool, from a clone of this repo
+ * with the key file at its root. Returns where it goes and what to paste.
+ */
+export function mcpSetup(tool: AgentTool, name: string, file: string) {
+  const args = ["tsx", "scripts/agent-mcp.ts", "--key", `./${file}`];
+  const json = JSON.stringify({ mcpServers: { [name]: { command: "npx", args } } }, null, 2);
+  switch (tool) {
+    case "claude-code":
+      return {
+        where: "In a terminal, at the root of this repo (or add the JSON to .mcp.json)",
+        snippet: `claude mcp add ${name} -- npx ${args.join(" ")}`,
+      };
+    case "codex":
+      return {
+        where: "In ~/.codex/config.toml",
+        snippet: `[mcp_servers.${name}]
+command = "npx"
+args = [${args.map((a) => `"${a}"`).join(", ")}]
+cwd = "<path to this repo>"`,
+      };
+    case "cursor":
+      return { where: "In .cursor/mcp.json at the root of this repo", snippet: json };
+    default:
+      return { where: "In your agent's MCP settings (stdio server, run from this repo)", snippet: json };
+  }
+}
+
+/** A short, safe slug for MCP server names. */
+export const mcpName = (name: string | undefined, seatId: string) =>
+  `${(name || "my-agent").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "my-agent"}-${seatId}`;
 
 // ---------------------------------------------------------------------------
 // Explorer links for the on-chain log: the contract logs actions, not their

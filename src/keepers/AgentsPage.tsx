@@ -25,7 +25,7 @@ import type { Job, LogEntry, OwnedNft, Policy, Seat } from "./agents";
 import { EXAMPLES, parseAsk, type Intent } from "./ask";
 import { CHARACTERS, characterFromMedia } from "./nft-art";
 import { NFTCard, NFTCardEmpty, NFTCardSkeleton, type NftCardModel } from "./NFTCard";
-import { ALL_ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
+import { ALL_ROLES, BYO_ROLES, PICKER_ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
 import { generateAgentKey } from "./agentKey";
 import type { Wallet } from "./KeepersApp";
 import "./agents.css";
@@ -154,6 +154,25 @@ function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: Re
   );
 }
 
+/** Downscales an uploaded avatar to 128 px (WebP data URL) so it fits in local storage. */
+function shrinkImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const size = 128;
+      const c = document.createElement("canvas");
+      c.width = c.height = size;
+      const ctx = c.getContext("2d")!;
+      const side = Math.min(img.width, img.height);
+      ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+      URL.revokeObjectURL(img.src);
+      resolve(c.toDataURL("image/webp", 0.85));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 /**
  * NFT artwork with a fixed box (no layout shift). `undefined` = still loading,
  * `null` = the NFT has no usable image: a neutral night tile with its name,
@@ -184,6 +203,8 @@ function seatModel(
   last?: string,
 ): NftCardModel {
   const Icon = role.icon;
+  const imported = role.byo ? ag.byoAgents()[s.seat_id] : undefined;
+  const toolLabel = imported?.tool ? ag.AGENT_TOOLS.find((t) => t.id === imported.tool)?.label : undefined;
   const character = image?.startsWith("/nft-art/") ? CHARACTERS.find((c) => image === c.image) : undefined;
   const collection = character ? character.collection : collectionLabel(s.nft_contract);
   let until: number | undefined;
@@ -194,14 +215,18 @@ function seatModel(
   return {
     id: s.seat_id,
     name: nameFor(s, job),
-    description: character?.description ?? role.tagline,
+    description: imported?.source
+      ? imported.source.replace(/^https?:\/\//, "")
+      : imported
+        ? `Your own AI, ${s.kind === "Payer" ? "pays in USDC" : "buys Keepers"} inside these limits`
+        : (character?.description ?? role.tagline),
     image,
     imageAlt: `${collection} #${s.token_id}`,
     // Portrait Characters art fills the card; any other NFT art is shown whole, uncropped.
     fit: character ? "cover" : "contain",
     collection,
-    subtitle: role.name,
-    avatar: <Icon />,
+    subtitle: imported ? `Imported · ${toolLabel ?? "MCP agent"}` : role.name,
+    avatar: imported?.avatar ? <img src={imported.avatar} alt="" /> : <Icon />,
     timer: until ? { until } : { label: last ? ago(last) : "new" },
     status: { label: st.label, tone: st.tone },
     fact: { label: "Today", value: ag.formatAsset(s.spent_today, s.asset) },
@@ -1066,7 +1091,7 @@ function RoleGallery({ navigate }: { navigate: Nav }) {
     <section className="kp-vault-section" aria-labelledby="ag-roles">
       <h2 id="ag-roles">Roles you can hire</h2>
       <div className="ag-roles">
-        {ALL_ROLES.map((r) => {
+        {PICKER_ROLES.map((r) => {
           const Icon = r.icon;
           return (
             <button key={r.id} type="button" className="ag-role" onClick={() => navigate(`/agents/new?role=${r.id}`)}>
@@ -1124,7 +1149,13 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   const [phase, setPhase] = useState<"form" | "creating" | "funding" | "done">("form");
   const [seat, setSeat] = useState<Seat | null>(null);
   const [error, setError] = useState("");
-  const [byoKey, setByoKey] = useState<{ seat: Seat; file: ReturnType<typeof ag.agentKeyFile> } | null>(null);
+  const [byoKey, setByoKey] = useState<{ seat: Seat; file: ReturnType<typeof ag.agentKeyFile>; record: ag.ByoRecord } | null>(null);
+  /** "Import an agent": who the agent is (shown on its card) and which tool runs it. */
+  const [ident, setIdent] = useState<{ tool: ag.AgentTool; avatar: string; source: string }>({
+    tool: "claude-code",
+    avatar: "",
+    source: "",
+  });
 
   const [minting, setMinting] = useState(false);
 
@@ -1244,10 +1275,20 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
         const key = generateAgentKey();
         await ag.fundAndGrant(s!, budget ?? 0n, key.publicKey);
         const name = d.name.trim() || undefined;
-        ag.rememberByo({ seatId: s!.seat_id, role: role.id, name, publicKey: key.publicKey });
+        const record: ag.ByoRecord = {
+          seatId: s!.seat_id,
+          role: role.id,
+          name,
+          publicKey: key.publicKey,
+          tool: ident.tool,
+          avatar: ident.avatar || undefined,
+          source: ident.source.trim() || undefined,
+          hiredAt: Date.now(),
+        };
+        ag.rememberByo(record);
         const file = ag.agentKeyFile(s!, key, name);
         ag.downloadJson(`agent-${s!.seat_id}-key.json`, file);
-        setByoKey({ seat: s!, file });
+        setByoKey({ seat: s!, file, record });
         setPhase("done");
         return;
       }
@@ -1285,7 +1326,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   if (byoKey)
     return (
       <div className="ag-page">
-        <ConnectYourAi seat={byoKey.seat} file={byoKey.file} navigate={navigate} />
+        <ConnectYourAi seat={byoKey.seat} file={byoKey.file} record={byoKey.record} navigate={navigate} />
       </div>
     );
   const busy = phase === "creating" || phase === "funding";
@@ -1309,17 +1350,18 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       </header>
 
       <div className="ag-roles" role="radiogroup" aria-label="Role">
-        {ALL_ROLES.map((r) => {
+        {PICKER_ROLES.map((r) => {
           const Icon = r.icon;
           return (
             <button
               key={r.id}
               type="button"
               role="radio"
-              aria-checked={role.id === r.id}
+              aria-checked={r.byo ? !!role.byo : role.id === r.id}
               className="ag-role"
               disabled={!!seat || busy}
               onClick={() => {
+                if (r.byo && role.byo) return;
                 setRole(r);
                 setD(draftFor(r));
               }}
@@ -1392,12 +1434,88 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
           </details>
         </section>
 
+        {role.byo && (
+          <section className="ag-panel" aria-labelledby="ag-import">
+            <h2 id="ag-import">
+              <RoleIcon aria-hidden="true" className="ag-inline-icon" /> Your agent
+            </h2>
+            <p className="ag-muted">
+              It keeps running where it already runs. This NFT gives it a budget and a key that can only act inside the
+              limits below.
+            </p>
+            <div className="ag-form">
+              <Select label="Which tool runs it?" value={ident.tool} onChange={(e) => setIdent({ ...ident, tool: e.target.value as ag.AgentTool })}>
+                {ag.AGENT_TOOLS.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </Select>
+              <Input label="Its name" placeholder="My trading bot" value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
+              <Input
+                label="Source (optional)"
+                placeholder="github.com/you/your-agent"
+                value={ident.source}
+                onChange={(e) => setIdent({ ...ident, source: e.target.value })}
+                hint="Shown on its card as a link. We never run its code."
+              />
+              <div className="ag-avatar-field">
+                <span className="ag-avatar-preview" aria-hidden="true">
+                  {ident.avatar ? <img src={ident.avatar} alt="" /> : <RoleIcon />}
+                </span>
+                <Input
+                  label="Avatar (image URL)"
+                  placeholder="https://example.com/avatar.png"
+                  value={ident.avatar.startsWith("data:") ? "" : ident.avatar}
+                  onChange={(e) => setIdent({ ...ident, avatar: e.target.value.trim() })}
+                />
+                <label className="ag-upload">
+                  or upload
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void shrinkImage(f).then((avatar) => setIdent((x) => ({ ...x, avatar })));
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="ag-kinds" role="radiogroup" aria-label="What may it do?">
+              {BYO_ROLES.map((r) => {
+                const Icon = r.icon;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={role.id === r.id}
+                    className="ag-kind-pick"
+                    disabled={!!seat || busy}
+                    onClick={() => {
+                      setRole(r);
+                      setD((x) => ({ ...draftFor(r), name: x.name }));
+                    }}
+                  >
+                    <Icon aria-hidden="true" />
+                    <strong>{r.kind === "Payer" ? "Pay in USDC" : "Buy Keepers in NEAR"}</strong>
+                    <span>{r.kind === "Payer" ? "Only to the accounts you list." : "Only on the Keepers market."}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <section className="ag-panel" aria-labelledby="ag-limits">
           <h2 id="ag-limits">
-            <RoleIcon aria-hidden="true" className="ag-inline-icon" /> {role.name}: rules
+            <RoleIcon aria-hidden="true" className="ag-inline-icon" /> {role.byo ? "Its limits" : `${role.name}: rules`}
           </h2>
           <div className="ag-form">
-            <Input label="Name (optional)" placeholder={role.name} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
+            {!role.byo && (
+              <Input label="Name (optional)" placeholder={role.name} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
+            )}
             {role.byo && role.kind === "Buyer" ? null : role.kind === "Buyer" ? (
               <>
                 <Input label="Highest price per card (NEAR)" inputMode="decimal" value={d.maxPrice} onChange={(e) => setD({ ...d, maxPrice: e.target.value })} />
@@ -1506,54 +1624,103 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
 }
 
 
-/** Shown once after hiring "Your AI agent": the key file and how to plug an MCP agent in. */
+/** Shown once after "Import an agent": the key file, the setup for the chosen tool, and a live check. */
 function ConnectYourAi({
   seat,
   file,
+  record,
   navigate,
 }: {
   seat: Seat;
   file: ReturnType<typeof ag.agentKeyFile>;
+  record: ag.ByoRecord;
   navigate: Nav;
 }) {
-  const name = `agent-${seat.seat_id}-key.json`;
-  const lines = [
-    `# 1. In this repo, keep the key file next to the project (never commit it)`,
-    `#    Claude Code / Codex: register the server`,
-    `claude mcp add my-agent-${seat.seat_id} -- npx tsx scripts/agent-mcp.ts --key ./${name}`,
-    `# 2. Or run it yourself`,
-    ag.mcpCommand(`./${name}`),
-  ];
+  const keyName = `agent-${seat.seat_id}-key.json`;
+  const tool = record.tool ?? "claude-code";
+  const toolLabel = ag.AGENT_TOOLS.find((t) => t.id === tool)?.label ?? "your agent";
+  const setup = ag.mcpSetup(tool, ag.mcpName(record.name, seat.seat_id), keyName);
+  const [first, setFirst] = useState<LogEntry | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Live check: the first pay/buy the contract logs for this agent after it was hired.
+  useEffect(() => {
+    let stop = false;
+    const since = BigInt(record.hiredAt ?? 0) * 1_000_000n;
+    const tick = async () => {
+      const entries = await ag.seatLog(seat.seat_id).catch(() => [] as LogEntry[]);
+      const hit = entries.find((e) => (e.action === "pay" || e.action === "buy") && e.status !== "pending" && BigInt(e.at) >= since);
+      if (!stop && hit) setFirst(hit);
+      if (!stop && !hit) setTimeout(() => void tick(), 5000);
+    };
+    void tick();
+    return () => {
+      stop = true;
+    };
+  }, [seat.seat_id, record.hiredAt]);
+
   return (
     <section className="ag-stage ag-connect" aria-labelledby="ag-connect-title">
       <div className="ag-room" aria-hidden="true" />
-      <header className="ag-hire-head">
-        <h1 id="ag-connect-title">Agent #{seat.seat_id} is ready for your AI</h1>
-        <p className="ag-muted">
-          Its key was made in this browser and downloaded as <code>{name}</code>. It is not stored anywhere else: keep it
-          private, and revoke it from the agent page if it leaks.
-        </p>
+      <header className="ag-connect-head">
+        <span className="ag-avatar-preview ag-avatar-preview--lg" aria-hidden="true">
+          {record.avatar ? <img src={record.avatar} alt="" /> : <WalletCards />}
+        </span>
+        <div>
+          <h1 id="ag-connect-title">{record.name || `Agent #${seat.seat_id}`} now lives in your NFT</h1>
+          <p className="ag-muted">
+            Connect it from {toolLabel}. Its key was made in this browser and downloaded as <code>{keyName}</code>; it is
+            stored nowhere else.
+          </p>
+        </div>
       </header>
       <ol className="ag-connect-steps">
         <li>
-          <strong>Keep the key file.</strong> It can only call <code>agent_pay</code>, <code>agent_buy</code> and{" "}
-          <code>pause</code> on <code>{shortAccount(ag.AGENTS)}</code>, with no deposit.
+          <strong>Put the key file at the root of this repo.</strong> It can only call <code>agent_pay</code>,{" "}
+          <code>agent_buy</code> and <code>pause</code>, with no deposit: it cannot withdraw or move your NFT. Never commit
+          it (it is gitignored).
           <div className="ag-buttons">
-            <Button icon={Download} onClick={() => ag.downloadJson(name, file)}>
+            <Button icon={Download} onClick={() => ag.downloadJson(keyName, file)}>
               Download again
             </Button>
           </div>
         </li>
         <li>
-          <strong>Plug in your AI over MCP</strong> (Claude Code, Codex or any MCP agent):
-          <pre className="ag-code">{lines.join("\n")}</pre>
+          <strong>Add it to {toolLabel}.</strong> <span className="ag-muted">{setup.where}</span>
+          <pre className="ag-code">{setup.snippet}</pre>
+          <div className="ag-buttons">
+            <Button
+              variant="ghost"
+              onClick={() =>
+                void navigator.clipboard.writeText(setup.snippet).then(
+                  () => setCopied(true),
+                  () => setCopied(false),
+                )
+              }
+            >
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </div>
         </li>
         <li>
-          <strong>Ask it</strong>, for example: “list my agents”, then “
-          {seat.kind === "Payer" ? `pay 1 USDC to ${seat.policy?.payees[0] ?? "a payee on the list"} with agent ${seat.seat_id}` : `buy the cheapest Keeper under 0.5 NEAR with agent ${seat.seat_id}`}
-          ”. Anything over the limits is refused by the contract and shows up in the agent's log.
+          <strong>Ask it something</strong>, for example: “
+          {seat.kind === "Payer"
+            ? `pay 1 USDC to ${seat.policy?.payees[0] ?? "an account on the list"} with agent ${seat.seat_id}`
+            : `buy the cheapest Keeper under 0.5 NEAR with agent ${seat.seat_id}`}
+          ”. Anything over the limits is refused on chain.
         </li>
       </ol>
+      <div className="ag-firstmove" data-done={!!first} role="status" aria-live="polite">
+        <span className="ag-firstmove-dot" aria-hidden="true" />
+        {first ? (
+          <span>
+            Your agent made its first move: {first.action === "pay" ? "a payment" : "a purchase"}{" "}
+            {first.status === "done" ? "went through" : `was ${first.status === "refused" ? "blocked" : first.status} (${first.detail})`}.
+          </span>
+        ) : (
+          <span>Waiting for your agent's first action…</span>
+        )}
+      </div>
       <div className="ag-buttons">
         <Button variant="primary" onClick={() => navigate(`/agents/${seat.seat_id}`)}>
           Open the agent
@@ -1793,15 +1960,33 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
                 </dd>
               </>
             )}
-            {role.byo && (
-              <>
-                <dt>Connect</dt>
-                <dd>
-                  <code>{ag.mcpCommand(`./agent-${seat.seat_id}-key.json`)}</code>
-                  <span className="ag-muted"> · lost the file? Revoke access, then Give access makes a new one.</span>
-                </dd>
-              </>
-            )}
+            {role.byo && (() => {
+              const rec = ag.byoAgents()[seat.seat_id];
+              const tool = rec?.tool ?? "claude-code";
+              const setup = ag.mcpSetup(tool, ag.mcpName(rec?.name, seat.seat_id), `agent-${seat.seat_id}-key.json`);
+              return (
+                <>
+                  <dt>Runs in</dt>
+                  <dd>{ag.AGENT_TOOLS.find((t) => t.id === tool)?.label}</dd>
+                  {rec?.source && (
+                    <>
+                      <dt>Source</dt>
+                      <dd>
+                        <a href={/^https?:/.test(rec.source) ? rec.source : `https://${rec.source}`} target="_blank" rel="noreferrer">
+                          {rec.source.replace(/^https?:\/\//, "")}
+                        </a>
+                      </dd>
+                    </>
+                  )}
+                  <dt>Connect</dt>
+                  <dd>
+                    <span className="ag-muted">{setup.where}</span>
+                    <pre className="ag-code">{setup.snippet}</pre>
+                    <span className="ag-muted">Lost the key file? Revoke access, then Give access makes and downloads a new one.</span>
+                  </dd>
+                </>
+              );
+            })()}
             <dt>Last run</dt>
             <dd>
               {job?.lastResult ? (

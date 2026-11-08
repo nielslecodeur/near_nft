@@ -118,8 +118,8 @@ export const BYO_ROLES: Role[] = [
   {
     id: "byo-payer",
     kind: "Payer",
-    name: "Your AI agent · pays",
-    tagline: "Plug in your own AI (Claude, Codex, any MCP agent). It pays in USDC, only inside your limits.",
+    name: "Import an agent",
+    tagline: "Bring your own AI (Claude Code, Codex, Cursor or any MCP agent) and let it act through this NFT, inside your limits.",
     icon: BrainCircuit,
     byo: true,
     payees: "many",
@@ -129,8 +129,8 @@ export const BYO_ROLES: Role[] = [
   {
     id: "byo-buyer",
     kind: "Buyer",
-    name: "Your AI agent · buys",
-    tagline: "Plug in your own AI. It buys Keepers in NEAR, only inside your limits.",
+    name: "Import an agent",
+    tagline: "Bring your own AI (Claude Code, Codex, Cursor or any MCP agent) and let it act through this NFT, inside your limits.",
     icon: Plug,
     byo: true,
     payees: "none",
@@ -139,6 +139,8 @@ export const BYO_ROLES: Role[] = [
 ];
 
 export const ALL_ROLES = [...ROLES, ...BYO_ROLES];
+/** What the role pickers show: the built-in jobs, then one "Import an agent" card. */
+export const PICKER_ROLES = [...ROLES, BYO_ROLES[0]];
 export const roleOf = (id?: string) => ALL_ROLES.find((r) => r.id === id);
 /** Fallback role for seats created before roles existed. */
 export const defaultRole = (kind: Kind) => (kind === "Buyer" ? ROLES[0] : ROLES[2]);
