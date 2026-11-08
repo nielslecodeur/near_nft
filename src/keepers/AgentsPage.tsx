@@ -7,6 +7,7 @@ import {
   CirclePlay,
   CircleX,
   CornerDownLeft,
+  Download,
   KeyRound,
   OctagonPause,
   Plus,
@@ -24,7 +25,8 @@ import type { Job, LogEntry, OwnedNft, Policy, Seat } from "./agents";
 import { EXAMPLES, parseAsk, type Intent } from "./ask";
 import { CHARACTERS, characterFromMedia } from "./nft-art";
 import { NFTCard, NFTCardEmpty, NFTCardSkeleton, type NftCardModel } from "./NFTCard";
-import { ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
+import { ALL_ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
+import { generateAgentKey } from "./agentKey";
 import type { Wallet } from "./KeepersApp";
 import "./agents.css";
 import "./agents-stage.css";
@@ -58,8 +60,10 @@ const ago = (ns: string | number) => {
 const txIn = (text?: string) => text?.match(/tx ([1-9A-HJ-NP-Za-km-z]{43,44})/)?.[1];
 const min = (...v: bigint[]) => v.reduce((a, b) => (a < b ? a : b));
 
-const roleFor = (seat: Seat, job?: Job): Role => roleOf(job?.role) ?? defaultRole(seat.kind);
-const nameFor = (seat: Seat, job?: Job) => job?.name || `${roleFor(seat, job).name} #${seat.seat_id}`;
+const roleFor = (seat: Seat, job?: Job): Role =>
+  roleOf(job?.role) ?? roleOf(ag.byoAgents()[seat.seat_id]?.role) ?? defaultRole(seat.kind);
+const nameFor = (seat: Seat, job?: Job) =>
+  job?.name || ag.byoAgents()[seat.seat_id]?.name || `${roleFor(seat, job).name} #${seat.seat_id}`;
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 type Status = { label: string; tone: "up" | "down" | "neutral" | "brand"; note: string; live: boolean };
@@ -69,6 +73,9 @@ function statusOf(seat: Seat, job: Job | undefined, nftOwner: string | null, run
   if (!seat.policy) return { label: "Reset", tone: "down", note: "No limits set.", live: false };
   if (seat.paused) return { label: "Paused", tone: "neutral", note: "Resume to let it act again.", live: false };
   if (!seat.agent_key) return { label: "No access", tone: "neutral", note: "Give the agent its key.", live: false };
+  const byo = ag.byoAgents()[seat.seat_id];
+  if (!job && byo && seat.agent_key === byo.publicKey)
+    return { label: "Your AI", tone: "brand", note: "Driven by your own AI agent over MCP, inside these limits.", live: true };
   if (!job) return { label: "No mission", tone: "neutral", note: "The runner has no key for it.", live: false };
   if (!runnerUp) return { label: "Runner offline", tone: "down", note: "Start npm run agent:runner.", live: false };
   return { label: "Active", tone: "up", note: "Acts on its own, within its limits.", live: true };
@@ -1039,7 +1046,7 @@ function RoleGallery({ navigate }: { navigate: Nav }) {
     <section className="kp-vault-section" aria-labelledby="ag-roles">
       <h2 id="ag-roles">Roles you can hire</h2>
       <div className="ag-roles">
-        {ROLES.map((r) => {
+        {ALL_ROLES.map((r) => {
           const Icon = r.icon;
           return (
             <button key={r.id} type="button" className="ag-role" onClick={() => navigate(`/agents/new?role=${r.id}`)}>
@@ -1086,7 +1093,7 @@ const draftFor = (r: Role): Draft => ({
 
 export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav }) {
   const account = wallet.account;
-  const initial = roleOf(new URLSearchParams(location.search).get("role") ?? undefined) ?? ROLES[0];
+  const initial = roleOf(new URLSearchParams(location.search).get("role") ?? undefined) ?? ALL_ROLES[0];
   const [role, setRole] = useState<Role>(initial);
   const [d, setD] = useState<Draft>(draftFor(initial));
   const [nfts, setNfts] = useState<OwnedNft[] | null>(null);
@@ -1097,6 +1104,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   const [phase, setPhase] = useState<"form" | "creating" | "funding" | "done">("form");
   const [seat, setSeat] = useState<Seat | null>(null);
   const [error, setError] = useState("");
+  const [byoKey, setByoKey] = useState<{ seat: Seat; file: ReturnType<typeof ag.agentKeyFile> } | null>(null);
 
   const [minting, setMinting] = useState(false);
 
@@ -1182,13 +1190,14 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
     notReady.length
       ? `${notReady.join(", ")} cannot receive USDC (the account does not exist or is not registered on USDC). Check the spelling.`
       : "",
-    role.kind === "Payer" && (!perPayee || !(every >= 1)) ? "Set the amount and how often." : "",
-    role.kind === "Payer" && perPayee && perTx && perPayee > perTx ? "Each payment is above the cap per action." : "",
-    role.kind === "Buyer" && !maxPrice ? "Set the highest price per card." : "",
+    !role.byo && role.kind === "Payer" && (!perPayee || !(every >= 1)) ? "Set the amount and how often." : "",
+    !role.byo && role.kind === "Payer" && perPayee && perTx && perPayee > perTx ? "Each payment is above the cap per action." : "",
+    !role.byo && role.kind === "Buyer" && !maxPrice ? "Set the highest price per card." : "",
   ].filter(Boolean);
 
-  const summary =
-    role.kind === "Buyer"
+  const summary = role.byo
+    ? `Your own AI agent will ${role.kind === "Buyer" ? "buy Keepers in NEAR" : `pay in USDC, only to ${payees.length ? payees.map(shortAccount).join(", ") : "?"}`}, never more than ${d.perTx} ${asset} at once or ${d.perDay} ${asset} a day, from a ${d.budget} ${asset} budget. You get its key as a file; the contract enforces the limits whatever the AI decides.`
+    : role.kind === "Buyer"
       ? `${d.name || role.name} will buy Keepers${Number(d.minTier) > 0 ? ` (${TIERS[Number(d.minTier)]} or better)` : ""} listed under ${d.maxPrice || "?"} NEAR, at most ${d.perTx} NEAR per card and ${d.perDay} NEAR a day, from a ${d.budget} NEAR budget.`
       : `${d.name || role.name} will pay ${perPayee ? ag.formatAsset(perPayee, "USDC") : "?"} to ${payees.length ? payees.map(shortAccount).join(", ") : "?"} every ${d.every} ${d.unit}, never more than ${d.perTx} USDC at once or ${d.perDay} USDC a day, from a ${d.budget} USDC budget.`;
 
@@ -1210,6 +1219,18 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
         setSeat(s);
       }
       setPhase("funding");
+      if (role.byo) {
+        // The key is made here, in the browser; neither our runner nor any server sees the secret.
+        const key = generateAgentKey();
+        await ag.fundAndGrant(s!, budget ?? 0n, key.publicKey);
+        const name = d.name.trim() || undefined;
+        ag.rememberByo({ seatId: s!.seat_id, role: role.id, name, publicKey: key.publicKey });
+        const file = ag.agentKeyFile(s!, key, name);
+        ag.downloadJson(`agent-${s!.seat_id}-key.json`, file);
+        setByoKey({ seat: s!, file });
+        setPhase("done");
+        return;
+      }
       const publicKey = await ag.runnerNewKey(account);
       await ag.fundAndGrant(s!, budget ?? 0n, publicKey);
       await ag.runnerSaveJob({
@@ -1241,6 +1262,12 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   }
 
   if (!account) return <ConnectFirst wallet={wallet} what="hire an agent" />;
+  if (byoKey)
+    return (
+      <div className="ag-page">
+        <ConnectYourAi seat={byoKey.seat} file={byoKey.file} navigate={navigate} />
+      </div>
+    );
   const busy = phase === "creating" || phase === "funding";
   const RoleIcon = role.icon;
 
@@ -1262,7 +1289,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       </header>
 
       <div className="ag-roles" role="radiogroup" aria-label="Role">
-        {ROLES.map((r) => {
+        {ALL_ROLES.map((r) => {
           const Icon = r.icon;
           return (
             <button
@@ -1351,7 +1378,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
           </h2>
           <div className="ag-form">
             <Input label="Name (optional)" placeholder={role.name} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
-            {role.kind === "Buyer" ? (
+            {role.byo && role.kind === "Buyer" ? null : role.kind === "Buyer" ? (
               <>
                 <Input label="Highest price per card (NEAR)" inputMode="decimal" value={d.maxPrice} onChange={(e) => setD({ ...d, maxPrice: e.target.value })} />
                 <Select label="Lowest tier" value={d.minTier} onChange={(e) => setD({ ...d, minTier: e.target.value })}>
@@ -1376,6 +1403,8 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
                   }
                   error={notReady.length ? `${notReady.join(", ")} cannot receive USDC: check the spelling.` : undefined}
                 />
+                {!role.byo && (
+                <>
                 <Input
                   label={role.id === "splitter" ? "Total bill (USDC)" : role.payees === "many" ? "USDC to each" : "USDC each time"}
                   inputMode="decimal"
@@ -1392,6 +1421,8 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
                     ))}
                   </Select>
                 </div>
+                </>
+                )}
               </>
             )}
             <Input label={`Cap per ${role.kind === "Buyer" ? "card" : "payment"} (${asset})`} inputMode="decimal" value={d.perTx} onChange={(e) => setD({ ...d, perTx: e.target.value })} />
@@ -1451,6 +1482,64 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       </div>
       </section>
     </div>
+  );
+}
+
+
+/** Shown once after hiring "Your AI agent": the key file and how to plug an MCP agent in. */
+function ConnectYourAi({
+  seat,
+  file,
+  navigate,
+}: {
+  seat: Seat;
+  file: ReturnType<typeof ag.agentKeyFile>;
+  navigate: Nav;
+}) {
+  const name = `agent-${seat.seat_id}-key.json`;
+  const lines = [
+    `# 1. In this repo, keep the key file next to the project (never commit it)`,
+    `#    Claude Code / Codex: register the server`,
+    `claude mcp add my-agent-${seat.seat_id} -- npx tsx scripts/agent-mcp.ts --key ./${name}`,
+    `# 2. Or run it yourself`,
+    ag.mcpCommand(`./${name}`),
+  ];
+  return (
+    <section className="ag-stage ag-connect" aria-labelledby="ag-connect-title">
+      <div className="ag-room" aria-hidden="true" />
+      <header className="ag-hire-head">
+        <h1 id="ag-connect-title">Agent #{seat.seat_id} is ready for your AI</h1>
+        <p className="ag-muted">
+          Its key was made in this browser and downloaded as <code>{name}</code>. It is not stored anywhere else: keep it
+          private, and revoke it from the agent page if it leaks.
+        </p>
+      </header>
+      <ol className="ag-connect-steps">
+        <li>
+          <strong>Keep the key file.</strong> It can only call <code>agent_pay</code>, <code>agent_buy</code> and{" "}
+          <code>pause</code> on <code>{shortAccount(ag.AGENTS)}</code>, with no deposit.
+          <div className="ag-buttons">
+            <Button icon={Download} onClick={() => ag.downloadJson(name, file)}>
+              Download again
+            </Button>
+          </div>
+        </li>
+        <li>
+          <strong>Plug in your AI over MCP</strong> (Claude Code, Codex or any MCP agent):
+          <pre className="ag-code">{lines.join("\n")}</pre>
+        </li>
+        <li>
+          <strong>Ask it</strong>, for example: “list my agents”, then “
+          {seat.kind === "Payer" ? `pay 1 USDC to ${seat.policy?.payees[0] ?? "a payee on the list"} with agent ${seat.seat_id}` : `buy the cheapest Keeper under 0.5 NEAR with agent ${seat.seat_id}`}
+          ”. Anything over the limits is refused by the contract and shows up in the agent's log.
+        </li>
+      </ol>
+      <div className="ag-buttons">
+        <Button variant="primary" onClick={() => navigate(`/agents/${seat.seat_id}`)}>
+          Open the agent
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -1556,7 +1645,15 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
       setMission(null);
     });
   const grant = () =>
-    run("grant", "Access given: the agent can act again", async () => {
+    run("grant", role.byo ? "New key made and downloaded: give it to your AI" : "Access given: the agent can act again", async () => {
+      if (role.byo) {
+        const key = generateAgentKey();
+        const r = await ag.fundAndGrant(seat, 0n, key.publicKey);
+        const name = ag.byoAgents()[seat.seat_id]?.name;
+        ag.rememberByo({ seatId: seat.seat_id, role: role.id, name, publicKey: key.publicKey });
+        ag.downloadJson(`agent-${seat.seat_id}-key.json`, ag.agentKeyFile(seat, key, name));
+        return r;
+      }
       const publicKey = await ag.runnerNewKey(seat.owner);
       const r = await ag.fundAndGrant(seat, 0n, publicKey);
       await ag.runnerSaveJob({
@@ -1642,7 +1739,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
                 <dt>Market</dt>
                 <dd>{seat.policy?.market ? shortAccount(seat.policy.market) : "—"}</dd>
                 <dt>Mission</dt>
-                <dd>{job?.buyer ? `Keepers under ${ag.formatAsset(job.buyer.maxPrice, "NEAR")}${job.buyer.minTier ? `, ${TIERS[job.buyer.minTier]} or better` : ""}` : "—"}</dd>
+                <dd>{role.byo ? "Decided by your own AI, over MCP" : job?.buyer ? `Keepers under ${ag.formatAsset(job.buyer.maxPrice, "NEAR")}${job.buyer.minTier ? `, ${TIERS[job.buyer.minTier]} or better` : ""}` : "—"}</dd>
               </>
             ) : (
               <>
@@ -1650,9 +1747,20 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
                 <dd>{seat.policy?.payees.join(", ") || "—"}</dd>
                 <dt>Mission</dt>
                 <dd>
-                  {firstPay
+                  {role.byo
+                    ? "Decided by your own AI, over MCP"
+                    : firstPay
                     ? `${ag.formatAsset(firstPay.amount, "USDC")} to each, every ${firstPay.everySeconds >= 86400 ? `${Math.round(firstPay.everySeconds / 86400)} d` : firstPay.everySeconds >= 3600 ? `${Math.round(firstPay.everySeconds / 3600)} h` : `${Math.round(firstPay.everySeconds / 60)} min`}`
                     : "—"}
+                </dd>
+              </>
+            )}
+            {role.byo && (
+              <>
+                <dt>Connect</dt>
+                <dd>
+                  <code>{ag.mcpCommand(`./agent-${seat.seat_id}-key.json`)}</code>
+                  <span className="ag-muted"> · lost the file? Revoke access, then Give access makes a new one.</span>
                 </dd>
               </>
             )}

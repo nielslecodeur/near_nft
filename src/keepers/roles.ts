@@ -5,7 +5,7 @@
  * contract only ever sees the seat kind and its policy.
  */
 import type { LucideIcon } from "lucide-react";
-import { CalendarClock, Gem, HandCoins, PiggyBank, ReceiptText, Tag } from "lucide-react";
+import { BrainCircuit, CalendarClock, Gem, HandCoins, PiggyBank, Plug, ReceiptText, Tag } from "lucide-react";
 import type { Kind } from "./agents";
 
 export type RoleId =
@@ -14,7 +14,9 @@ export type RoleId =
   | "subscription"
   | "allowance"
   | "splitter"
-  | "payroll";
+  | "payroll"
+  | "byo-payer"
+  | "byo-buyer";
 
 export type Unit = "minutes" | "hours" | "days" | "weeks";
 export const UNIT_SECONDS: Record<Unit, number> = {
@@ -30,6 +32,11 @@ export type Role = {
   name: string;
   tagline: string;
   icon: LucideIcon;
+  /**
+   * Bring your own AI: no mission in our runner. The key is generated in the
+   * browser and handed to the user, whose own agent drives the seat over MCP.
+   */
+  byo?: boolean;
   /** How many payees the role expects. */
   payees: "none" | "one" | "many";
   payeeLabel?: string;
@@ -107,6 +114,31 @@ export const ROLES: Role[] = [
   },
 ];
 
-export const roleOf = (id?: string) => ROLES.find((r) => r.id === id);
+export const BYO_ROLES: Role[] = [
+  {
+    id: "byo-payer",
+    kind: "Payer",
+    name: "Your AI agent · pays",
+    tagline: "Plug in your own AI (Claude, Codex, any MCP agent). It pays in USDC, only inside your limits.",
+    icon: BrainCircuit,
+    byo: true,
+    payees: "many",
+    payeeLabel: "Accounts your AI may pay (comma separated)",
+    defaults: { perTx: "1", perDay: "3", budget: "5" },
+  },
+  {
+    id: "byo-buyer",
+    kind: "Buyer",
+    name: "Your AI agent · buys",
+    tagline: "Plug in your own AI. It buys Keepers in NEAR, only inside your limits.",
+    icon: Plug,
+    byo: true,
+    payees: "none",
+    defaults: { perTx: "0.5", perDay: "1", budget: "1" },
+  },
+];
+
+export const ALL_ROLES = [...ROLES, ...BYO_ROLES];
+export const roleOf = (id?: string) => ALL_ROLES.find((r) => r.id === id);
 /** Fallback role for seats created before roles existed. */
 export const defaultRole = (kind: Kind) => (kind === "Buyer" ? ROLES[0] : ROLES[2]);

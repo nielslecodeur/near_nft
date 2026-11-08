@@ -488,3 +488,57 @@ export async function usdcReady(account: string) {
     return false;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Bring your own AI: seats driven by the user's own agent over MCP.
+// The key is generated in the browser and handed over as a file; this app only
+// remembers, in this browser, which seats are "yours" (role, name, public key).
+// ---------------------------------------------------------------------------
+
+export type ByoRecord = { seatId: string; role: string; name?: string; publicKey: string };
+const BYO_STORE = "agentwallet.byo";
+
+export function byoAgents(): Record<string, ByoRecord> {
+  try {
+    return JSON.parse(localStorage.getItem(BYO_STORE) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+export function rememberByo(r: ByoRecord) {
+  try {
+    localStorage.setItem(BYO_STORE, JSON.stringify({ ...byoAgents(), [r.seatId]: r }));
+  } catch {
+    // Storage unavailable: the seat still works; it just shows as a plain agent here.
+  }
+}
+
+/** The file the user's own AI reads (scripts/agent-mcp.ts --key <file>). Keep it private. */
+export function agentKeyFile(seat: Seat, key: { publicKey: string; secretKey: string }, name?: string) {
+  return {
+    note:
+      "PRIVATE: give this file only to your own AI agent. It is a function-call key limited to agent_pay / agent_buy / pause on the agents contract, with no deposit: it cannot withdraw, change limits or move your NFT. Revoke it any time from the Agent Wallet.",
+    network: "testnet",
+    account_id: seat.owner,
+    seat_id: seat.seat_id,
+    kind: seat.kind,
+    name,
+    agents_contract: AGENTS,
+    nft: `${seat.nft_contract} #${seat.token_id}`,
+    public_key: key.publicKey,
+    secret_key: key.secretKey,
+  };
+}
+
+export function downloadJson(filename: string, data: unknown) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2) + "\n"], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** What to run so an MCP agent drives this seat. */
+export const mcpCommand = (file: string) => `npx tsx scripts/agent-mcp.ts --key ${file}`;

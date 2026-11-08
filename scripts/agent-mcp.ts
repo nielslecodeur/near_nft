@@ -11,6 +11,9 @@
  *   npm run agent:runner            # in another terminal
  *   claude mcp add agent-wallet -- npx tsx scripts/agent-mcp.ts
  *
+ * Key mode (--key <file>): drives YOUR agent with the key file the Agent Wallet
+ * gave you when you hired "Your AI agent" (no runner needed).
+ *
  * Demo mode (--demo or AGENTS_DEMO=1): drives the public demo agent with the
  * key published in demo/agent-key.json (agent_pay only, 1 USDC per payment,
  * 2 USDC a day, one allowed payee). No runner, no wallet: try to make it
@@ -34,11 +37,22 @@ const AGENTS: string = process.env.AGENTS_CONTRACT || pub.agents.contract;
 const MARKET: string = pub.keepers.contract;
 const log = (...a: unknown[]) => console.error("[agent-mcp]", ...a);
 
-const DEMO_MODE = process.argv.includes("--demo") || process.env.AGENTS_DEMO === "1";
-type DemoKey = { account_id: string; seat_id: string; public_key: string; secret_key: string };
-const demoKey: DemoKey | null = DEMO_MODE
-  ? JSON.parse(await readFile(new URL("../demo/agent-key.json", import.meta.url), "utf8"))
-  : null;
+/**
+ * Key mode: the server signs itself with ONE agent key from a file, no runner.
+ *   --key <file>  your own agent (file downloaded from the Agent Wallet when you
+ *                 hired "Your AI agent"); everything that key may do
+ *   --demo        the public demo agent (demo/agent-key.json), agent_pay only
+ */
+const keyArg = process.argv.indexOf("--key");
+const KEY_FILE =
+  keyArg > 0 ? process.argv[keyArg + 1] : process.env.AGENTS_KEY_FILE || null;
+const DEMO_MODE = !KEY_FILE && (process.argv.includes("--demo") || process.env.AGENTS_DEMO === "1");
+type DemoKey = { account_id: string; seat_id: string; public_key: string; secret_key: string; kind?: "Buyer" | "Payer"; name?: string };
+const demoKey: DemoKey | null = KEY_FILE
+  ? JSON.parse(await readFile(KEY_FILE, "utf8"))
+  : DEMO_MODE
+    ? JSON.parse(await readFile(new URL("../demo/agent-key.json", import.meta.url), "utf8"))
+    : null;
 /** In demo mode the server signs itself with the public key (no runner needed). */
 const demoRunner = demoKey
   ? await (async () => {
@@ -48,7 +62,14 @@ const demoRunner = demoKey
     })()
   : null;
 const demoJob = demoKey
-  ? { seatId: demoKey.seat_id, accountId: demoKey.account_id, publicKey: demoKey.public_key, kind: "Payer" as const, role: "allowance", name: "Public demo agent" }
+  ? {
+      seatId: demoKey.seat_id,
+      accountId: demoKey.account_id,
+      publicKey: demoKey.public_key,
+      kind: demoKey.kind ?? ("Payer" as const),
+      role: KEY_FILE ? "byo" : "allowance",
+      name: demoKey.name ?? (KEY_FILE ? `Your AI agent #${demoKey.seat_id}` : "Public demo agent"),
+    }
   : null;
 
 type Seat = {
@@ -104,9 +125,9 @@ async function jobsFor(who?: string): Promise<Job[]> {
 /** Pay or buy through the runner, or directly with the public key in demo mode. */
 async function act(seatId: string, body: Record<string, string | undefined>): Promise<{ ok: boolean; tx: string }> {
   if (demoRunner && demoJob) {
-    if (seatId !== demoJob.seatId) throw new Error(`Demo mode drives agent #${demoJob.seatId} only.`);
-    if (body.action !== "pay") throw new Error("The demo agent is a Payer: use pay.");
+    if (seatId !== demoJob.seatId) throw new Error(`This key drives agent #${demoJob.seatId} only.`);
     const job = { ...demoJob };
+    if (body.action === "buy") return demoRunner.core.buyNow(job, body.token_id!, body.listing_id!, body.price!);
     return demoRunner.core.payNow(job, body.payee!, body.amount!, body.memo);
   }
   return runner<{ ok: boolean; tx: string }>(`/jobs/${seatId}/act`, { method: "POST", body: JSON.stringify(body) });
@@ -360,8 +381,11 @@ server.registerTool(
   },
   async ({ seat_id }) => {
     try {
-      if (demoKey) throw new Error("The public demo key cannot pause (it may only call agent_pay), so nobody can stop the demo for others.");
-      const r = await runner<{ tx: string }>(`/jobs/${seat_id}/pause`, { method: "POST" });
+      if (DEMO_MODE) throw new Error("The public demo key cannot pause (it may only call agent_pay), so nobody can stop the demo for others.");
+      const r =
+        demoRunner && demoJob
+          ? { tx: await demoRunner.core.pause({ ...demoJob, seatId: seat_id }) }
+          : await runner<{ tx: string }>(`/jobs/${seat_id}/pause`, { method: "POST" });
       return text({ result: "paused", transaction: `${EXPLORER}/txns/${r.tx}` });
     } catch (e) {
       return fail(e);
@@ -370,4 +394,10 @@ server.registerTool(
 );
 
 await server.connect(new StdioServerTransport());
-log(DEMO_MODE ? `ready · DEMO agent #${demoKey!.seat_id} of ${demoKey!.account_id}` : `ready · contract ${AGENTS} · runner ${RUNNER}`);
+log(
+  KEY_FILE
+    ? `ready · your agent #${demoKey!.seat_id} of ${demoKey!.account_id} (key file)`
+    : DEMO_MODE
+      ? `ready · DEMO agent #${demoKey!.seat_id} of ${demoKey!.account_id}`
+      : `ready · contract ${AGENTS} · runner ${RUNNER}`,
+);
