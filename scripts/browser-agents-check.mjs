@@ -27,7 +27,8 @@ let failed = false;
 for (const width of [1280, 390]) {
   const page = await browser.newPage({ viewport: { width, height: 900 } });
   const errors = [];
-  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  // The explorer's anonymous rate limit (429) only hides "tx" links: not a page error.
+  page.on("console", (m) => m.type() === "error" && !/status of 429/.test(m.text()) && errors.push(m.text()));
   page.on("pageerror", (e) => errors.push(e.message));
   for (const [path, text] of pages) {
     // "load" + a pause: the pages poll the chain, so the network is never idle for long.

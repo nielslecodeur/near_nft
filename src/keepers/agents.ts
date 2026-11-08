@@ -553,6 +553,9 @@ export const mcpCommand = (file: string) => `npx tsx scripts/agent-mcp.ts --key 
 type IndexedTx = { hash: string; ts: bigint; method: string; ok: boolean };
 const NEARBLOCKS = "https://api-testnet.nearblocks.io/v3";
 const txCache = new Map<string, { at: number; txs: IndexedTx[] }>();
+/** NearBlocks is rate-limited for anonymous use: after a 429, wait a minute. */
+let explorerBackoffUntil = 0;
+const inflight = new Map<string, Promise<IndexedTx[]>>();
 
 const METHODS: Record<string, string[]> = {
   pay: ["agent_pay"],
@@ -569,15 +572,32 @@ const METHODS: Record<string, string[]> = {
   reset: ["agent_pay", "agent_buy", "claim_seat"],
 };
 
-/** The owner's recent transactions to the agents contract, newest first (cached 20 s). */
-export async function ownerTxs(owner: string, oldest: bigint): Promise<IndexedTx[]> {
+/**
+ * The owner's recent transactions to the agents contract, newest first.
+ * Cached a minute, one request in flight per owner, and no call at all for a
+ * minute after the explorer says 429.
+ */
+export function ownerTxs(owner: string, oldest: bigint): Promise<IndexedTx[]> {
   const hit = txCache.get(owner);
-  if (hit && Date.now() - hit.at < 20_000 && (hit.txs.at(-1)?.ts ?? 0n) <= oldest) return hit.txs;
+  if (hit && Date.now() - hit.at < 60_000) return Promise.resolve(hit.txs);
+  if (Date.now() < explorerBackoffUntil) return Promise.resolve(hit?.txs ?? []);
+  const running = inflight.get(owner);
+  if (running) return running;
+  const p = fetchOwnerTxs(owner, oldest).finally(() => inflight.delete(owner));
+  inflight.set(owner, p);
+  return p;
+}
+
+async function fetchOwnerTxs(owner: string, oldest: bigint): Promise<IndexedTx[]> {
   const txs: IndexedTx[] = [];
   let next: string | undefined;
-  for (let page = 0; page < 5; page++) {
+  for (let page = 0; page < 2; page++) {
     const url = `${NEARBLOCKS}/accounts/${AGENTS}/txns?limit=100&signer=${encodeURIComponent(owner)}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (r.status === 429) {
+      explorerBackoffUntil = Date.now() + 60_000;
+      break;
+    }
     if (!r.ok) break;
     const d = (await r.json()) as {
       data?: { transaction_hash: string; block_timestamp: string; actions?: { method?: string }[]; outcomes?: { status?: boolean } }[];
@@ -598,7 +618,8 @@ export async function ownerTxs(owner: string, oldest: bigint): Promise<IndexedTx
     const r = await fetch(`${NEARBLOCKS}/accounts/${USDC}/txns?limit=50&signer=${encodeURIComponent(owner)}`, {
       signal: AbortSignal.timeout(15_000),
     });
-    if (r.ok) {
+    if (r.status === 429) explorerBackoffUntil = Date.now() + 60_000;
+    else if (r.ok) {
       const d = (await r.json()) as { data?: { transaction_hash: string; block_timestamp: string; actions?: { method?: string }[] }[] };
       for (const t of d.data ?? [])
         if (t.actions?.[0]?.method === "ft_transfer_call")

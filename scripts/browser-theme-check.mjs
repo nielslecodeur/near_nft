@@ -26,7 +26,8 @@ let failed = false;
 for (const width of [1440, 390]) {
   const page = await browser.newPage({ viewport: { width, height: width > 500 ? 1000 : 844 } });
   const errors = [];
-  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  // The explorer's anonymous rate limit (429) only hides "tx" links: not a page error.
+  page.on("console", (m) => m.type() === "error" && !/status of 429/.test(m.text()) && errors.push(m.text()));
   page.on("pageerror", (e) => errors.push(e.message));
   for (const [name, path] of PAGES) {
     await page.goto(BASE + path, { waitUntil: "load", timeout: 60_000 });

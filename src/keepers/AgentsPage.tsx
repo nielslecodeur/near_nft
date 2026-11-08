@@ -1599,6 +1599,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
   const [seat, setSeat] = useState<Seat | null | undefined>();
   const [log, setLog] = useState<LogEntry[]>([]);
   const [logTx, setLogTx] = useState<Record<string, string>>({});
+  const linkedSeq = useRef("");
   const [nftOwner, setNftOwner] = useState<string | null>(null);
   const [gasLeft, setGasLeft] = useState<string | null | undefined>();
   const [fund, setFund] = useState("");
@@ -1612,7 +1613,8 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
     if (!s) return;
     const entries = await ag.seatLog(id);
     setLog(entries);
-    if (entries.length)
+    const newest = entries[0]?.seq ?? "";
+    if (entries.length && newest !== linkedSeq.current)
       void ag
         .ownerTxs(s.owner, BigInt(entries.at(-1)!.at) - 60_000_000_000n)
         .then((txs) => {
@@ -1621,6 +1623,8 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
             const h = ag.txForEntry(e, txs);
             if (h) m[e.seq] = h;
           }
+          // Retry on a later refresh if the newest entry is not linked yet (explorer lag or rate limit).
+          if (m[newest]) linkedSeq.current = newest;
           setLogTx(m);
         })
         .catch(() => {});
