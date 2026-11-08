@@ -13,7 +13,9 @@ import {
   returnedValue,
   viewAccessKey,
   viewOn,
+  type RawTx,
 } from "./chain";
+import { rpc } from "../client";
 
 export const AGENTS =
   import.meta.env.VITE_AGENTS_ID || "agents-v1.everkeep-dev-mw0weth5.testnet";
@@ -689,4 +691,75 @@ export function txForEntry(e: { action: string; at: string }, txs: IndexedTx[]) 
   const at = BigInt(e.at);
   const best = txs.find((t) => t.ts <= at && at - t.ts <= 60_000_000_000n && methods.includes(t.method));
   return best?.hash ?? null;
+}
+
+/**
+ * Take over (or re-arm) a seat in ONE wallet request: set the limits, resume it
+ * if paused, add the budget and give the agent its key.
+ */
+export async function setupSeat(seat: Seat, policy: Policy, amount: bigint, publicKey: string) {
+  const agentCalls = [
+    fnCall("set_policy", { seat_id: seat.seat_id, policy }, 1n, 20n),
+    ...(seat.paused ? [fnCall("resume", { seat_id: seat.seat_id }, 1n, 15n)] : []),
+    ...(seat.kind === "Buyer" && amount > 0n ? [fnCall("fund", { seat_id: seat.seat_id }, amount, 15n)] : []),
+    fnCall("set_agent_key", { seat_id: seat.seat_id, public_key: publicKey }, 1n, 15n),
+  ];
+  const txs: RawTx[] = [
+    {
+      receiverId: "self",
+      actions: [
+        {
+          type: "AddKey",
+          params: {
+            publicKey,
+            accessKey: { permission: { receiverId: AGENTS, allowance: KEY_ALLOWANCE.toString(), methodNames: AGENT_METHODS } },
+          },
+        },
+      ],
+    },
+    { receiverId: AGENTS, actions: agentCalls },
+  ];
+  if (seat.kind === "Payer" && amount > 0n)
+    txs.push({
+      receiverId: USDC,
+      actions: [
+        fnCall(
+          "ft_transfer_call",
+          { receiver_id: AGENTS, amount: amount.toString(), msg: JSON.stringify({ seat_id: seat.seat_id }) },
+          1n,
+          100n,
+        ),
+      ],
+    });
+  return sendRaw(txs);
+}
+
+/**
+ * Hand the NFT over in ONE wallet request: optionally take the budget back,
+ * switch the agent off (clear its key on the seat and delete it from this
+ * account), then nft_transfer to the new owner.
+ */
+export async function transferSeatNft(seat: Seat, receiver: string, withdrawBudget: boolean) {
+  const txs: RawTx[] = [];
+  const agentCalls = [
+    ...(withdrawBudget && seat.balance !== "0" ? [fnCall("withdraw", { seat_id: seat.seat_id, amount: null }, 1n, 50n)] : []),
+    ...(seat.agent_key ? [fnCall("set_agent_key", { seat_id: seat.seat_id, public_key: null }, 1n, 15n)] : []),
+  ];
+  if (agentCalls.length) txs.push({ receiverId: AGENTS, actions: agentCalls });
+  if (seat.agent_key) txs.push({ receiverId: "self", actions: [{ type: "DeleteKey", params: { publicKey: seat.agent_key } }] });
+  txs.push({
+    receiverId: seat.nft_contract,
+    actions: [fnCall("nft_transfer", { receiver_id: receiver, token_id: seat.token_id, memo: "agent wallet transfer" }, 1n, 50n)],
+  });
+  return sendRaw(txs);
+}
+
+/** True when `account` exists on testnet (to catch typos before a transfer). */
+export async function accountExists(account: string) {
+  try {
+    await rpc("query", { request_type: "view_account", account_id: account, finality: "final" });
+    return true;
+  } catch {
+    return false;
+  }
 }

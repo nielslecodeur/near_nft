@@ -1761,6 +1761,259 @@ function SpendBars({ log, asset }: { log: LogEntry[]; asset: "NEAR" | "USDC" }) 
   );
 }
 
+/**
+ * Take over a seat after claiming it (or re-arm one that was reset): pick a job
+ * of the same kind (or import your own AI), set limits and budget, then ONE
+ * wallet request sets the policy, resumes, funds and gives the agent its key.
+ */
+function TakeOverPanel({
+  seat,
+  account,
+  navigate,
+  onDone,
+}: {
+  seat: Seat;
+  account: string;
+  navigate: Nav;
+  onDone: () => void;
+}) {
+  const choices = ALL_ROLES.filter((r) => r.kind === seat.kind && (r.byo ? r === BYO_ROLES.find((b) => b.kind === seat.kind) : true));
+  const [role, setRole] = useState<Role>(choices[0]);
+  const [d, setD] = useState<Draft>(draftFor(choices[0]));
+  const [tool, setTool] = useState<ag.AgentTool>("claude-code");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [connect, setConnect] = useState<{ snippet: string; where: string; file: string } | null>(null);
+  const asset = seat.asset;
+  const perTx = ag.parseAsset(d.perTx, asset);
+  const perDay = ag.parseAsset(d.perDay, asset);
+  const budget = ag.parseAsset(d.budget, asset);
+  const payees = d.payees.split(/[\s,]+/).filter(Boolean);
+  const maxPrice = ag.parseAsset(d.maxPrice, "NEAR");
+  const amount = ag.parseAsset(d.amount, "USDC");
+  const every = Number(d.every);
+  const problem =
+    !perTx || !perDay || perDay < perTx
+      ? "Set the caps (the daily cap must be at least the cap per action)."
+      : budget === null
+        ? "Set the budget."
+        : seat.kind === "Payer" && (payees.length === 0 || payees.length > 10)
+          ? "List 1 to 10 accounts it may pay."
+          : !role.byo && seat.kind === "Buyer" && !maxPrice
+            ? "Set the highest price per card."
+            : !role.byo && seat.kind === "Payer" && (!amount || !(every >= 1))
+              ? "Set the amount and how often."
+              : "";
+
+  async function setUp() {
+    setBusy(true);
+    setError("");
+    try {
+      const policy: Policy = {
+        per_tx_max: perTx!.toString(),
+        per_day_max: perDay!.toString(),
+        payees: seat.kind === "Payer" ? payees : [],
+        market: seat.kind === "Buyer" ? ag.MARKET : null,
+      };
+      const name = d.name.trim() || undefined;
+      if (role.byo) {
+        const key = generateAgentKey();
+        await ag.setupSeat(seat, policy, budget ?? 0n, key.publicKey);
+        ag.rememberByo({ seatId: seat.seat_id, role: role.id, name, publicKey: key.publicKey, tool, hiredAt: Date.now() });
+        const file = `agent-${seat.seat_id}-key.json`;
+        ag.downloadJson(file, ag.agentKeyFile(seat, key, name));
+        setConnect({ ...ag.mcpSetup(tool, ag.mcpName(name, seat.seat_id), file), file });
+      } else {
+        const publicKey = await ag.runnerNewKey(account);
+        await ag.setupSeat(seat, policy, budget ?? 0n, publicKey);
+        await ag.runnerSaveJob({
+          seatId: seat.seat_id,
+          accountId: account,
+          publicKey,
+          kind: seat.kind,
+          role: role.id,
+          name,
+          buyer: seat.kind === "Buyer" ? { maxPrice: maxPrice!.toString(), minTier: Number(d.minTier) } : undefined,
+          payer:
+            seat.kind === "Payer"
+              ? { payments: payees.map((p) => ({ payee: p, amount: amount!.toString(), everySeconds: every * UNIT_SECONDS[d.unit], memo: role.name.toLowerCase() })) }
+              : undefined,
+        });
+      }
+      onDone();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (connect)
+    return (
+      <section className="ag-stage ag-takeover" aria-labelledby="ag-takeover-title">
+        <div className="ag-room" aria-hidden="true" />
+        <h2 id="ag-takeover-title">Your agent is set up: connect your AI</h2>
+        <p className="ag-muted">
+          The key file <code>{connect.file}</code> was downloaded. Put it at the root of this repo. {connect.where}:
+        </p>
+        <pre className="ag-code">{connect.snippet}</pre>
+        <div className="ag-buttons">
+          <Button variant="primary" onClick={() => navigate(`/agents/${seat.seat_id}`)}>
+            Done
+          </Button>
+        </div>
+      </section>
+    );
+
+  return (
+    <section className="ag-stage ag-takeover" aria-labelledby="ag-takeover-title">
+      <div className="ag-room" aria-hidden="true" />
+      <h2 id="ag-takeover-title">Set up this agent</h2>
+      <p className="ag-muted">
+        It is yours now, with its history but no limits, no budget and no key. Choose what it does, then one wallet request
+        sets everything.
+      </p>
+      {error && (
+        <Notice tone="error" title="Not done">
+          {error}
+        </Notice>
+      )}
+      <div className="ag-roles" role="radiogroup" aria-label="Job">
+        {choices.map((r) => {
+          const Icon = r.icon;
+          return (
+            <button
+              key={r.id}
+              type="button"
+              role="radio"
+              aria-checked={role.id === r.id}
+              className="ag-role"
+              disabled={busy}
+              onClick={() => {
+                setRole(r);
+                setD((x) => ({ ...draftFor(r), name: x.name }));
+              }}
+            >
+              <Icon aria-hidden="true" />
+              <strong>{r.name}</strong>
+              <span>{r.tagline}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="ag-form">
+        <Input label="Name (optional)" placeholder={role.name} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
+        {role.byo && (
+          <Select label="Which tool runs your AI?" value={tool} onChange={(e) => setTool(e.target.value as ag.AgentTool)}>
+            {ag.AGENT_TOOLS.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </Select>
+        )}
+        {seat.kind === "Payer" && (
+          <Input
+            label="Accounts it may pay (comma separated)"
+            placeholder="shop.testnet"
+            value={d.payees}
+            onChange={(e) => setD({ ...d, payees: e.target.value })}
+          />
+        )}
+        {!role.byo && seat.kind === "Buyer" && (
+          <Input label="Highest price per card (NEAR)" inputMode="decimal" value={d.maxPrice} onChange={(e) => setD({ ...d, maxPrice: e.target.value })} />
+        )}
+        {!role.byo && seat.kind === "Payer" && (
+          <>
+            <Input label="USDC each time" inputMode="decimal" value={d.amount} onChange={(e) => setD({ ...d, amount: e.target.value })} />
+            <div className="ag-every">
+              <Input label="Every" inputMode="numeric" value={d.every} onChange={(e) => setD({ ...d, every: e.target.value })} />
+              <Select label="Unit" value={d.unit} onChange={(e) => setD({ ...d, unit: e.target.value as Unit })}>
+                {(Object.keys(UNIT_SECONDS) as Unit[]).map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </>
+        )}
+        <Input label={`Cap per action (${asset})`} inputMode="decimal" value={d.perTx} onChange={(e) => setD({ ...d, perTx: e.target.value })} />
+        <Input label={`Cap per day (${asset})`} inputMode="decimal" value={d.perDay} onChange={(e) => setD({ ...d, perDay: e.target.value })} />
+        <Input label={`Budget (${asset})`} inputMode="decimal" value={d.budget} onChange={(e) => setD({ ...d, budget: e.target.value })} />
+      </div>
+      <div className="ag-buttons">
+        <Button variant="primary" icon={KeyRound} busy={busy} disabled={!!problem || busy} onClick={() => void setUp()}>
+          Set up and start ({role.byo ? "your AI" : role.name})
+        </Button>
+      </div>
+      {problem && !busy && (
+        <p className="ag-problems" role="status">
+          <CircleX aria-hidden="true" className="ag-inline-icon" /> {problem}
+        </p>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Hand the NFT to someone else. One wallet request: take the budget back
+ * (optional), switch this agent off and delete its key, then transfer the NFT.
+ */
+function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
+  const [to, setTo] = useState("");
+  const [withdraw, setWithdraw] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const receiver = to.trim().toLowerCase();
+  const valid = /^[a-z0-9._-]{2,64}$/.test(receiver) && receiver !== seat.owner;
+
+  async function transfer() {
+    setBusy(true);
+    setError("");
+    try {
+      if (!(await ag.accountExists(receiver))) throw new Error(`${receiver} does not exist on testnet. Check the spelling.`);
+      await ag.transferSeatNft(seat, receiver, withdraw);
+      navigate("/agents");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <details className="ag-transfer">
+      <summary>Transfer this NFT</summary>
+      <ul className="ag-transfer-facts">
+        <li>The agent stays on the NFT with its history; the new owner claims it and sets their own limits and AI.</li>
+        <li>Your agent's key is switched off and deleted from your account in the same request.</li>
+        <li>
+          Budget: {ag.formatAsset(seat.balance, seat.asset)}.{" "}
+          {withdraw ? "It comes back to your wallet now." : "It stays yours, set aside to withdraw later."}
+        </li>
+      </ul>
+      {error && (
+        <Notice tone="error" title="Not done">
+          {error}
+        </Notice>
+      )}
+      <div className="kp-action-row">
+        <Input label="New owner (NEAR account)" placeholder="friend.testnet" value={to} onChange={(e) => setTo(e.target.value)} />
+        <Button variant="danger" busy={busy} disabled={!valid || busy} onClick={() => void transfer()}>
+          Transfer
+        </Button>
+      </div>
+      {seat.balance !== "0" && (
+        <label className="ag-check">
+          <input type="checkbox" checked={withdraw} onChange={(e) => setWithdraw(e.target.checked)} /> Take my budget back
+          first
+        </label>
+      )}
+    </details>
+  );
+}
+
 export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet; navigate: Nav }) {
   const account = wallet.account;
   const [seat, setSeat] = useState<Seat | null | undefined>();
@@ -1919,8 +2172,9 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
       {notice}
       {canClaim && (
         <Notice tone="info" title="You own this NFT now">
-          The agent still belongs to {shortAccount(seat.owner)}. Claim it to set your own rules; their budget stays theirs.{" "}
-          <Button variant="primary" busy={busy === "claim"} onClick={() => run("claim", "Agent claimed", () => ag.claimSeat(seat))}>
+          The agent still belongs to {shortAccount(seat.owner)}. Claim it (one signature), then set it up with your own
+          limits and AI; their budget stays theirs.{" "}
+          <Button variant="primary" busy={busy === "claim"} onClick={() => run("claim", "Agent claimed: now set it up below", () => ag.claimSeat(seat))}>
             Claim the agent
           </Button>
         </Notice>
@@ -1929,6 +2183,9 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         <Notice tone="info" title="You no longer own this NFT">
           The agent is stopped. Your budget is still yours: withdraw it below.
         </Notice>
+      )}
+      {mine && nftOwner === account && !seat.policy && (
+        <TakeOverPanel seat={seat} account={account} navigate={navigate} onDone={() => void load()} />
       )}
 
       <div className="ag-columns">
@@ -2104,6 +2361,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
               </Button>
             </div>
             <p className="kp-hint">These need your wallet. The agent's key can do none of them.</p>
+            {nftOwner === account && <TransferPanel seat={seat} navigate={navigate} />}
           </section>
         )}
       </div>

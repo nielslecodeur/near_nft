@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-06T14:59:42.955Z",
+  "at": "2026-11-08T17:37:57.459Z",
   "wasm": "artifacts/agents.wasm",
   "checks": [
     "deploy: agents + two NEP-171 collections + USDC (NEP-141)",
@@ -16,20 +16,21 @@
     "the agent key can pause its seat but cannot resume it",
     "after a sale the agent is refused, the seat resets, the funder keeps 8.5 USDC",
     "Carol (new NFT owner) claims the empty seat; Bob cannot claim Alice's",
+    "Carol takes the agent over in one transaction (limits, resume, key) and her agent pays",
     "Alice withdraws her set-aside 8.5 USDC",
     "solvency: NEAR and USDC held >= owed"
   ],
   "gas_burnt": {
-    "agent_pay": "11837527860572",
-    "agent_buy": "22539795426537"
+    "agent_pay": "11830122761948",
+    "agent_buy": "22529104504515"
   },
   "final_stats": {
     "usdc": "usdc.sandbox",
     "seats_created": "2",
     "owed_near": "2000000000000000000000000",
-    "owed_usdc": "0",
+    "owed_usdc": "2000000",
     "storage_held": "200000000000000000000000",
-    "account_balance": "12197761106093322800000002",
-    "storage_cost": "2847090000000000000000000"
+    "account_balance": "12197761106093322800000004",
+    "storage_cost": "2852010000000000000000000"
   }
 }
