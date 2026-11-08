@@ -16,8 +16,8 @@ function toWsl(p) {
 
 const child =
   process.platform === "win32"
-    ? spawn("wsl", ["bash", toWsl(resolve(root, "scripts/agent-mcp-wsl.sh"))], { stdio: "inherit" })
-    : spawn("npx", ["tsx", resolve(root, "scripts/agent-mcp.ts")], { stdio: "inherit", cwd: root });
+    ? spawn("wsl", ["bash", toWsl(resolve(root, "scripts/agent-mcp-wsl.sh")), ...process.argv.slice(2)], { stdio: "inherit" })
+    : spawn("npx", ["tsx", resolve(root, "scripts/agent-mcp.ts"), ...process.argv.slice(2)], { stdio: "inherit", cwd: root });
 
 child.on("exit", (code) => process.exit(code ?? 0));
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => child.kill(sig));

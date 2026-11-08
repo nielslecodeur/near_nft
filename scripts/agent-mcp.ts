@@ -11,6 +11,11 @@
  *   npm run agent:runner            # in another terminal
  *   claude mcp add agent-wallet -- npx tsx scripts/agent-mcp.ts
  *
+ * Demo mode (--demo or AGENTS_DEMO=1): drives the public demo agent with the
+ * key published in demo/agent-key.json (agent_pay only, 1 USDC per payment,
+ * 2 USDC a day, one allowed payee). No runner, no wallet: try to make it
+ * overspend and watch the contract refuse.
+ *
  * Env: AGENTS_ACCOUNT (default: the account the runner holds keys for),
  *      AGENTS_RUNNER (default http://127.0.0.1:8788), NEAR_TESTNET_RPC.
  * stdout is the MCP channel: logs go to stderr only.
@@ -19,6 +24,7 @@ import { readFile } from "node:fs/promises";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { MemoryStore, Runner } from "./agent-runner-core.js";
 
 const RPC = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 const RUNNER = process.env.AGENTS_RUNNER || "http://127.0.0.1:8788";
@@ -27,6 +33,23 @@ const pub = JSON.parse(await readFile(new URL("../public/testnet.json", import.m
 const AGENTS: string = process.env.AGENTS_CONTRACT || pub.agents.contract;
 const MARKET: string = pub.keepers.contract;
 const log = (...a: unknown[]) => console.error("[agent-mcp]", ...a);
+
+const DEMO_MODE = process.argv.includes("--demo") || process.env.AGENTS_DEMO === "1";
+type DemoKey = { account_id: string; seat_id: string; public_key: string; secret_key: string };
+const demoKey: DemoKey | null = DEMO_MODE
+  ? JSON.parse(await readFile(new URL("../demo/agent-key.json", import.meta.url), "utf8"))
+  : null;
+/** In demo mode the server signs itself with the public key (no runner needed). */
+const demoRunner = demoKey
+  ? await (async () => {
+      const store = new MemoryStore();
+      await store.saveKey({ accountId: demoKey.account_id, publicKey: demoKey.public_key, secretKey: demoKey.secret_key, createdAt: "" });
+      return { store, core: new Runner({ rpc: RPC, agents: AGENTS, store, log: (l) => log(l) }) };
+    })()
+  : null;
+const demoJob = demoKey
+  ? { seatId: demoKey.seat_id, accountId: demoKey.account_id, publicKey: demoKey.public_key, kind: "Payer" as const, role: "allowance", name: "Public demo agent" }
+  : null;
 
 type Seat = {
   seat_id: string;
@@ -72,6 +95,23 @@ async function view<T>(contract: string, method: string, args: object = {}): Pro
   return JSON.parse(Buffer.from(r.result.result).toString());
 }
 
+/** Jobs the server can act for: the demo job in demo mode, the runner's otherwise. */
+async function jobsFor(who?: string): Promise<Job[]> {
+  if (demoJob) return [demoJob];
+  return runner<Job[]>(who ? `/jobs?accountId=${encodeURIComponent(who)}` : "/jobs");
+}
+
+/** Pay or buy through the runner, or directly with the public key in demo mode. */
+async function act(seatId: string, body: Record<string, string | undefined>): Promise<{ ok: boolean; tx: string }> {
+  if (demoRunner && demoJob) {
+    if (seatId !== demoJob.seatId) throw new Error(`Demo mode drives agent #${demoJob.seatId} only.`);
+    if (body.action !== "pay") throw new Error("The demo agent is a Payer: use pay.");
+    const job = { ...demoJob };
+    return demoRunner.core.payNow(job, body.payee!, body.amount!, body.memo);
+  }
+  return runner<{ ok: boolean; tx: string }>(`/jobs/${seatId}/act`, { method: "POST", body: JSON.stringify(body) });
+}
+
 async function runner<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
@@ -102,6 +142,7 @@ function parse(text: string, asset: "NEAR" | "USDC"): bigint {
 
 async function account(given?: string) {
   if (given) return given;
+  if (demoKey) return demoKey.account_id;
   if (process.env.AGENTS_ACCOUNT) return process.env.AGENTS_ACCOUNT;
   const jobs = await runner<Job[]>("/jobs");
   const owners = [...new Set(jobs.map((j) => j.accountId))];
@@ -182,7 +223,7 @@ server.registerTool(
       const who = await account(given);
       const [seats, jobs] = await Promise.all([
         view<Seat[]>(AGENTS, "seats_for_owner", { account_id: who }),
-        runner<Job[]>(`/jobs?accountId=${encodeURIComponent(who)}`).catch(() => [] as Job[]),
+        jobsFor(who).catch(() => [] as Job[]),
       ]);
       return text({ account: who, agents: seats.map((s) => describe(s, jobs.find((j) => j.seatId === s.seat_id))) });
     } catch (e) {
@@ -201,7 +242,7 @@ server.registerTool(
   async ({ seat_id }) => {
     try {
       const s = await seatOrThrow(seat_id);
-      const job = (await runner<Job[]>("/jobs").catch(() => [] as Job[])).find((j) => j.seatId === seat_id);
+      const job = (await jobsFor().catch(() => [] as Job[])).find((j) => j.seatId === seat_id);
       const entries = (await view<LogEntry[]>(AGENTS, "seat_log", { seat_id })).filter((e) => e.status !== "pending").slice(0, 10);
       return text({
         ...describe(s, job),
@@ -264,10 +305,7 @@ server.registerTool(
       const s = await seatOrThrow(seat_id);
       if (s.kind !== "Payer") throw new Error(`Agent #${seat_id} is a ${s.kind}; use buy.`);
       const amount = parse(amount_usdc, "USDC");
-      const r = await runner<{ ok: boolean; tx: string }>(`/jobs/${seat_id}/act`, {
-        method: "POST",
-        body: JSON.stringify({ action: "pay", payee, amount: amount.toString(), memo }),
-      });
+      const r = await act(seat_id, { action: "pay", payee, amount: amount.toString(), memo });
       log(`pay #${seat_id} ${amount_usdc} USDC -> ${payee}: ${r.ok}`);
       return text(await outcome(seat_id, r));
     } catch (e) {
@@ -303,10 +341,7 @@ server.registerTool(
         .filter((l) => (max ? BigInt(l.list_price) <= max : true))
         .sort((a, b) => (BigInt(a.list_price) < BigInt(b.list_price) ? -1 : 1))[0];
       if (!pick) return text("No Keeper listed matches. Try list_market.");
-      const r = await runner<{ ok: boolean; tx: string }>(`/jobs/${seat_id}/act`, {
-        method: "POST",
-        body: JSON.stringify({ action: "buy", token_id: pick.token_id, listing_id: pick.listing_id, price: pick.list_price }),
-      });
+      const r = await act(seat_id, { action: "buy", token_id: pick.token_id, listing_id: pick.listing_id, price: pick.list_price });
       log(`buy #${seat_id} Keeper #${pick.token_id}: ${r.ok}`);
       return text({ keeper: pick.token_id, price: fmt(pick.list_price, "NEAR"), ...(await outcome(seat_id, r)) });
     } catch (e) {
@@ -325,6 +360,7 @@ server.registerTool(
   },
   async ({ seat_id }) => {
     try {
+      if (demoKey) throw new Error("The public demo key cannot pause (it may only call agent_pay), so nobody can stop the demo for others.");
       const r = await runner<{ tx: string }>(`/jobs/${seat_id}/pause`, { method: "POST" });
       return text({ result: "paused", transaction: `${EXPLORER}/txns/${r.tx}` });
     } catch (e) {
@@ -334,4 +370,4 @@ server.registerTool(
 );
 
 await server.connect(new StdioServerTransport());
-log(`ready · contract ${AGENTS} · runner ${RUNNER}`);
+log(DEMO_MODE ? `ready · DEMO agent #${demoKey!.seat_id} of ${demoKey!.account_id}` : `ready · contract ${AGENTS} · runner ${RUNNER}`);

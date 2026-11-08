@@ -1,0 +1,12 @@
+{
+  "note": "PUBLIC ON PURPOSE. This function-call key can only call agent_pay on the agents contract, with no deposit and 0.5 NEAR of gas. Try to make the agent overspend: the contract refuses and logs it.",
+  "network": "testnet",
+  "account_id": "demo-agent.everkeep-dev-mw0weth5.testnet",
+  "seat_id": "9",
+  "agents_contract": "agents-v1.everkeep-dev-mw0weth5.testnet",
+  "nft": "nft.examples.testnet #character-space-warrior-demo-1794146729682",
+  "allowed_payee": "demo-agent.everkeep-dev-mw0weth5.testnet",
+  "limits": "1 USDC per payment, 2 USDC per day",
+  "public_key": "ed25519:pxn8WYob2AoJ6mGGfLLyWUCKp3DvbS67ZR8BG4CkbJX",
+  "secret_key": "ed25519:59Amva7VHgMg4eqiNQddBQUmumF4mkV5UAi4E3oFPfoP61wfTbq8ULEefvmD1hAGQtCKHs3CGQ86fo5Uu12DLk2j"
+}

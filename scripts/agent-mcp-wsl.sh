@@ -3,4 +3,4 @@
 # Only stderr may carry logs: stdout is the MCP channel.
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 cd "$(dirname "$0")/.."
-exec npx --no-install tsx scripts/agent-mcp.ts
+exec npx --no-install tsx scripts/agent-mcp.ts "$@"
