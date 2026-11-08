@@ -23,6 +23,7 @@ import {
   type Card,
 } from "./chain";
 import type { Wallet } from "./KeepersApp";
+import { VaultAgents } from "./AgentsPage";
 
 /** How long a signed proof stays valid in this tab before asking again. */
 const PROOF_TTL_MS = 30 * 60 * 1000;
@@ -280,6 +281,8 @@ export function VaultPage({
           </div>
         </dl>
       </section>
+
+      <VaultAgents account={proof.accountId} navigate={navigate} />
 
       <section className="kp-vault-section" aria-labelledby="kp-ledger">
         <h2 id="kp-ledger">Vault ledger</h2>

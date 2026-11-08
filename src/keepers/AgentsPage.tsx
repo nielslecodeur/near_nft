@@ -1829,3 +1829,80 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
 }
 
 export type { RoleId };
+
+/**
+ * The holder's agents, for the Vault: same cards as the Agent Wallet, read
+ * from chain (plus the local runner when it is up, for roles and timers).
+ */
+export function VaultAgents({ account, navigate }: { account: string; navigate: Nav }) {
+  const [seats, setSeats] = useState<Seat[] | null>(null);
+  const [lastAt, setLastAt] = useState<Record<string, string>>({});
+  const [owners, setOwners] = useState<Record<string, string | null>>({});
+  const runner = useRunner(account);
+  useEffect(() => {
+    if (!account) return;
+    let alive = true;
+    void (async () => {
+      const list = await ag.seatsForOwner(account).catch(() => [] as Seat[]);
+      const latest: Record<string, string> = {};
+      const o: Record<string, string | null> = {};
+      await Promise.all(
+        list.map(async (s) => {
+          o[s.seat_id] = await ag.nftOwner(s.nft_contract, s.token_id).catch(() => null);
+          const last = (await ag.seatLog(s.seat_id).catch(() => [])).find((e) => e.status !== "info");
+          if (last) latest[s.seat_id] = last.at;
+        }),
+      );
+      if (!alive) return;
+      setSeats(list);
+      setLastAt(latest);
+      setOwners(o);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [account]);
+  const images = useImages((seats ?? []).map((s) => ({ key: s.seat_id, contract: s.nft_contract, token: s.token_id })));
+  const near = (seats ?? []).filter((s) => s.asset === "NEAR").reduce((a, s) => a + BigInt(s.balance), 0n);
+  const usdc = (seats ?? []).filter((s) => s.asset === "USDC").reduce((a, s) => a + BigInt(s.balance), 0n);
+
+  return (
+    <section className="kp-vault-section" aria-labelledby="kp-agents">
+      <h2 id="kp-agents">Your agents</h2>
+      <p className="kp-hint">
+        {seats && seats.length
+          ? `${seats.length} agent${seats.length > 1 ? "s" : ""} on your NFTs, controlling ${ag.formatAsset(near, "NEAR")} and ${ag.formatAsset(usdc, "USDC")}. `
+          : "Agents you put on your NFTs show up here. "}
+        <a
+          href="/agents"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate("/agents");
+          }}
+        >
+          Open the Agent Wallet
+        </a>
+      </p>
+      <div className="kp-grid">
+        {seats === null
+          ? [0, 1, 2].map((i) => <NFTCardSkeleton key={i} label="Loading your agents" />)
+          : seats.map((s) => {
+              const job = runner.jobs.find((j) => j.seatId === s.seat_id);
+              const role = roleFor(s, job);
+              const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up);
+              return (
+                <NFTCard
+                  key={s.seat_id}
+                  href={`/agents/${s.seat_id}`}
+                  onOpen={() => navigate(`/agents/${s.seat_id}`)}
+                  model={seatModel(s, job, role, st, images[s.seat_id], lastAt[s.seat_id])}
+                />
+              );
+            })}
+        {seats !== null && (
+          <NFTCardEmpty title="Hire an agent" hint="Put one on any NFT you own" onClick={() => navigate("/agents/new")} />
+        )}
+      </div>
+    </section>
+  );
+}
