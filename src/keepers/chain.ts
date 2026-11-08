@@ -250,8 +250,14 @@ const failed = (s: unknown) =>
  */
 async function readyWallet() {
   const connector = await walletSelector();
-  let wallet = await connector.wallet();
-  const signer = (await wallet.getAccounts())[0]?.accountId;
+  // The wallet's own session can expire while this page still shows the account
+  // (near-connect then says "No accounts found"): reconnect instead of failing.
+  let wallet = await connector.wallet().catch(() => connector.connect());
+  let signer = (await wallet.getAccounts())[0]?.accountId;
+  if (!signer) {
+    wallet = await connector.connect();
+    signer = (await wallet.getAccounts())[0]?.accountId;
+  }
   if (!signer) throw new Error("Connect a wallet before signing.");
   if (wallet.manifest.id === "intear-wallet" && !hasWalletApprovalSession()) {
     await wallet.signOut({ network: "testnet" });
