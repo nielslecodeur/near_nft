@@ -67,7 +67,7 @@ const nameFor = (seat: Seat, job?: Job) =>
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 type Status = { label: string; tone: "up" | "down" | "neutral" | "brand"; note: string; live: boolean };
-function statusOf(seat: Seat, job: Job | undefined, nftOwner: string | null, runnerUp: boolean): Status {
+function statusOf(seat: Seat, job: Job | undefined, nftOwner: string | null, runnerUp: boolean, runnerLocked = false): Status {
   if (nftOwner && nftOwner !== seat.owner)
     return { label: "NFT sold", tone: "down", note: "The NFT changed hands: the agent is stopped.", live: false };
   if (!seat.policy) return { label: "Reset", tone: "down", note: "No limits set.", live: false };
@@ -76,6 +76,8 @@ function statusOf(seat: Seat, job: Job | undefined, nftOwner: string | null, run
   const byo = ag.byoAgents()[seat.seat_id];
   if (!job && byo && seat.agent_key === byo.publicKey)
     return { label: "Your AI", tone: "brand", note: "Driven by your own AI agent over MCP, inside these limits.", live: true };
+  if (!job && runnerLocked)
+    return { label: "Runner locked", tone: "neutral", note: "Unlock the runner to see its mission (one signature, no fee).", live: false };
   if (!job) return { label: "No mission", tone: "neutral", note: "The runner has no key for it.", live: false };
   if (!runnerUp) return { label: "Runner offline", tone: "down", note: "Start npm run agent:runner.", live: false };
   return { label: "Active", tone: "up", note: "Acts on its own, within its limits.", live: true };
@@ -115,21 +117,64 @@ function useAction(refresh: () => void) {
   return { busy, run, notice };
 }
 
+/**
+ * The local runner: online or not, and whether this account signed in to it
+ * (it only shows and drives an account's agents after one NEP-413 signature).
+ */
 function useRunner(account: string) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [up, setUp] = useState<boolean | null>(null);
+  const [locked, setLocked] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState("");
   const load = useCallback(async () => {
     if (!account) return;
     try {
       await ag.runnerHealth();
-      setJobs(await ag.runnerJobs(account));
       setUp(true);
     } catch {
       setUp(false);
+      return;
+    }
+    try {
+      setJobs(await ag.runnerJobs(account));
+      setLocked(false);
+    } catch (e) {
+      if (e instanceof ag.RunnerLockedError) {
+        setJobs([]);
+        setLocked(true);
+      } else setUp(false);
     }
   }, [account]);
+  const unlock = useCallback(async () => {
+    setUnlocking(true);
+    setUnlockError("");
+    try {
+      await ag.runnerSignIn(account);
+      await load();
+    } catch (e) {
+      setUnlockError((e as Error).message);
+    } finally {
+      setUnlocking(false);
+    }
+  }, [account, load]);
   useEffect(() => void load(), [load]);
-  return { jobs, up: up === true, checked: up !== null, reload: load };
+  return { jobs, up: up === true, checked: up !== null, locked: up === true && locked, unlock, unlocking, unlockError, reload: load };
+}
+
+/** Shown while the runner is online but this account has not signed in to it. */
+function RunnerLockedNotice({ runner }: { runner: ReturnType<typeof useRunner> }) {
+  if (!runner.locked) return null;
+  return (
+    <Notice tone="info" title="Unlock your agent runner">
+      The runner on this computer only obeys you after one wallet signature: no transaction, no fee, valid 12 hours.
+      Other sites and accounts cannot drive your agents.{" "}
+      <Button variant="primary" icon={KeyRound} busy={runner.unlocking} onClick={() => void runner.unlock()}>
+        Unlock
+      </Button>
+      {runner.unlockError && <span className="ag-problems"> {runner.unlockError}</span>}
+    </Notice>
+  );
 }
 
 function useImages(items: { key: string; contract: string; token: string }[]) {
@@ -635,7 +680,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       else (t.usdc += BigInt(s.balance)), (t.todayUsdc += BigInt(s.spent_today));
       t.done += s.done;
       t.refused += s.refused;
-      if (statusOf(s, runner.jobs.find((j) => j.seatId === s.seat_id), owners[s.seat_id] ?? null, runner.up).live) t.active++;
+      if (statusOf(s, runner.jobs.find((j) => j.seatId === s.seat_id), owners[s.seat_id] ?? null, runner.up, runner.locked).live) t.active++;
     }
     return t;
   }, [seats, runner.jobs, runner.up, owners]);
@@ -688,7 +733,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
 
   const focused = seats && seats.length ? seats[Math.min(focus, seats.length - 1)] : null;
   const focusedJob = focused ? runner.jobs.find((j) => j.seatId === focused.seat_id) : undefined;
-  const focusedStatus = focused ? statusOf(focused, focusedJob, owners[focused.seat_id] ?? null, runner.up) : null;
+  const focusedStatus = focused ? statusOf(focused, focusedJob, owners[focused.seat_id] ?? null, runner.up, runner.locked) : null;
   const focusedCap = BigInt(focused?.policy?.per_day_max ?? "0");
   const focusedPct = focused && focusedCap > 0n ? Number((BigInt(focused.spent_today) * 100n) / focusedCap) : 0;
 
@@ -709,6 +754,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
           Agents only act while it runs: <code>npm run agent:runner</code>. Budgets and limits stay safe on chain.
         </Notice>
       )}
+      {!readOnly && <RunnerLockedNotice runner={runner} />}
       {notice}
       {!readOnly && (refund.near !== "0" || refund.usdc !== "0") && (
         <Notice tone="info" title="Money set aside for you">
@@ -744,7 +790,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
           {!readOnly && (
             <div className="ag-stage-actions">
               <Badge tone={runner.up ? "up" : runner.checked ? "down" : "neutral"} icon={Zap}>
-                {runner.up ? "Runner online" : runner.checked ? "Runner offline" : "Checking runner"}
+                {runner.locked ? "Runner locked" : runner.up ? "Runner online" : runner.checked ? "Runner offline" : "Checking runner"}
               </Badge>
               <Button
                 variant="danger"
@@ -796,7 +842,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
               ...seats.map((s) => {
                 const job = runner.jobs.find((j) => j.seatId === s.seat_id);
                 const role = roleFor(s, job);
-                const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up);
+                const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up, runner.locked);
                 return (
                   <NFTCard
                     key={s.seat_id}
@@ -2073,7 +2119,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
   const RoleIcon = role.icon;
   const mine = account === seat.owner;
   const canClaim = !!account && nftOwner === account && !mine;
-  const st = statusOf(seat, job, nftOwner, runner.up);
+  const st = statusOf(seat, job, nftOwner, runner.up, runner.locked);
   const cap = BigInt(seat.policy?.per_day_max ?? "0");
   const fundValue = ag.parseAsset(fund, seat.asset);
   const firstPay = job?.payer?.payments[0];
@@ -2184,6 +2230,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
           The agent is stopped. Your budget is still yours: withdraw it below.
         </Notice>
       )}
+      {mine && <RunnerLockedNotice runner={runner} />}
       {mine && nftOwner === account && !seat.policy && (
         <TakeOverPanel seat={seat} account={account} navigate={navigate} onDone={() => void load()} />
       )}
@@ -2488,7 +2535,7 @@ export function VaultAgents({ account, navigate }: { account: string; navigate: 
           : seats.map((s) => {
               const job = runner.jobs.find((j) => j.seatId === s.seat_id);
               const role = roleFor(s, job);
-              const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up);
+              const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up, runner.locked);
               return (
                 <NFTCard
                   key={s.seat_id}

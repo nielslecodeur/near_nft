@@ -167,14 +167,34 @@ async function act(seatId: string, body: Record<string, string | undefined>): Pr
   return runner<{ ok: boolean; tx: string }>(`/jobs/${seatId}/act`, { method: "POST", body: JSON.stringify(body) });
 }
 
+/**
+ * The runner's admin token: AGENTS_RUNNER_TOKEN, else the file the runner
+ * writes at each start (.local/runner-token in the repo, or in the cwd). Read
+ * on every call, so a runner restart (new token) needs no MCP restart.
+ */
+async function runnerToken(): Promise<string | null> {
+  if (process.env.AGENTS_RUNNER_TOKEN) return process.env.AGENTS_RUNNER_TOKEN.trim();
+  for (const file of [fileURLToPath(new URL("../.local/runner-token", import.meta.url)), `${process.cwd()}/.local/runner-token`]) {
+    const t = await readFile(file, "utf8").catch(() => "");
+    if (t.trim()) return t.trim();
+  }
+  return null;
+}
+
 async function runner<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await runnerToken();
   let res: Response;
   try {
-    res = await fetch(RUNNER + path, { ...init, headers: { "content-type": "application/json" } });
+    res = await fetch(RUNNER + path, {
+      ...init,
+      headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    });
   } catch {
     throw new Error(`The agent runner is not reachable at ${RUNNER}. Start it with: npm run agent:runner`);
   }
   const data = await res.json();
+  if (res.status === 401)
+    throw new Error("The runner refused this server's token. Start the runner from this repo (it writes .local/runner-token) or set AGENTS_RUNNER_TOKEN.");
   if (!res.ok) throw new Error(data.error || `runner error ${res.status}`);
   return data as T;
 }

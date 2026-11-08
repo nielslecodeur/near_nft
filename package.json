@@ -8,6 +8,7 @@
     "test:keepers": "bash scripts/keepers-proof.sh",
     "test:agents": "bash scripts/agents-proof.sh",
     "test:agents:runner": "bash scripts/agents-runner-proof.sh",
+    "test:runner:auth": "tsx scripts/runner-auth-proof.ts",
     "agent:runner": "tsx scripts/agent-runner.ts",
     "agent:mcp": "tsx scripts/agent-mcp.ts",
     "build:mcp": "esbuild scripts/agent-mcp.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist-mcp/agent-mcp.mjs --log-level=warning \"--banner:js=import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\"",

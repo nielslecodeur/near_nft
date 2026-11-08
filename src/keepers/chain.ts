@@ -248,7 +248,7 @@ const failed = (s: unknown) =>
  * (src/wallet-session.ts), so it is gone after a page reload: reconnect
  * Intear to get a fresh one, and refuse if the account changed meanwhile.
  */
-async function readyWallet() {
+export async function readyWallet() {
   const connector = await walletSelector();
   // The wallet's own session can expire while this page still shows the account
   // (near-connect then says "No accounts found"): reconnect instead of failing.
@@ -498,6 +498,20 @@ export const rpcUrl = rpcConfig.rpc;
 // ---------------------------------------------------------------------------
 // Vault access: prove control of the account (NEP-413), then read is_holder.
 // ---------------------------------------------------------------------------
+
+/**
+ * Asks the connected wallet to sign a NEP-413 message (no transaction, no fee)
+ * and checks the signature locally. The receiver checks the key on chain.
+ */
+export async function signNep413(params: { message: string; recipient: string; nonce: Uint8Array }) {
+  const { wallet, signer: accountId } = await readyWallet();
+  if (wallet.manifest.features && wallet.manifest.features.signMessage === false)
+    throw new Error("This wallet cannot sign messages (NEP-413). Use Intear or another wallet that supports it.");
+  const signed = await wallet.signMessage({ ...params, network: "testnet", signerId: accountId });
+  if (!signed || signed.accountId !== accountId) throw new Error("The wallet signed for a different account.");
+  if (!(await verifySignature(signed, params))) throw new Error("The wallet's signature does not match the message.");
+  return { accountId, publicKey: signed.publicKey, signature: signed.signature };
+}
 
 export type AccountProof = {
   accountId: string;

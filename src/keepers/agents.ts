@@ -9,7 +9,9 @@ import {
   KEEPERS_V2,
   YOCTO,
   fnCall,
+  readyWallet,
   sendRaw,
+  signNep413,
   returnedValue,
   viewAccessKey,
   viewOn,
@@ -360,12 +362,85 @@ export type Job = {
   lastResult?: string;
 };
 
-async function runnerFetch<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Runner sign-in: the runner only obeys a session token it gave out against a
+ * wallet-signed NEP-413 challenge (one signature, no transaction, 12 h), and
+ * only for that account's agents. Tokens stay in this browser's localStorage.
+ */
+type RunnerSession = { accountId: string; token: string; expiresAt: number };
+const SESSIONS_KEY = "agentwallet.runner.sessions";
+let currentAccount = "";
+
+function sessions(): Record<string, RunnerSession> {
+  try {
+    return JSON.parse(localStorage.getItem(SESSIONS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+function saveSessions(all: Record<string, RunnerSession>) {
+  try {
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(all));
+  } catch {
+    /* private mode: the session lasts for this page only */
+  }
+}
+const memorySessions: Record<string, RunnerSession> = {};
+function sessionOf(accountId: string): RunnerSession | null {
+  const s = memorySessions[accountId] ?? sessions()[accountId];
+  return s && s.expiresAt > Date.now() + 60_000 ? s : null;
+}
+function forgetSession(accountId: string) {
+  delete memorySessions[accountId];
+  const all = sessions();
+  delete all[accountId];
+  saveSessions(all);
+}
+
+/** The runner answered "sign in first": the page shows an Unlock button. */
+export class RunnerLockedError extends Error {
+  constructor() {
+    super("The runner needs you to sign in (one wallet signature, no transaction).");
+  }
+}
+
+export const runnerSignedIn = (accountId: string) => !!sessionOf(accountId);
+
+/** One NEP-413 signature in the wallet; returns the account it signed for. */
+export async function runnerSignIn(accountId?: string): Promise<string> {
+  const who = accountId || currentAccount || (await readyWallet()).signer;
+  const c = await runnerRequest<{ nonce: string; message: string; recipient: string }>("/auth/challenge", {
+    method: "POST",
+    body: JSON.stringify({ accountId: who }),
+  });
+  const signed = await signNep413({
+    message: c.message,
+    recipient: c.recipient,
+    nonce: Uint8Array.from(atob(c.nonce), (ch) => ch.charCodeAt(0)),
+  });
+  if (signed.accountId !== who) throw new Error(`The wallet is connected as ${signed.accountId}, not ${who}.`);
+  const session = await runnerRequest<RunnerSession>("/auth/session", {
+    method: "POST",
+    body: JSON.stringify({ nonce: c.nonce, ...signed }),
+  });
+  memorySessions[who] = session;
+  saveSessions({ ...sessions(), [who]: session });
+  currentAccount = who;
+  return who;
+}
+
+export async function runnerSignOut(accountId: string) {
+  const s = sessionOf(accountId);
+  forgetSession(accountId);
+  if (s) await runnerRequest("/auth/logout", { method: "POST" }, s.token).catch(() => {});
+}
+
+async function runnerRequest<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
   let r: Response;
   try {
     r = await fetch(RUNNER + path, {
       ...init,
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
       signal: AbortSignal.timeout(60_000),
     });
   } catch {
@@ -374,24 +449,51 @@ async function runnerFetch<T>(path: string, init?: RequestInit): Promise<T> {
     );
   }
   const data = await r.json();
+  if (r.status === 401) throw new RunnerLockedError();
   if (!r.ok) throw new Error(data.error || `Runner error ${r.status}`);
   return data as T;
 }
 
+/**
+ * A runner call with this account's session. `interactive`: when the session is
+ * missing or expired, ask for the signature right away and retry once (the
+ * user is acting); otherwise throw RunnerLockedError (background reads).
+ */
+async function runnerFetch<T>(path: string, init?: RequestInit, interactive = true, accountId = currentAccount): Promise<T> {
+  const s = accountId ? sessionOf(accountId) : null;
+  try {
+    if (!s) throw new RunnerLockedError();
+    return await runnerRequest<T>(path, init, s.token);
+  } catch (e) {
+    if (!(e instanceof RunnerLockedError)) throw e;
+    if (accountId) forgetSession(accountId);
+    if (!interactive) throw e;
+    const who = await runnerSignIn(accountId || undefined);
+    return runnerRequest<T>(path, init, sessionOf(who)!.token);
+  }
+}
+
 export const runnerHealth = () =>
-  runnerFetch<{ agents: string; tick_seconds: number }>("/health");
+  runnerRequest<{ agents: string; tick_seconds: number }>("/health");
 export const runnerNewKey = (accountId: string) =>
-  runnerFetch<{ publicKey: string }>("/keys", {
-    method: "POST",
-    body: JSON.stringify({ accountId }),
-  }).then((r) => r.publicKey);
-export const runnerJobs = (accountId: string) =>
-  runnerFetch<Job[]>(`/jobs?accountId=${encodeURIComponent(accountId)}`);
+  runnerFetch<{ publicKey: string }>(
+    "/keys",
+    { method: "POST", body: JSON.stringify({ accountId }) },
+    true,
+    accountId,
+  ).then((r) => r.publicKey);
+/** Background read: throws RunnerLockedError instead of opening the wallet. */
+export const runnerJobs = (accountId: string) => {
+  currentAccount = accountId;
+  return runnerFetch<Job[]>(`/jobs?accountId=${encodeURIComponent(accountId)}`, undefined, false, accountId);
+};
 export const runnerSaveJob = (job: Job) =>
-  runnerFetch<Job>(`/jobs/${job.seatId}`, {
-    method: "PUT",
-    body: JSON.stringify(job),
-  });
+  runnerFetch<Job>(
+    `/jobs/${job.seatId}`,
+    { method: "PUT", body: JSON.stringify(job) },
+    true,
+    job.accountId,
+  );
 export const runnerRunNow = (seatId: string) =>
   runnerFetch<{ result: string }>(`/jobs/${seatId}/run`, { method: "POST" });
 export const runnerPause = (seatId: string) =>

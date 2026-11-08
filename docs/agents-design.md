@@ -132,6 +132,7 @@ With (b), on a detected owner change:
 | Another app key on the owner's account runs the seat | `signer_account_pk == seat.agent_key` |
 | A fake NFT contract claims ownership | The seat stores `nft_contract`. A fake contract can only fake its own NFTs, and the money in such a seat is the funder's own. |
 | Storage griefing (log growth) | Fixed 50-entry ring buffer, paid at creation |
+| A web page or another local account drives the runner (CSRF, DNS rebinding) | Runner auth (2026-11-08, `scripts/runner-auth.ts`): every route but `/health` needs a session token, given against a wallet-signed NEP-413 challenge (single use, 5 min) from a **FullAccess** key checked on chain, and scoped to that account's agents. Local tools use the admin token in `.local/runner-token` (new at each start). Other origins and foreign `Host` headers get 403. Proof: `npm run test:runner:auth`, 24 checks. |
 
 Not covered (written in the README):
 - the runner's choices within the limits, such as a bad purchase under the cap;
