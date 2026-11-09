@@ -2443,14 +2443,84 @@ function ConnectYourAi({
  * of the same kind (or import your own AI), set limits and budget, then ONE
  * wallet request sets the policy, resumes, funds and gives the agent its key.
  */
+/** Base units as a plain decimal for a form field, without rounding ("0.125"). */
+const exactAmount = (v: string, asset: "NEAR" | "USDC") => {
+  const decimals = asset === "NEAR" ? 24 : 6;
+  const n = BigInt(v);
+  const unit = 10n ** BigInt(decimals);
+  const frac = (n % unit).toString().padStart(decimals, "0").replace(/0+$/, "");
+  return `${n / unit}${frac ? `.${frac}` : ""}`;
+};
+
+/**
+ * The limits the agent had before it changed hands, found on chain, with how it did
+ * under them. The new owner can start from them instead of from scratch.
+ */
+function ProvenLimits({ seat, log, onUse }: { seat: Seat; log: LogEntry[]; onUse: (p: Policy) => void }) {
+  const [past, setPast] = useState<ag.PastLimits | null | undefined>();
+  const [used, setUsed] = useState(false);
+  // Only a new claim changes the answer: do not refetch on every live refresh.
+  const claims = log.filter((e) => e.action === "claim").map((e) => e.seq).join(",");
+  useEffect(() => {
+    if (!claims) return setPast(null);
+    let alive = true;
+    void ag.previousLimits(seat, log).then(
+      (p) => alive && setPast(p),
+      () => alive && setPast(null),
+    );
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seat.seat_id, claims]);
+  if (past === undefined) return claims ? <Skeleton label="Looking for its previous limits on chain" /> : null;
+  if (!past) return null;
+  const { policy } = past;
+  const paysOwner = policy.payees.includes(past.owner);
+  return (
+    <div className="ag-proven" role="group" aria-labelledby="ag-proven-title">
+      <strong id="ag-proven-title">Its proven limits</strong>
+      <p>
+        {ag.formatAsset(policy.per_tx_max, seat.asset)} per action · {ag.formatAsset(policy.per_day_max, seat.asset)} a day
+        {seat.kind === "Payer" && policy.payees.length > 0 && <> · pays {policy.payees.map(shortAccount).join(", ")}</>}
+        {seat.kind === "Buyer" && policy.market && <> · buys on {shortAccount(policy.market)}</>}
+      </p>
+      <p className="ag-muted">
+        Set by {shortAccount(past.owner)} on {new Date(Number(past.setAt / 1_000_000n)).toLocaleDateString()} (
+        <a href={`${EXPLORER}/txns/${past.tx}`} target="_blank" rel="noreferrer">
+          transaction
+        </a>
+        ). Under them, the agent did {past.done} action{past.done === 1 ? "" : "s"} and the contract blocked {past.blocked}.
+      </p>
+      {paysOwner && (
+        <p className="ag-muted">One account on the list is its previous owner: remove it unless you mean to pay them.</p>
+      )}
+      <div className="ag-buttons">
+        <Button
+          variant="secondary"
+          onClick={() => {
+            onUse(policy);
+            setUsed(true);
+          }}
+        >
+          {used ? "Filled in below" : "Start from these limits"}
+        </Button>
+        <span className="ag-muted">They fill the form; change anything before you sign.</span>
+      </div>
+    </div>
+  );
+}
+
 function TakeOverPanel({
   seat,
   account,
+  log,
   navigate,
   onDone,
 }: {
   seat: Seat;
   account: string;
+  log: LogEntry[];
   navigate: Nav;
   onDone: () => void;
 }) {
@@ -2551,6 +2621,18 @@ function TakeOverPanel({
         It is yours now, with its history but no limits, no budget and no key. Choose what it does, then one wallet request
         sets everything.
       </p>
+      <ProvenLimits
+        seat={seat}
+        log={log}
+        onUse={(p) =>
+          setD((x) => ({
+            ...x,
+            perTx: exactAmount(p.per_tx_max, seat.asset),
+            perDay: exactAmount(p.per_day_max, seat.asset),
+            payees: seat.kind === "Payer" ? p.payees.join(", ") : x.payees,
+          }))
+        }
+      />
       {error && (
         <Notice tone="error" title="Not done">
           {error}
@@ -3274,7 +3356,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
       )}
       <SkillInstall seat={seat} account={account} holder={nftOwner} connect={() => void wallet.connect()} />
       {mine && nftOwner === account && !seat.policy && !ag.isSkillSeat(seat) && (
-        <TakeOverPanel seat={seat} account={account} navigate={navigate} onDone={() => void load()} />
+        <TakeOverPanel seat={seat} account={account} log={log} navigate={navigate} onDone={() => void load()} />
       )}
 
       {seat.policy && <AgentDashboard seat={seat} log={log} />}

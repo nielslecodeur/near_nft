@@ -1273,3 +1273,103 @@ export async function buyAgent(l: AgentListing, buyer: string): Promise<{ bought
   const owner = await nftOwner(l.nft_contract, l.token_id).catch(() => null);
   return owner === buyer && !reason ? { bought: true, tx } : { bought: owner === buyer, reason: reason ?? "the sale did not go through", tx };
 }
+
+// ---------------------------------------------------------------------------
+// Proven limits: on a change of hands the contract clears the agent's limits
+// (the new owner sets their own). They are still on chain, in the previous
+// owner's create_seat / set_policy transaction; its log tells how the agent did
+// under them. The new owner can take them back in one click.
+// ---------------------------------------------------------------------------
+
+export type PastLimits = {
+  policy: Policy;
+  /** Who set them. */
+  owner: string;
+  tx: string;
+  /** Block time (ns) they were set, and the claim that ended them. */
+  setAt: bigint;
+  until: bigint;
+  /** What the agent did under them, from its log (the last 50 entries). */
+  done: number;
+  blocked: number;
+};
+
+type NbAction = { method?: string; args?: { args_json?: Record<string, unknown> | null; args_base64?: string | null } };
+type NbTx = { transaction_hash: string; block_timestamp: string; actions?: NbAction[]; outcomes?: { status?: boolean } };
+
+const argsOf = (a: NbAction): Record<string, unknown> | null => {
+  if (a.args?.args_json) return a.args.args_json;
+  try {
+    return a.args?.args_base64 ? JSON.parse(atob(a.args.args_base64)) : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The limits the agent had before its last change(s) of hands, or null if the chain does not say.
+ * A claim's answer never changes, so it is kept in this browser (NearBlocks is rate-limited).
+ */
+export async function previousLimits(seat: Seat, log: LogEntry[]): Promise<PastLimits | null> {
+  const claims = log.filter((e) => e.action === "claim" && e.counterparty).sort((a, b) => (BigInt(b.seq) > BigInt(a.seq) ? 1 : -1));
+  if (!claims.length) return null;
+  const cacheKey = `agentwallet.proven:${seat.contract}:${seat.num}:${claims[0].seq}`;
+  try {
+    const hit = localStorage.getItem(cacheKey);
+    if (hit) {
+      const p = JSON.parse(hit) as (Omit<PastLimits, "setAt" | "until"> & { setAt: string; until: string }) | null;
+      return p && { ...p, setAt: BigInt(p.setAt), until: BigInt(p.until) };
+    }
+  } catch {
+    /* no storage: ask the explorer */
+  }
+  if (Date.now() < explorerBackoffUntil) return null;
+  const found = await findPreviousLimits(seat, log, claims);
+  if (found !== undefined)
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(found && { ...found, setAt: String(found.setAt), until: String(found.until) }));
+    } catch {
+      /* private mode */
+    }
+  return found ?? null;
+}
+
+/** undefined when the explorer could not answer (try again later), null when there are none. */
+async function findPreviousLimits(seat: Seat, log: LogEntry[], claims: LogEntry[]): Promise<PastLimits | null | undefined> {
+  for (const claim of claims.slice(0, 2)) {
+    const owner = claim.counterparty!;
+    const until = BigInt(claim.at);
+    const r = await fetch(`${NEARBLOCKS}/accounts/${seat.contract}/txns?limit=100&signer=${encodeURIComponent(owner)}`, { signal: AbortSignal.timeout(15_000) });
+    if (r.status === 429) explorerBackoffUntil = Date.now() + 60_000;
+    if (!r.ok) return undefined;
+    const d = (await r.json()) as { txns?: NbTx[]; data?: NbTx[] };
+    const candidates = (d.txns ?? d.data ?? [])
+      .filter((t) => t.outcomes?.status !== false && BigInt(t.block_timestamp) <= until)
+      .filter((t) => t.actions?.some((a) => a.method === "set_policy" || a.method === "create_seat"))
+      .slice(0, 4);
+    for (const c of candidates) {
+      const detail = await fetch(`${NEARBLOCKS}/txns/${c.transaction_hash}`, { signal: AbortSignal.timeout(15_000) });
+      if (detail.status === 429) {
+        explorerBackoffUntil = Date.now() + 60_000;
+        return undefined;
+      }
+      if (!detail.ok) continue;
+      const tx = ((await detail.json()) as { data?: NbTx }).data ?? null;
+      for (const a of [...(tx?.actions ?? [])].reverse()) {
+        const args = argsOf(a);
+        const policy = args?.policy as Policy | null | undefined;
+        if (!policy) continue;
+        const mine =
+          a.method === "set_policy"
+            ? String(args!.seat_id) === seat.num
+            : a.method === "create_seat" && args!.nft_contract === seat.nft_contract && args!.token_id === seat.token_id;
+        if (!mine) continue;
+        const setAt = BigInt(c.block_timestamp);
+        const under = log.filter((e) => BigInt(e.at) >= setAt && BigInt(e.at) <= until && (e.action === "pay" || e.action === "buy"));
+        const count = (status: string) => under.filter((e) => e.status === status).reduce((n, e) => n + (e.times ?? 1), 0);
+        return { policy, owner, tx: c.transaction_hash, setAt, until, done: count("done"), blocked: count("refused") };
+      }
+    }
+  }
+  return null;
+}
