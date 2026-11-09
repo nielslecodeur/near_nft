@@ -1064,3 +1064,288 @@
     background: var(--nx-accent-soft);
   }
 }
+
+/* Agent dashboard: tiles, daily column chart with the cap line, ranked bars */
+.ag-dash {
+  display: grid;
+  gap: var(--space-6);
+}
+.ag-dash h3 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--type-lead);
+}
+.ag-dash-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--space-3);
+}
+.ag-dash-tile {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  padding: var(--space-4);
+  border: var(--stroke-border) solid var(--nx-line);
+  border-radius: var(--nx-radius-card);
+  background: var(--nx-glass);
+}
+.ag-dash-label {
+  color: var(--nx-muted);
+  font-size: var(--type-sm);
+}
+.ag-dash-value {
+  font-size: var(--type-title);
+  line-height: var(--line-tight);
+}
+.ag-dash-value .ag-muted {
+  font-size: var(--type-sm);
+  font-weight: var(--weight-regular);
+}
+.ag-dash-sub {
+  color: var(--nx-muted);
+  font-size: var(--type-sm);
+  line-height: var(--line-relaxed);
+}
+.ag-dash-warn {
+  color: var(--color-down);
+}
+.ag-dash-meter {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--nx-s3);
+  overflow: hidden;
+}
+.ag-dash-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--nx-accent);
+}
+.ag-dash-meter[data-full] span {
+  background: var(--color-down);
+}
+
+.ag-dash-chart {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+.ag-dash-chart figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: var(--type-sm);
+}
+.ag-dash-plot,
+.ag-dash-x {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+}
+.ag-dash-plot {
+  height: 11rem;
+  padding-top: var(--space-4);
+}
+.ag-dash-axis {
+  position: relative;
+}
+.ag-dash-axis span {
+  position: absolute;
+  right: var(--space-2);
+  transform: translateY(50%);
+  color: var(--nx-muted);
+  font-size: var(--type-xs);
+  font-variant-numeric: tabular-nums;
+}
+.ag-dash-area {
+  position: relative;
+  border-bottom: 1px solid var(--nx-line-strong);
+}
+.ag-dash-grid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--nx-line);
+}
+.ag-dash-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: 0;
+  border-top: 1px solid var(--nx-muted);
+  pointer-events: none;
+}
+.ag-dash-cap span {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  padding: 0 var(--space-1);
+  border-radius: 4px;
+  background: var(--nx-s1);
+  color: var(--nx-muted);
+  font-size: var(--type-xs);
+  white-space: nowrap;
+}
+.ag-dash-cols {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.ag-dash-col {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  border-radius: 6px;
+  outline: none;
+}
+.ag-dash-col:hover,
+.ag-dash-col:focus-visible {
+  background: var(--nx-accent-soft);
+}
+.ag-dash-col:focus-visible {
+  box-shadow: 0 0 0 2px var(--nx-accent);
+}
+.ag-dash-col[data-unknown] {
+  background: repeating-linear-gradient(135deg, transparent 0 6px, var(--nx-line) 6px 7px);
+}
+.ag-dash-bar {
+  position: relative;
+  width: min(24px, 60%);
+  border-radius: 4px 4px 0 0;
+  background: var(--nx-accent);
+}
+.ag-dash-bar b {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--nx-text);
+  font-size: var(--type-xs);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ag-dash-tip {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  z-index: 3;
+  width: max-content;
+  max-width: 14rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--nx-line-strong);
+  border-radius: var(--nx-radius-chip);
+  background: var(--nx-s2);
+  color: var(--nx-text);
+  font-size: var(--type-xs);
+  line-height: var(--line-relaxed);
+  display: none;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+/* Anchor toward the middle so a tooltip never leaves the screen. */
+.ag-dash-col:nth-child(-n + 3) .ag-dash-tip {
+  left: 0;
+  transform: none;
+}
+.ag-dash-col:nth-child(n + 5) .ag-dash-tip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.ag-dash-col:hover .ag-dash-tip,
+.ag-dash-col:focus-visible .ag-dash-tip {
+  display: block;
+}
+.ag-dash-x {
+  grid-template-columns: 2.75rem repeat(7, minmax(0, 1fr));
+}
+.ag-dash-x > span {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding-top: var(--space-1);
+  color: var(--nx-muted);
+  font-size: var(--type-xs);
+}
+.ag-dash-x > span[data-today] {
+  color: var(--nx-text);
+  font-weight: var(--weight-semibold);
+}
+.ag-dash-blocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--nx-text);
+  font-weight: var(--weight-semibold);
+}
+.ag-dash-blocked svg,
+.ag-dash-legend svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--color-down);
+}
+.ag-dash-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--nx-muted);
+  font-size: var(--type-xs);
+}
+
+.ag-dash-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-6);
+}
+.ag-dash-rank {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ag-dash-rank li {
+  display: grid;
+  gap: var(--space-1);
+}
+.ag-dash-rank-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--type-sm);
+}
+.ag-dash-rank-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-dash-rank-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--nx-s2);
+  overflow: hidden;
+}
+.ag-dash-rank-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--nx-accent);
+}
+.ag-dash-rank-bar[data-tone="down"] span {
+  background: var(--color-down);
+}
+.ag-dash-table summary {
+  cursor: pointer;
+  color: var(--nx-accent);
+  font-size: var(--type-sm);
+}
+.ag-dash-table table {
+  margin-top: var(--space-3);
+}

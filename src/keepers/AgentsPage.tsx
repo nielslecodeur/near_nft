@@ -27,6 +27,7 @@ import { CHARACTERS, characterFromMedia } from "./nft-art";
 import { NFTCard, NFTCardEmpty, NFTCardSkeleton, type NftCardModel } from "./NFTCard";
 import { ALL_ROLES, BYO_ROLES, PICKER_ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
 import { generateAgentKey } from "./agentKey";
+import { AgentDashboard } from "./AgentDashboard";
 import { LiveDot, ToastStack, useFresh, useLivePoll, useTitleBadge, useToasts, type Toast } from "./live";
 import type { Wallet } from "./KeepersApp";
 import "./agents.css";
@@ -1836,33 +1837,6 @@ function ConnectYourAi({
 // /agents/:id — one agent
 // ---------------------------------------------------------------------------
 
-function SpendBars({ log, asset }: { log: LogEntry[]; asset: "NEAR" | "USDC" }) {
-  const days = useMemo(() => {
-    const out: { day: string; total: bigint }[] = [];
-    const today = Math.floor(Date.now() / 86_400_000);
-    for (let i = 6; i >= 0; i--) out.push({ day: new Date((today - i) * 86_400_000).toISOString().slice(5, 10), total: 0n });
-    for (const e of log) {
-      if (e.status !== "done" || (e.action !== "pay" && e.action !== "buy")) continue;
-      const d = Math.floor(Number(BigInt(e.at) / 1_000_000n) / 86_400_000);
-      const idx = 6 - (today - d);
-      if (idx >= 0 && idx < 7) out[idx].total += BigInt(e.amount);
-    }
-    return out;
-  }, [log]);
-  const max = days.reduce((m, d) => (d.total > m ? d.total : m), 0n);
-  return (
-    <figure className="ag-bars" aria-label="Spent per day, last 7 days">
-      {days.map((d) => (
-        <div key={d.day} title={`${d.day}: ${ag.formatAsset(d.total, asset)}`}>
-          <span style={{ height: `${max > 0n ? Math.max(4, Number((d.total * 100n) / max)) : 4}%` }} data-zero={d.total === 0n} />
-          <small>{d.day}</small>
-        </div>
-      ))}
-      <figcaption className="ag-muted">Spent per day, last 7 days (from the on-chain log)</figcaption>
-    </figure>
-  );
-}
-
 /**
  * Take over a seat after claiming it (or re-arm one that was reset): pick a job
  * of the same kind (or import your own AI), set limits and budget, then ONE
@@ -2294,6 +2268,8 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         <TakeOverPanel seat={seat} account={account} navigate={navigate} onDone={() => void load()} />
       )}
 
+      {seat.policy && <AgentDashboard seat={seat} log={log} />}
+
       <div className="ag-columns">
         <section className="kp-vault-section">
           <h2>Rules and mission</h2>
@@ -2477,7 +2453,6 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
           <h2>Activity</h2>
           <LiveDot updatedAt={live.updatedAt} hidden={live.hidden} />
         </div>
-        <SpendBars log={log} asset={seat.asset} />
         <div className="kp-table-wrap">
           <table className="kp-table">
             <thead>
