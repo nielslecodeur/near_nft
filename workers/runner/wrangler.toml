@@ -11,7 +11,7 @@ crons = ["* * * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "agent-wallet-runner"
-database_id = "local-only"
+database_id = "f89a92ad-bece-4fbd-b123-5d83f3b43fb2"
 
 [vars]
 AGENTS = "agents-v1.everkeep-dev-mw0weth5.testnet"

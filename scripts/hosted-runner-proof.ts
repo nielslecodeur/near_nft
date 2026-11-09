@@ -8,6 +8,8 @@
  * WORKER (only the public key leaves it), funds it with 0.3 USDC, and the
  * Worker's scheduled tick pays 0.1 USDC back to it, signed with WebCrypto.
  * Then a 0.2 USDC payment over the cap is sent through the Worker: refused.
+ * SEAT_KEY=v2-6 checks an agent already hired by an earlier run instead of hiring a new one.
+ * A freshly deployed Worker's cron can take a few minutes to start: the wait is 6 minutes.
  */
 import { Account, JsonRpcProvider, KeyPairSigner, PublicKey, actions } from "near-api-js";
 import assert from "node:assert/strict";
@@ -62,6 +64,16 @@ const health = await runner<{ hosted?: boolean; agents_v2: string }>("/health");
 assert.equal(health.agents_v2, AGENTS);
 pass(`runner up at ${RUNNER} (hosted: ${!!health.hosted})`);
 
+const reuse = process.env.SEAT_KEY;
+let key: string;
+let num: string;
+if (reuse) {
+  key = reuse;
+  num = reuse.replace(/^v2-/, "");
+  const job = (await runner<{ seatId: string; publicKey: string }[]>(`/jobs?accountId=${DEMO}`)).find((j) => j.seatId === key);
+  assert.ok(job, `the runner has a job for ${key}`);
+  pass(`checking ${key}, hired by an earlier run with the runner's key ${job!.publicKey.slice(0, 20)}…`);
+} else {
 // 1. The Worker makes the agent key; only its public key comes back.
 const { publicKey } = await runner<{ publicKey: string }>("/keys", { method: "POST", body: JSON.stringify({ accountId: DEMO }) });
 assert.match(publicKey, /^ed25519:/);
@@ -72,8 +84,8 @@ const tokenId = `character-angel-hosted-${Date.now()}`;
 await call(deployer, NFT, "nft_mint", { token_id: tokenId, receiver_id: DEMO, metadata: { title: "Angel", description: "Characters: paid by the hosted runner.", media: `${ART}/angel.webp`, copies: 1 } }, N / 10n, 100n, "mint");
 const policy = { per_tx_max: (U / 10n).toString(), per_day_max: ((3n * U) / 10n).toString(), payees: [DEMO], market: null };
 const profile = { name: "Hosted runner check", role: "allowance", tool: "runner", avatar: null, manifest: null };
-const num: string = await call(demo, AGENTS, "create_seat", { nft_contract: NFT, token_id: tokenId, kind: "Payer", policy, profile }, N / 10n, 150n, "create_seat");
-const key = `v2-${num}`;
+num = await call(demo, AGENTS, "create_seat", { nft_contract: NFT, token_id: tokenId, kind: "Payer", policy, profile }, N / 10n, 150n, "create_seat");
+key = `v2-${num}`;
 await call(demo, USDC, "ft_transfer_call", { receiver_id: AGENTS, amount: ((3n * U) / 10n).toString(), msg: JSON.stringify({ seat_id: num }) }, 1n, 100n, "fund");
 const added = await demo.signAndSendTransaction({ receiverId: DEMO, actions: [actions.addFunctionCallAccessKey(PublicKey.fromString(publicKey), AGENTS, ["agent_pay", "agent_buy", "pause"], N)], waitUntil: "FINAL", throwOnFailure: true });
 txs.add_key = added.transaction.hash;
@@ -85,9 +97,10 @@ await runner(`/jobs/${key}`, {
   method: "PUT",
   body: JSON.stringify({ accountId: DEMO, publicKey, kind: "Payer", role: "allowance", name: "Hosted runner check", payer: { payments: [{ payee: DEMO, amount: (U / 10n).toString(), everySeconds: 3600, memo: "hosted runner" }] } }),
 });
+}
 if (local) await fetch(`${RUNNER}/__scheduled?cron=*+*+*+*+*`);
 let paid: LogEntry | undefined;
-for (let i = 0; i < 40 && !paid; i++) {
+for (let i = 0; i < 72 && !paid; i++) {
   paid = (await view<LogEntry[]>("seat_log", { seat_id: num })).find((e) => e.action === "pay" && e.status === "done");
   if (!paid) await new Promise((r) => setTimeout(r, 5000));
 }

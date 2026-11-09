@@ -32,6 +32,15 @@ RUNNER_URL=https://agent-wallet-runner.<you>.workers.dev RUNNER_ADMIN_TOKEN=$(ca
   npx tsx scripts/hosted-runner-proof.ts
 ```
 
+## Live
+
+`https://agent-wallet-runner.nielshallgren.workers.dev` (deployed 2026-11-09), used by the hosted app by default.
+Proof against it (`docs/results/hosted-runner-proof.json`): the Worker made the agent key, the demo account
+hired v2 seat 6 with it, **Cloudflare's cron paid 0.1 USDC by itself** (tx `Dm2DfM5n4ZEdEu7UY5F4tt4WFBj1fAaqBaLmhSf6i8B2`,
+in the seat's on-chain log) and a 0.2 USDC payment through the Worker was refused on chain as over the
+per-action cap (tx `3yZBp5Gs72Xy9ZJ6EAY49jEYjehVKrbfpxve2fPAxAW9`). A freshly deployed cron took about three
+minutes to start firing.
+
 ## Run it locally
 
 ```bash

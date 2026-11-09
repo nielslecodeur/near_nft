@@ -208,8 +208,8 @@ function RunnerLockedNotice({ runner }: { runner: ReturnType<typeof useRunner> }
   if (!runner.locked) return null;
   return (
     <Notice tone="info" title="Unlock your agent runner">
-      The runner on this computer only obeys you after one wallet signature: no transaction, no fee, valid 12 hours.
-      Other sites and accounts cannot drive your agents.{" "}
+      {ag.runnerIsHosted ? "The hosted runner" : "The runner on this computer"} only obeys you after one wallet signature: no
+      transaction, no fee, valid 12 hours. Other sites and accounts cannot drive your agents.{" "}
       <Button variant="primary" icon={KeyRound} busy={runner.unlocking} onClick={() => void runner.unlock()}>
         Unlock
       </Button>
@@ -852,7 +852,15 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
           {!readOnly && (
             <div className="ag-stage-actions">
               <Badge tone={runner.up ? "up" : runner.checked ? "down" : "neutral"} icon={Zap}>
-                {runner.locked ? "Runner locked" : runner.up ? "Runner online" : runner.checked ? "Runner offline" : "Checking runner"}
+                {runner.locked
+                  ? "Runner locked"
+                  : runner.up
+                    ? ag.runnerIsHosted
+                      ? "Hosted runner online"
+                      : "Runner online"
+                    : runner.checked
+                      ? "Runner offline"
+                      : "Checking runner"}
               </Badge>
               <Button
                 variant="danger"
@@ -1189,27 +1197,36 @@ function AgentIdentity({ seat, mine, onSaved }: { seat: Seat; mine: boolean; onS
 
 /** No runner reachable: what still works, and how to plug one in (on a hosted site, only after an opt-in). */
 export function RunnerOffline() {
-  if (!ag.runnerWanted())
+  if (ag.runnerIsHosted)
     return (
-      <Notice tone="info" title="Built-in roles need a runner">
-        Collector, Subscriptions, Allowance and the guided first agent act through a small program on your own computer. Everything
-        else here works without it: your agents, the Market, importing your own AI, transfers and claims.{" "}
-        <button
-          type="button"
-          className="ag-qs-change"
-          onClick={() => {
-            ag.setLocalRunner(true);
-            location.reload();
-          }}
-        >
-          I run one on this computer
-        </button>
+      <Notice tone="info" title="The hosted runner is not answering">
+        Built-in roles act through it; budgets and limits stay safe on chain meanwhile. Everything else here works without it.{" "}
+        <RunnerSwitch />
       </Notice>
     );
   return (
-    <Notice tone="info" title="The agent runner is offline">
-      Agents only act while it runs: <code>{ag.runnerCommand()}</code>. Budgets and limits stay safe on chain.
+    <Notice tone="info" title="The agent runner on this computer is offline">
+      Agents it holds only act while it runs: <code>{ag.runnerCommand()}</code>. Budgets and limits stay safe on chain.{" "}
+      <RunnerSwitch />
     </Notice>
+  );
+}
+
+/** Hosted site only: use the hosted runner, or the one on this computer (where earlier agents keep their keys). */
+export function RunnerSwitch() {
+  if (!ag.canSwitchRunner) return null;
+  return (
+    <button
+      type="button"
+      className="ag-qs-change"
+      title={ag.runnerIsHosted ? "Agents hired with your own runner keep their keys there" : "The runner Agent Wallet hosts, always on"}
+      onClick={() => {
+        ag.setLocalRunner(ag.runnerIsHosted);
+        location.reload();
+      }}
+    >
+      {ag.runnerIsHosted ? "Use the runner on this computer" : "Use the hosted runner"}
+    </button>
   );
 }
 
