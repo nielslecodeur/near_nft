@@ -739,12 +739,13 @@ const METHODS: Record<string, string[]> = {
 
 /**
  * The owner's recent transactions to the agents contract, newest first.
- * Cached a minute, one request in flight per owner, and no call at all for a
- * minute after the explorer says 429.
+ * Cached `maxAgeMs` (a minute by default; live pages ask sooner while their
+ * newest entry has no link yet), one request in flight per owner, and no call
+ * at all for a minute after the explorer says 429.
  */
-export function ownerTxs(owner: string, oldest: bigint): Promise<IndexedTx[]> {
+export function ownerTxs(owner: string, oldest: bigint, maxAgeMs = 60_000): Promise<IndexedTx[]> {
   const hit = txCache.get(owner);
-  if (hit && Date.now() - hit.at < 60_000) return Promise.resolve(hit.txs);
+  if (hit && Date.now() - hit.at < maxAgeMs) return Promise.resolve(hit.txs);
   if (Date.now() < explorerBackoffUntil) return Promise.resolve(hit?.txs ?? []);
   const running = inflight.get(owner);
   if (running) return running;

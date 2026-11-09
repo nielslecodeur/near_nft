@@ -27,6 +27,7 @@ import { CHARACTERS, characterFromMedia } from "./nft-art";
 import { NFTCard, NFTCardEmpty, NFTCardSkeleton, type NftCardModel } from "./NFTCard";
 import { ALL_ROLES, BYO_ROLES, PICKER_ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
 import { generateAgentKey } from "./agentKey";
+import { LiveDot, ToastStack, useFresh, useLivePoll, useTitleBadge, useToasts, type Toast } from "./live";
 import type { Wallet } from "./KeepersApp";
 import "./agents.css";
 import "./agents-stage.css";
@@ -618,7 +619,14 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
   const [feedTx, setFeedTx] = useState<Record<string, string>>({});
   const [refund, setRefund] = useState({ near: "0", usdc: "0" });
   const [error, setError] = useState("");
-  const runner = useRunner(account);
+  // A read-only view is someone else's wallet: this computer's runner has nothing to say about it.
+  const runner = useRunner(readOnly ? "" : account);
+  const fresh = useFresh(account);
+  const { toasts, push, dismiss } = useToasts();
+  const jobsRef = useRef<Job[]>([]);
+  jobsRef.current = runner.jobs;
+  const linkedRef = useRef("");
+  const badgeRef = useRef<(n: number) => void>(() => {});
   const askRef = useRef<HTMLInputElement>(null);
   const [focus, setFocus] = useState(0);
   const [tab, setTab] = useState<"activity" | "roles">("activity");
@@ -646,16 +654,24 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       setLastAt(latest);
       const shown = collapse(logs.sort((a, b) => (BigInt(b.at) > BigInt(a.at) ? 1 : -1))).slice(0, 20);
       setFeed(shown);
+      // Live: what the agents did since the last read (nothing on the first read).
+      const added = new Set(fresh.take(logs.map(feedKey)));
+      const moves = logs.filter((e) => added.has(feedKey(e)) && e.status !== "info" && e.status !== "pending").slice(0, 3);
+      for (const e of [...moves].reverse()) push(toastFor(e, jobsRef.current.find((j) => j.seatId === e.seat.seat_id), navigate));
+      badgeRef.current(moves.length);
       // Explorer links: match each entry to the owner's transaction (best effort, never blocks the page).
+      // While the newest entry has no link yet, ask the explorer again sooner.
+      const newest = shown[0] ? feedKey(shown[0]) : "";
       if (shown.length)
         void ag
-          .ownerTxs(account, BigInt(shown.at(-1)!.at) - 60_000_000_000n)
+          .ownerTxs(account, BigInt(shown.at(-1)!.at) - 60_000_000_000n, newest === linkedRef.current ? 60_000 : 20_000)
           .then((txs) => {
             const m: Record<string, string> = {};
             for (const e of shown) {
               const h = ag.txForEntry(e, txs);
-              if (h) m[`${e.seat.seat_id}-${e.seq}`] = h;
+              if (h) m[feedKey(e)] = h;
             }
+            if (m[newest]) linkedRef.current = newest;
             setFeedTx(m);
           })
           .catch(() => {});
@@ -664,12 +680,9 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       setError((e as Error).message);
     }
     void runner.reload();
-  }, [account, runner.reload]);
-  useEffect(() => {
-    void load();
-    const t = setInterval(() => void load(), 10_000);
-    return () => clearInterval(t);
-  }, [load]);
+  }, [account, runner.reload, fresh.take, push, navigate]);
+  const live = useLivePoll(load, 6000);
+  badgeRef.current = useTitleBadge(live.hidden);
   const { busy, run, notice } = useAction(load);
   const images = useImages((seats ?? []).map((s) => ({ key: s.seat_id, contract: s.nft_contract, token: s.token_id })));
 
@@ -957,7 +970,10 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
 
       {tab === "activity" ? (
         <section className="kp-vault-section" aria-labelledby="ag-feed">
-          <h2 id="ag-feed">Activity</h2>
+          <div className="ag-feed-head">
+            <h2 id="ag-feed">Activity</h2>
+            <LiveDot updatedAt={live.updatedAt} hidden={live.hidden} />
+          </div>
           {feed.length === 0 ? (
             <p className="ag-muted">Nothing yet. Every action, and every attempt the contract blocked, shows up here.</p>
           ) : (
@@ -965,7 +981,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
               {feed.map((e) => {
                 const job = runner.jobs.find((j) => j.seatId === e.seat.seat_id);
                 return (
-                  <li key={`${e.seat.seat_id}-${e.seq}`} data-status={e.status}>
+                  <li key={feedKey(e)} data-status={e.status} data-new={fresh.fresh.has(feedKey(e)) || undefined}>
                     <span className="ag-feed-dot" aria-hidden="true" />
                     <div>
                       <strong>{nameFor(e.seat, job)}</strong> {verb(e)}
@@ -994,8 +1010,35 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       ) : (
         <RoleGallery navigate={navigate} />
       )}
+      <ToastStack toasts={toasts} dismiss={dismiss} txFor={(id) => (feedTx[id] ? ag.txLink(feedTx[id]) : undefined)} />
     </div>
   );
+}
+
+/** One feed entry's identity across reads: its seat and its sequence number in that seat's log. */
+const feedKey = (e: { seat: Seat; seq: string }) => `${e.seat.seat_id}-${e.seq}`;
+
+/** The toast for something an agent just did, or was blocked from doing. */
+function toastFor(e: FeedItem, job: Job | undefined, navigate: Nav): Toast {
+  const amount = e.amount !== "0" ? ` ${ag.formatAsset(e.amount, e.seat.asset)}` : "";
+  const to =
+    e.counterparty && e.action !== "deliver"
+      ? ` ${e.action === "buy" ? "on" : e.action === "claim" ? "from" : "to"} ${shortAccount(e.counterparty)}`
+      : "";
+  const blocked = e.status === "refused";
+  return {
+    id: feedKey(e),
+    tone: e.status === "done" ? "up" : blocked || e.status === "failed" ? "down" : "neutral",
+    title: `${nameFor(e.seat, job)} ${verb(e)}${amount}${to}`,
+    body: blocked
+      ? `Blocked on chain: ${e.detail}. Nothing was spent.`
+      : e.status === "failed"
+        ? `It failed and the money came back: ${e.detail}.`
+        : ["pay", "buy", "deliver"].includes(e.action)
+          ? "On its own, with its limited key: no signature from you."
+          : undefined,
+    onOpen: () => navigate(`/agents/${e.seat.seat_id}`),
+  };
 }
 
 /**
@@ -2085,6 +2128,10 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
   const [mission, setMission] = useState<{ maxPrice: string; amount: string; every: string } | null>(null);
   const runner = useRunner(account || seat?.owner || "");
   const job = runner.jobs.find((j) => j.seatId === id);
+  const fresh = useFresh(id);
+  const { toasts, push, dismiss } = useToasts();
+  const jobRef = useRef<Job | undefined>(undefined);
+  jobRef.current = job;
 
   const load = useCallback(async () => {
     const s = await ag.getSeat(id);
@@ -2092,10 +2139,13 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
     if (!s) return;
     const entries = await ag.seatLog(id);
     setLog(entries);
+    const added = new Set(fresh.take(entries.filter((e) => e.status !== "pending").map((e) => e.seq)));
+    for (const e of entries.filter((x) => added.has(x.seq) && x.status !== "info").slice(0, 3).reverse())
+      push({ ...toastFor({ ...e, seat: s }, jobRef.current, () => {}), id: e.seq, onOpen: undefined });
     const newest = entries[0]?.seq ?? "";
     if (entries.length && newest !== linkedSeq.current)
       void ag
-        .ownerTxs(s.owner, BigInt(entries.at(-1)!.at) - 60_000_000_000n)
+        .ownerTxs(s.owner, BigInt(entries.at(-1)!.at) - 60_000_000_000n, 20_000)
         .then((txs) => {
           const m: Record<string, string> = {};
           for (const e of entries) {
@@ -2110,12 +2160,8 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
     setNftOwner(await ag.nftOwner(s.nft_contract, s.token_id).catch(() => null));
     setGasLeft(s.agent_key ? await ag.keyAllowance(s.owner, s.agent_key) : undefined);
     void runner.reload();
-  }, [id, runner.reload]);
-  useEffect(() => {
-    void load();
-    const t = setInterval(() => void load(), 8_000);
-    return () => clearInterval(t);
-  }, [load]);
+  }, [id, runner.reload, fresh.take, push]);
+  const live = useLivePoll(load, 6000);
   const { busy, run, notice } = useAction(load);
   const images = useImages(seat ? [{ key: "art", contract: seat.nft_contract, token: seat.token_id }] : []);
 
@@ -2427,7 +2473,10 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
       </div>
 
       <section className="kp-vault-section">
-        <h2>Activity</h2>
+        <div className="ag-feed-head">
+          <h2>Activity</h2>
+          <LiveDot updatedAt={live.updatedAt} hidden={live.hidden} />
+        </div>
         <SpendBars log={log} asset={seat.asset} />
         <div className="kp-table-wrap">
           <table className="kp-table">
@@ -2444,7 +2493,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
             </thead>
             <tbody>
               {collapse(log.filter((e, i) => e.status !== "pending" || (i === 0 && seat.in_flight > 0))).map((e) => (
-                <tr key={e.seq}>
+                <tr key={e.seq} data-new={fresh.fresh.has(e.seq) || undefined}>
                   <td>
                     {ago(e.at)}
                     {e.count > 1 && <span className="ag-muted"> → {ago(e.firstAt)}</span>}
@@ -2483,6 +2532,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
           : the last 50 entries. Blocked attempts are written by the contract itself.
         </p>
       </section>
+      <ToastStack toasts={toasts} dismiss={dismiss} txFor={(seq) => (logTx[seq] ? ag.txLink(logTx[seq]) : undefined)} />
     </div>
   );
 }
