@@ -183,3 +183,23 @@ Not covered (written in the README):
   - A third payment the same day: refused, over the daily cap.
   - pause: refused.
 
+## Agents v2 (2026-11-09)
+
+v1 has no admin key, so v2 is a new contract next to it: `agents-v2.everkeep-dev-mw0weth5.testnet`
+(keyless, code hash `2UrxHirDiERyi6wHCvVfTAoHPbByMkuLu4TtYb2vqDsL`, source `contracts/agents-v2`,
+record `docs/results/agents-v2-testnet-deployment.json`). v1 keeps running unchanged.
+
+- **Profile and track record follow the NFT**: `create_seat(..., profile)` or `set_profile` (owner, 1 yocto):
+  name, role, tool, avatar and manifest `https://` links, bounded to fit the 0.1 NEAR seat deposit. Kept on
+  a change of hands, with `done`, `refused`, `spent_total` and a new `owners` counter.
+- **Flood-proof log**: identical refusals in a row merge (`times`, fresh `seq`); refusals keep at most 20 of
+  the 50 entries.
+- **Budget for the next owner (opt-in, seller's choice)**: `set_budget_follows(true)`. A sale holds the budget
+  in the seat for whoever claims it (or for the seller if the NFT comes back). While promised, `withdraw`
+  and `set_budget_follows(false)` first prove NFT ownership on chain.
+- Tests: `cargo test -p agents-v2`, 28 passed. Testnet proof: `npx tsx scripts/agents-v2-testnet-proof.ts`,
+  6 checks on seat #3 (profile at creation, agent payment, 5 refusals merged, withdraw with ownership
+  proof, withdraw refused after the sale with 0.8 USDC held, the buyer claims with owners = 2 and
+  withdraws it): `docs/results/agents-v2-testnet-proof.json`.
+- Found while proving it: a function-call key's allowance must cover the gas a call *reserves*
+  (about 0.1 NEAR for 100 TGas), so agent keys keep a 1 NEAR allowance.

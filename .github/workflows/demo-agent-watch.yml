@@ -1,0 +1,38 @@
+# Keeps the public demo agent (#9) usable through judging: every 6 hours,
+# checks its budget, its key's gas allowance, the demo account's NEAR and that
+# it is not paused, and repairs what it can (scripts/demo-agent-watch.ts).
+#
+# Without the DEMO_ACCOUNT_KEY secret it only reports. To let it repair, add the
+# demo account's full-access key (testnet only, it holds test tokens) as the
+# repository secret DEMO_ACCOUNT_KEY = ed25519:...
+name: Demo agent watch
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Check and repair the demo agent
+        env:
+          DEMO_ACCOUNT_KEY: ${{ secrets.DEMO_ACCOUNT_KEY }}
+        run: |
+          if [ -n "$DEMO_ACCOUNT_KEY" ]; then
+            npx tsx scripts/demo-agent-watch.ts --execute
+          else
+            echo "No DEMO_ACCOUNT_KEY secret: report only."
+            npx tsx scripts/demo-agent-watch.ts
+          fi

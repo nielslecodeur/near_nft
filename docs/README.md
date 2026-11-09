@@ -15,8 +15,8 @@ Start with [`../AGENTS.md`](../AGENTS.md): what it is, how to connect an AI, eve
 | [keepers-audit.md](keepers-audit.md) | Keepers v2 security audit |
 | [keepers-brief.md](keepers-brief.md) | Keepers improvement brief (French) |
 | [audit-nft-art.md](audit-nft-art.md) | Audit of the NFT art used by the agent cards |
-| [results/](results/) | Deployment records and test reports (`agents-v1-testnet-deployment.json`, ...) |
-| [screenshots/](screenshots/) | Browser-check screenshots of every page, desktop and mobile |
+| [results/](results) | Deployment records and test reports (`agents-v1-testnet-deployment.json`, ...) |
+| [screenshots/](screenshots) | Browser-check screenshots of every page, desktop and mobile |
 
 Machine-readable: [`../public/llms.txt`](../public/llms.txt), [`../public/abi/agents.json`](../public/abi/agents.json)
 (contract ABI), [`../public/openapi/runner.json`](../public/openapi/runner.json) (runner API).
@@ -28,6 +28,7 @@ Transferable savings positions as NFTs, thematic baskets and paid analysis missi
 Its code is still in the repo (`src/*.tsx`, `contracts/{wallet,collection,strategy,missions,demo-token,test-receiver}`)
 and its docs are listed here unchanged; nothing in the Agent Wallet depends on them.
 
+- Its original README: [everkeep/README.md](everkeep/README.md)
 - Product and progress: [everkeep/PRODUCT.md](everkeep/PRODUCT.md), [everkeep/PROGRESS.md](everkeep/PROGRESS.md),
   [everkeep/AUDIT.md](everkeep/AUDIT.md), [everkeep/DESIGN.md](everkeep/DESIGN.md)
 - Architecture and security: [architecture.md](architecture.md), [threat-model.md](threat-model.md),

@@ -23,6 +23,7 @@ const pages = [
   ["/market", "Where your buyer agents shop."],
   ["/keepers", "Where your buyer agents shop."],
   ["/agents/1", "Budget left"],
+  ["/agents/v2-3", "Budget left"],
   ["/agents/5", "Budget left"],
   ["/agents/999999", "No agent #999999."],
 ];
@@ -41,6 +42,14 @@ for (const width of [1280, 390]) {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
     const name = `agents${path.replace(/[/?=.]/g, "-")}-${width}.png`;
     await page.screenshot({ path: `docs/screenshots/${name}`, fullPage: true });
+    // FastNEAR's rate limit (429) reaches the browser as a CORS error with no header; the app then
+    // fails over to another RPC node (src/client.ts). Those lines are noise when the page still renders.
+    const rateLimited = errors.some((e) => /test\.rpc\.fastnear\.com.*blocked by CORS/.test(e));
+    if (rateLimited) {
+      const kept = errors.filter((e) => !/test\.rpc\.fastnear\.com.*blocked by CORS/.test(e) && !/net::ERR_FAILED/.test(e));
+      errors.length = 0;
+      errors.push(...kept);
+    }
     const ok = found && !overflow && errors.length === 0;
     if (!ok) failed = true;
     console.log(`${ok ? "✓" : "✗"} ${path} @${width}px${found ? "" : " (text missing)"}${overflow ? " (horizontal overflow)" : ""}${errors.length ? " errors: " + errors.join(" | ") : ""}`);

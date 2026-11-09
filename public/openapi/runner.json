@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Agent Wallet runner",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "summary": "Local service that holds agent keys and acts for agents on NEAR testnet.",
     "description": "The runner (scripts/agent-runner.ts, `npm run agent:runner`) listens on 127.0.0.1 only. It holds function-call keys that can call only agent_pay, agent_buy and pause on the agents contract, with no deposit; the contract enforces every limit (cap per action, daily cap, allowed payees, market, budget) and logs every refusal. Every route except /health and /auth/* needs `Authorization: Bearer <token>`: a 12-hour session token obtained by signing a NEP-413 challenge with a FullAccess key of the account (scoped to that account's agents), or the admin token the runner writes to .local/runner-token at each start (for local tools such as the MCP server). Requests must use Host 127.0.0.1 or localhost; browser requests from origins other than the Agent Wallet get 403.",
     "license": { "name": "MIT", "identifier": "MIT" }
@@ -122,7 +122,7 @@
   },
   "components": {
     "securitySchemes": { "bearer": { "type": "http", "scheme": "bearer", "description": "Session token from /auth/session, or the admin token in .local/runner-token" } },
-    "parameters": { "SeatId": { "name": "seatId", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[0-9]+$" } } },
+    "parameters": { "SeatId": { "name": "seatId", "in": "path", "required": true, "description": "Seat key: \"9\" for v1 seat 9, \"v2-3\" for v2 seat 3", "schema": { "type": "string", "pattern": "^(v2-)?[0-9]+$" } } },
     "responses": {
       "Error": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "Unauthorized": { "description": "Sign in first (code: auth)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },

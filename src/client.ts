@@ -75,19 +75,48 @@ export async function ownedPlans(owner: string, offset = 0) {
   );
   return parseOwnedPlans(tokens, owner, config.collection);
 }
+/**
+ * Public testnet RPC nodes, in order. FastNEAR rate-limits bursts and its 429
+ * carries no CORS header, so the browser sees a network error: on that, a 429
+ * or a 5xx, the call moves to the next node and the busy one rests 30 s.
+ * An RPC-level error (unknown account, contract panic) is an answer: no failover.
+ */
+const RPC_NODES = import.meta.env.VITE_RPC_URL
+  ? [import.meta.env.VITE_RPC_URL as string]
+  : [TESTNET.rpc, "https://rpc.testnet.near.org"];
+const restingUntil = new Map<string, number>();
+
 export async function rpc(method: string, params: object) {
-  const response = await fetch(config.rpc, {
-    signal: AbortSignal.timeout(18000),
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: "everkeep", method, params }),
-  });
-  const data = await response.json();
-  if (!response.ok || data.error)
-    throw new Error(
-      data.error ? JSON.stringify(data.error) : "RPC indisponible",
-    );
-  return data.result;
+  const now = Date.now();
+  const nodes = [...RPC_NODES].sort((a, b) => Number((restingUntil.get(a) ?? 0) > now) - Number((restingUntil.get(b) ?? 0) > now));
+  let lastError: unknown;
+  for (const node of nodes) {
+    let response: Response;
+    try {
+      response = await fetch(node, {
+        signal: AbortSignal.timeout(18000),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: "everkeep", method, params }),
+      });
+    } catch (e) {
+      restingUntil.set(node, Date.now() + 30_000);
+      lastError = e;
+      continue;
+    }
+    if (response.status === 429 || response.status >= 500) {
+      restingUntil.set(node, Date.now() + 30_000);
+      lastError = new Error(`RPC ${response.status}`);
+      continue;
+    }
+    const data = await response.json();
+    if (!response.ok || data.error)
+      throw new Error(
+        data.error ? JSON.stringify(data.error) : "RPC indisponible",
+      );
+    return data.result;
+  }
+  throw lastError instanceof Error ? lastError : new Error("RPC indisponible");
 }
 export async function view(
   account: string,

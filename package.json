@@ -12,6 +12,7 @@
     "agent:runner": "tsx scripts/agent-runner.ts",
     "agent:mcp": "tsx scripts/agent-mcp.ts",
     "build:mcp": "node scripts/build-mcp.mjs",
+    "demo:watch": "tsx scripts/demo-agent-watch.ts",
     "testnet:baskets": "tsx scripts/deploy-baskets-testnet.ts",
     "testnet:keepers": "tsx scripts/deploy-keepers-testnet.ts",
     "testnet:agents": "tsx scripts/deploy-agents-testnet.ts",

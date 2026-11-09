@@ -9,9 +9,10 @@ import { VaultPage } from "./VaultPage";
 import { ProbePage } from "./ProbePage";
 import { AgentPage, AgentsPage, NewAgentPage } from "./AgentsPage";
 import { QuickStartPage } from "./QuickStart";
+import { seatLabel } from "./seat-key";
 import { shortAccount } from "./KeeperCard";
 import { EXPLORER, KEEPERS_CONTRACT, type Version } from "./chain";
-import { AGENTS } from "./agents";
+import { AGENTS, AGENTS_V2 } from "./agents";
 import "./keepers.css";
 import "./theme.css";
 
@@ -39,7 +40,8 @@ export function parseRoute(url: string): Route {
   if (/^\/agents\/?$/.test(path)) return { page: "agents" };
   if (/^\/agents\/new\/?$/.test(path)) return { page: "agent-new" };
   if (/^\/agents\/start\/?$/.test(path)) return { page: "agent-start" };
-  const agent = path.match(/^\/agents\/(\d+)\/?$/);
+  // Seat keys: "9" (v1) or "v2-3" (v2).
+  const agent = path.match(/^\/agents\/((?:v2-)?\d+)\/?$/);
   if (agent) return { page: "agent", id: agent[1] };
   if (/^\/market\/?$/.test(path)) return { page: "collection", version: "v2" };
   if (/^\/keepers\/v1\/?$/.test(path))
@@ -125,7 +127,7 @@ export function KeepersApp() {
         : route.page === "vault"
           ? "The Vault · Agent Wallet"
           : route.page === "agent"
-            ? `Agent #${route.id} · Agent Wallet`
+            ? `Agent ${seatLabel(route.id)} · Agent Wallet`
             : route.page === "agent-new"
               ? "Hire an agent · Agent Wallet"
               : route.page === "agent-start"
@@ -271,6 +273,10 @@ export function KeepersApp() {
       <footer className="kp-footer">
         <span>
           Contracts{" "}
+          <a href={`${EXPLORER}/address/${AGENTS_V2}`} target="_blank" rel="noreferrer">
+            {AGENTS_V2}
+          </a>
+          {", "}
           <a href={`${EXPLORER}/address/${AGENTS}`} target="_blank" rel="noreferrer">
             {AGENTS}
           </a>

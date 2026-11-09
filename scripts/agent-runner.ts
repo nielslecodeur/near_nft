@@ -16,6 +16,9 @@
  * (127.0.0.1 or localhost), which blocks DNS-rebinding pages, and only the
  * Agent Wallet's origins are let in from a browser.
  *
+ * Seats are named by key: "9" for the v1 contract, "v2-3" for v2 (public/testnet.json
+ * "agents" and "agents_v2"); :seatId below is such a key.
+ *
  * HTTP API (JSON), used by the Agent Wallet:
  *   GET    /health
  *   POST   /auth/challenge    {accountId}            -> {nonce, message, recipient}
@@ -84,8 +87,9 @@ class FileStore implements Store {
 const pub = JSON.parse(await readFile("public/testnet.json", "utf8"));
 const AGENTS: string = process.env.AGENTS_CONTRACT || pub.agents?.contract;
 if (!AGENTS) throw new Error("No agents contract in public/testnet.json");
+const AGENTS_V2: string | undefined = process.env.AGENTS_V2_CONTRACT || pub.agents_v2?.contract;
 const store = new FileStore();
-const runner = new Runner({ rpc: RPC, agents: AGENTS, store });
+const runner = new Runner({ rpc: RPC, agents: AGENTS, agentsV2: AGENTS_V2, store });
 const auth = new RunnerAuth({ rpc: RPC, sessionsFile: join(DIR, "sessions.json"), adminTokenFile: ADMIN_TOKEN_FILE });
 
 if (process.argv.includes("--once")) {
@@ -94,8 +98,9 @@ if (process.argv.includes("--once")) {
 }
 await auth.start();
 
-/** Owner of a seat on chain right now (after a transfer + claim it changes). */
+/** Owner of a seat on chain right now (after a transfer + claim it changes). `seatId` is a seat key. */
 async function seatOwner(seatId: string): Promise<string | null> {
+  const { contract, id } = runner.target({ seatId });
   const r = await fetch(RPC, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -105,9 +110,9 @@ async function seatOwner(seatId: string): Promise<string | null> {
       method: "query",
       params: {
         request_type: "call_function",
-        account_id: AGENTS,
+        account_id: contract,
         method_name: "seat",
-        args_base64: Buffer.from(JSON.stringify({ seat_id: seatId })).toString("base64"),
+        args_base64: Buffer.from(JSON.stringify({ seat_id: id })).toString("base64"),
         finality: "optimistic",
       },
     }),
@@ -137,9 +142,10 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     res.writeHead(code, { "content-type": "application/json" });
     res.end(JSON.stringify(data));
   };
-  const m = url.pathname.match(/^\/jobs\/(\d+)(\/run|\/pause|\/act)?$/);
+  // Seat keys: "9" (v1) or "v2-3" (v2).
+  const m = url.pathname.match(/^\/jobs\/((?:v2-)?\d+)(\/run|\/pause|\/act)?$/);
   if (req.method === "GET" && url.pathname === "/health")
-    return send(200, { agents: AGENTS, tick_seconds: TICK, auth: "nep413" });
+    return send(200, { agents: AGENTS, agents_v2: AGENTS_V2 ?? null, tick_seconds: TICK, auth: "nep413" });
 
   if (req.method === "POST" && url.pathname === "/auth/challenge") {
     const { accountId } = await body(req);
@@ -248,7 +254,7 @@ createServer(async (req, res) => {
     res.end(JSON.stringify({ error: (e as Error).message, ...(status === 401 ? { code: "auth" } : {}) }));
   }
 }).listen(PORT, "127.0.0.1", () =>
-  console.log(`Agent runner on http://127.0.0.1:${PORT} · contract ${AGENTS} · tick ${TICK}s`),
+  console.log(`Agent runner on http://127.0.0.1:${PORT} · contracts ${AGENTS}${AGENTS_V2 ? ` + ${AGENTS_V2}` : ""} · tick ${TICK}s`),
 );
 
 let running = false;

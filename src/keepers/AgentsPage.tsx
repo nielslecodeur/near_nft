@@ -63,10 +63,18 @@ const txIn = (text?: string) => text?.match(/tx ([1-9A-HJ-NP-Za-km-z]{43,44})/)?
 const min = (...v: bigint[]) => v.reduce((a, b) => (a < b ? a : b));
 
 export const roleFor = (seat: Seat, job?: Job): Role =>
-  roleOf(job?.role) ?? roleOf(ag.byoAgents()[seat.seat_id]?.role) ?? defaultRole(seat.kind);
+  roleOf(job?.role) ??
+  roleOf(ag.byoAgents()[seat.seat_id]?.role) ??
+  roleOf(seat.profile?.role) ??
+  defaultRole(seat.kind);
 export const nameFor = (seat: Seat, job?: Job) => {
   const role = roleFor(seat, job);
-  return job?.name || ag.byoAgents()[seat.seat_id]?.name || `${isGeneric(role) ? "Agent" : role.name} #${seat.seat_id}`;
+  return (
+    job?.name ||
+    seat.profile?.name ||
+    ag.byoAgents()[seat.seat_id]?.name ||
+    `${isGeneric(role) ? "Agent" : role.name} ${ag.seatLabel(seat.seat_id)}`
+  );
 };
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -631,9 +639,9 @@ function collapse<T extends LogEntry & { seat?: Seat }>(list: T[]): (T & { count
       prev.counterparty === e.counterparty &&
       prev.detail === e.detail
     ) {
-      prev.count++;
+      prev.count += e.times ?? 1;
       prev.firstAt = e.at;
-    } else out.push({ ...e, count: 1, firstAt: e.at });
+    } else out.push({ ...e, count: e.times ?? 1, firstAt: e.at });
   }
   return out;
 }
@@ -694,11 +702,16 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       const newest = shown[0] ? feedKey(shown[0]) : "";
       if (shown.length)
         void ag
-          .ownerTxs(account, BigInt(shown.at(-1)!.at) - 60_000_000_000n, newest === linkedRef.current ? 60_000 : 20_000)
+          .ownerTxs(
+            account,
+            BigInt(shown.at(-1)!.at) - 60_000_000_000n,
+            newest === linkedRef.current ? 60_000 : 20_000,
+            [...new Set(list.map((s) => s.contract))],
+          )
           .then((txs) => {
             const m: Record<string, string> = {};
             for (const e of shown) {
-              const h = ag.txForEntry(e, txs);
+              const h = ag.txForEntry(e, txs, e.seat.contract);
               if (h) m[feedKey(e)] = h;
             }
             if (m[newest]) linkedRef.current = newest;
@@ -805,7 +818,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       {!readOnly && (refund.near !== "0" || refund.usdc !== "0") && (
         <Notice tone="info" title="Money set aside for you">
           From agents on NFTs you sold: {ag.formatAsset(refund.near, "NEAR")} and {ag.formatAsset(refund.usdc, "USDC")}.{" "}
-          <Button variant="ghost" busy={busy === "refund"} onClick={() => run("refund", "Sent to your wallet", ag.withdrawRefund)}>
+          <Button variant="ghost" busy={busy === "refund"} onClick={() => run("refund", "Sent to your wallet", () => ag.withdrawRefund(account))}>
             Withdraw
           </Button>
         </Notice>
@@ -1059,7 +1072,117 @@ const ACTION_LABELS: Record<string, string> = {
   policy: "New limits",
   reset: "Reset",
   claim: "New owner",
+  budget: "Budget",
+  profile: "Profile",
 };
+
+/**
+ * Who the agent is and what it has done. On v2 the profile and the track
+ * record live on chain and follow the NFT; the owner can edit the profile.
+ */
+function AgentIdentity({ seat, mine, onSaved }: { seat: Seat; mine: boolean; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const p = seat.profile;
+  const [draft, setDraft] = useState({ name: p?.name ?? "", role: p?.role ?? "", tool: p?.tool ?? "", avatar: p?.avatar ?? "", manifest: p?.manifest ?? "" });
+  const profile = ag.profileFor(draft);
+  const badLink = [draft.avatar, draft.manifest].some((u) => u && !/^https:\/\/.{4,}/.test(u));
+
+  async function save() {
+    setBusy(true);
+    setError("");
+    try {
+      await ag.setProfile(seat, profile);
+      setEditing(false);
+      onSaved();
+    } catch (e) {
+      setError(ag.friendlyError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="ag-identity">
+      <dl className="ag-dl">
+        <dt>Contract</dt>
+        <dd>
+          {seat.version === "v2" ? "v2" : "v1"} ·{" "}
+          <a href={`${EXPLORER}/address/${seat.contract}`} target="_blank" rel="noreferrer">
+            {shortAccount(seat.contract)}
+          </a>
+        </dd>
+        {seat.version === "v2" && (
+          <>
+            <dt>Track record</dt>
+            <dd>
+              {seat.owners ?? 1} owner{(seat.owners ?? 1) === 1 ? "" : "s"} so far · {seat.done} done · {seat.refused} blocked ·{" "}
+              {ag.formatAsset(seat.spent_total, seat.asset)} spent <span className="ag-muted">(on chain, follows the NFT)</span>
+            </dd>
+            <dt>Profile</dt>
+            <dd>
+              {p ? (
+                <>
+                  <strong>{p.name}</strong>
+                  {p.role && <span className="ag-muted"> · {p.role}</span>}
+                  {p.tool && <span className="ag-muted"> · runs in {p.tool}</span>}
+                  {p.manifest && (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <a href={p.manifest} target="_blank" rel="noreferrer">
+                        how it thinks ↗
+                      </a>
+                    </>
+                  )}
+                </>
+              ) : (
+                <span className="ag-muted">none yet</span>
+              )}
+              {mine && !editing && (
+                <button type="button" className="ag-qs-change" onClick={() => setEditing(true)}>
+                  {p ? "edit" : "add"}
+                </button>
+              )}
+            </dd>
+          </>
+        )}
+      </dl>
+      {editing && (
+        <div className="ag-profile-edit">
+          {error && (
+            <Notice tone="error" title="Not saved">
+              {error}
+            </Notice>
+          )}
+          <div className="ag-form">
+            <Input label="Name" value={draft.name} maxLength={32} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+            <Input label="Role" value={draft.role} maxLength={24} onChange={(e) => setDraft({ ...draft, role: e.target.value })} />
+            <Input label="Runs in (tool)" value={draft.tool} maxLength={24} placeholder="claude-code" onChange={(e) => setDraft({ ...draft, tool: e.target.value })} />
+            <Input label="Avatar (https link)" value={draft.avatar} placeholder="https://…" onChange={(e) => setDraft({ ...draft, avatar: e.target.value.trim() })} />
+            <Input
+              label="How it thinks (https link)"
+              value={draft.manifest}
+              placeholder="https://…/agent.json"
+              hint="A page or JSON describing its prompt, model or MCP server. It travels with the NFT."
+              onChange={(e) => setDraft({ ...draft, manifest: e.target.value.trim() })}
+            />
+          </div>
+          <div className="ag-buttons">
+            <Button variant="primary" busy={busy} disabled={busy || !profile || badLink} onClick={() => void save()}>
+              Save on chain
+            </Button>
+            <Button variant="ghost" disabled={busy} onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+          </div>
+          {(badLink || !profile) && <p className="ag-problems">{!profile ? "Give it a name." : "Links must start with https://."}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** One feed entry's identity across reads: its seat and its sequence number in that seat's log. */
 const feedKey = (e: { seat: Seat; seq: string }) => `${e.seat.seat_id}-${e.seq}`;
@@ -1413,7 +1536,15 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
           payees: role.kind === "Payer" ? payees : [],
           market: role.kind === "Buyer" ? ag.MARKET : null,
         };
-        const id = await ag.createSeat(pick!.contract, pick!.token_id, role.kind, policy);
+        const source = ident.source.trim();
+        const profile = ag.profileFor({
+          name: d.name.trim() || role.name,
+          role: role.id,
+          tool: role.byo ? ident.tool : "runner",
+          avatar: role.byo ? ident.avatar : null,
+          manifest: role.byo && source ? (/^https?:\/\//.test(source) ? source.replace(/^http:/, "https:") : `https://${source}`) : null,
+        });
+        const id = await ag.createSeat(pick!.contract, pick!.token_id, role.kind, policy, profile);
         if (!id) throw new Error("The contract could not confirm you own this NFT. Your 0.1 NEAR was returned.");
         s = await ag.getSeat(id);
         setSeat(s);
@@ -1817,7 +1948,7 @@ function ConnectYourAi({
           {record.avatar ? <img src={record.avatar} alt="" /> : <WalletCards />}
         </span>
         <div>
-          <h1 id="ag-connect-title">{record.name || `Agent #${seat.seat_id}`} now lives in your NFT</h1>
+          <h1 id="ag-connect-title">{record.name || `Agent ${ag.seatLabel(seat.seat_id)}`} now lives in your NFT</h1>
           <p className="ag-muted">
             Connect it from {toolLabel}. Its key was made in this browser and downloaded as <code>{keyName}</code>; it is
             stored nowhere else.
@@ -2087,7 +2218,7 @@ function TakeOverPanel({
  */
 function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
   const [to, setTo] = useState("");
-  const [withdraw, setWithdraw] = useState(true);
+  const [budget, setBudget] = useState<"withdraw" | "set-aside" | "follow">(seat.budget_follows ? "follow" : "withdraw");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const slow = useSlow(busy);
@@ -2099,7 +2230,7 @@ function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
     setError("");
     try {
       if (!(await ag.accountExists(receiver))) throw new Error(`${receiver} does not exist on testnet. Check the spelling.`);
-      await ag.transferSeatNft(seat, receiver, withdraw);
+      await ag.transferSeatNft(seat, receiver, seat.balance === "0" ? "set-aside" : budget);
       navigate("/agents");
     } catch (e) {
       setError(ag.friendlyError(e));
@@ -2112,13 +2243,31 @@ function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
     <details className="ag-transfer">
       <summary>Transfer this NFT</summary>
       <ul className="ag-transfer-facts">
-        <li>The agent stays on the NFT with its history; the new owner claims it and sets their own limits and AI.</li>
-        <li>Your agent's key is switched off and deleted from your account in the same request.</li>
         <li>
-          Budget: {ag.formatAsset(seat.balance, seat.asset)}.{" "}
-          {withdraw ? "It comes back to your wallet now." : "It stays yours, set aside to withdraw later."}
+          The agent stays on the NFT with its {seat.version === "v2" ? "profile and " : ""}history; the new owner claims it and
+          sets their own limits and AI.
         </li>
+        <li>Your agent's key is switched off and deleted from your account in the same request.</li>
       </ul>
+      {seat.balance !== "0" && (
+        <fieldset className="ag-budget-choice">
+          <legend>Its budget of {ag.formatAsset(seat.balance, seat.asset)}</legend>
+          <label>
+            <input type="radio" name={`budget-${seat.seat_id}`} checked={budget === "withdraw"} onChange={() => setBudget("withdraw")} /> Comes back to
+            my wallet now
+          </label>
+          {seat.version === "v2" && (
+            <label>
+              <input type="radio" name={`budget-${seat.seat_id}`} checked={budget === "follow"} onChange={() => setBudget("follow")} /> Goes to the
+              new owner with the agent <span className="ag-muted">(held on chain until they claim it)</span>
+            </label>
+          )}
+          <label>
+            <input type="radio" name={`budget-${seat.seat_id}`} checked={budget === "set-aside"} onChange={() => setBudget("set-aside")} /> Stays mine,
+            set aside to withdraw later
+          </label>
+        </fieldset>
+      )}
       {error && (
         <Notice tone="error" title="Not done">
           {error}
@@ -2130,12 +2279,6 @@ function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
           Transfer
         </Button>
       </div>
-      {seat.balance !== "0" && (
-        <label className="ag-check">
-          <input type="checkbox" checked={withdraw} onChange={(e) => setWithdraw(e.target.checked)} /> Take my budget back
-          first
-        </label>
-      )}
       {slow && <WalletWait />}
     </details>
   );
@@ -2170,11 +2313,11 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
     const newest = entries[0]?.seq ?? "";
     if (entries.length && newest !== linkedSeq.current)
       void ag
-        .ownerTxs(s.owner, BigInt(entries.at(-1)!.at) - 60_000_000_000n, 20_000)
+        .ownerTxs(s.owner, BigInt(entries.at(-1)!.at) - 60_000_000_000n, 20_000, [s.contract])
         .then((txs) => {
           const m: Record<string, string> = {};
           for (const e of entries) {
-            const h = ag.txForEntry(e, txs);
+            const h = ag.txForEntry(e, txs, s.contract);
             if (h) m[e.seq] = h;
           }
           // Retry on a later refresh if the newest entry is not linked yet (explorer lag or rate limit).
@@ -2300,10 +2443,20 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         </div>
       </section>
       {notice}
+      {mine && seat.held_for_next_owner && nftOwner !== account && (
+        <Notice tone="info" title="Budget left to the new owner">
+          You sold this NFT with its budget: {ag.formatAsset(seat.balance, seat.asset)} waits on chain for whoever claims the agent.
+        </Notice>
+      )}
       {canClaim && (
         <Notice tone="info" title="You own this NFT now">
           The agent still belongs to {shortAccount(seat.owner)}. Claim it (one signature), then set it up with your own
-          limits and AI; their budget stays theirs.{" "}
+          limits and AI.{" "}
+          {seat.held_for_next_owner
+            ? `Its budget of ${ag.formatAsset(seat.balance, seat.asset)} was left to you: it is yours once you claim.`
+            : seat.budget_follows
+              ? `Its owner chose to leave its budget (${ag.formatAsset(seat.balance, seat.asset)}) to the next owner.`
+              : "Its budget stays with the previous owner."}{" "}
           <Button variant="primary" busy={busy === "claim"} onClick={() => run("claim", "Agent claimed: now set it up below", () => ag.claimSeat(seat))}>
             Claim the agent
           </Button>
@@ -2324,6 +2477,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
       <div className="ag-columns">
         <section className="kp-vault-section">
           <h2>Rules and mission</h2>
+          <AgentIdentity seat={seat} mine={mine && nftOwner === account} onSaved={() => void load()} />
           <dl className="ag-dl">
             <dt>Cap per action</dt>
             <dd>{seat.policy ? ag.formatAsset(seat.policy.per_tx_max, seat.asset) : "—"}</dd>
@@ -2493,6 +2647,24 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
                 Close the agent
               </Button>
             </div>
+            {seat.version === "v2" && nftOwner === account && !seat.held_for_next_owner && (
+              <label className="ag-check">
+                <input
+                  type="checkbox"
+                  checked={!!seat.budget_follows}
+                  disabled={busy !== ""}
+                  onChange={(e) =>
+                    void run(
+                      "follows",
+                      e.target.checked ? "If you sell this NFT, its budget goes to the next owner" : "Its budget comes back to you on a sale",
+                      () => ag.setBudgetFollows(seat, e.target.checked),
+                    )
+                  }
+                />{" "}
+                Leave this budget to whoever owns the NFT next{" "}
+                <span className="ag-muted">(while on, a withdrawal first proves on chain that you still own it)</span>
+              </label>
+            )}
             <p className="kp-hint">These need your wallet. The agent's key can do none of them.</p>
             {nftOwner === account && <TransferPanel seat={seat} navigate={navigate} />}
           </section>
@@ -2552,8 +2724,8 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         </div>
         <p className="kp-hint">
           Read live from <code>seat_log</code> on{" "}
-          <a href={`${EXPLORER}/address/${ag.AGENTS}`} target="_blank" rel="noreferrer">
-            {shortAccount(ag.AGENTS)}
+          <a href={`${EXPLORER}/address/${seat.contract}`} target="_blank" rel="noreferrer">
+            {shortAccount(seat.contract)}
           </a>
           : the last 50 entries. Blocked attempts are written by the contract itself.
         </p>
