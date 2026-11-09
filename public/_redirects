@@ -1,0 +1,2 @@
+# Single-page app: any path that is not a file serves index.html (Netlify, Cloudflare Pages).
+/*    /index.html    200
