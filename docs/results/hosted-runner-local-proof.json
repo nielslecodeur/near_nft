@@ -1,0 +1,20 @@
+{
+  "at": "2026-11-09T17:51:09.501Z",
+  "runner": "http://127.0.0.1:8787",
+  "contract": "agents-v2.everkeep-dev-mw0weth5.testnet",
+  "seat_key": "v2-5",
+  "checks": [
+    "runner up at http://127.0.0.1:8787 (hosted: true)",
+    "the runner made an agent key for demo-agent.everkeep-dev-mw0weth5.testnet: ed25519:GxdEhty5QgyN…",
+    "seat v2-5 hired by demo-agent.everkeep-dev-mw0weth5.testnet: 0.1 USDC per payment, 0.3 a day, 0.3 USDC budget, the runner's key on it",
+    "the triggered tick paid 0.1 USDC by itself, signed in the Worker: paid 100000 to demo-agent.everkeep-dev-mw0weth5.testnet (tx GsizpxownqgD8uXXEw9VnW8J9WUAxUaBo3fZd5GNNf8S)",
+    "0.2 USDC through the Worker is refused on chain (over the per-action cap), tx 6izVmNi3N7B9Lwj2oPPzgc7QQcARDWDsLxxnH2WXPbZS"
+  ],
+  "transactions": {
+    "mint": "HeBxxteGmakKq5mMPXK5HKpnTEXtU5SpGoCre5BioUtS",
+    "create_seat": "FkSTLK6w1pEkKmr65eq3VhhpJ6EeyX8G3qJimiqumspT",
+    "fund": "6y2r7PwYi7N6uK12csCVBXtqVq7gjxU5Bb6sv48wt7wM",
+    "add_key": "BQ3nUaKxJG6yJYcHWvAaMTt9hebHvyvWEAPi9ntfm73x",
+    "set_agent_key": "BmdcGyD1iNpGA39ZtoUidvk6ncrkuZDtzZtdsLuQ3XZf"
+  }
+}

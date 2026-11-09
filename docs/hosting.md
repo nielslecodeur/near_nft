@@ -24,8 +24,11 @@ single-page rewrite on both.
   funding, limits, pause, transfer, claim, profile.
 - The AI-facing files: `/llms.txt`, `/abi/agents-v2.json`, `/openapi/runner.json`, `/mcp/agent-wallet.mjs`.
 
-The built-in roles (Collector, Subscriptions, Allowance, the guided first agent) need the **runner**, which
-runs on the user's own computer. To let the hosted site reach it, start it with the site's origin allowed:
+The built-in roles (Collector, Subscriptions, Allowance, the guided first agent) need a **runner**. The hosted
+site uses the hosted one by default: a Cloudflare Worker, `https://agent-wallet-runner.nielshallgren.workers.dev`
+([`workers/runner`](../workers/runner/README.md)), always on, free plan. Agents hired earlier with a runner on
+your own computer keep their keys there: "Use the runner on this computer" switches to it, started with the
+site's origin allowed:
 
 ```bash
 AGENTS_RUNNER_ORIGINS="https://<your-app>.vercel.app,http://127.0.0.1:5173" npm run agent:runner

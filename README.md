@@ -42,7 +42,7 @@ The demo agent's key is published on purpose in [`demo/agent-key.json`](demo/age
 ```bash
 npm ci
 npm run dev            # http://127.0.0.1:5173
-npm run agent:runner   # second terminal: acts for the built-in roles
+npm run agent:runner   # second terminal: acts for the built-in roles (the hosted site uses a hosted one)
 ```
 
 On Windows, run both inside WSL (the repo's `node_modules` are installed from Linux). To host it for free (Vercel, Netlify, Cloudflare Pages), see [`docs/hosting.md`](docs/hosting.md). Connect a NEAR

@@ -1,0 +1,13 @@
+{
+  "at": "2026-11-09T18:59:51.462Z",
+  "runner": "https://agent-wallet-runner.nielshallgren.workers.dev",
+  "contract": "agents-v2.everkeep-dev-mw0weth5.testnet",
+  "seat_key": "v2-6",
+  "checks": [
+    "runner up at https://agent-wallet-runner.nielshallgren.workers.dev (hosted: true)",
+    "checking v2-6, hired by an earlier run with the runner's key ed25519:EQhFRBscCL9V…",
+    "the cron tick paid 0.1 USDC by itself, signed in the Worker: nothing due",
+    "0.2 USDC through the Worker is refused on chain (over the per-action cap), tx 3yZBp5Gs72Xy9ZJ6EAY49jEYjehVKrbfpxve2fPAxAW9"
+  ],
+  "transactions": {}
+}

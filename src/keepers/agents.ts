@@ -34,8 +34,29 @@ export const NEW_AGENTS = AGENTS_V2;
 export const contractOf = (v: AgentsVersion) => (v === "v2" ? AGENTS_V2 : AGENTS);
 export const USDC =
   "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af";
-export const RUNNER =
-  import.meta.env.VITE_AGENTS_RUNNER || "http://127.0.0.1:8788";
+/**
+ * Which runner acts for the built-in roles. The hosted one (Cloudflare Worker,
+ * workers/runner) on the hosted site; the one on this computer for local pages,
+ * or when the user says they run one ("Use the runner on this computer"), which
+ * is where agents hired before the hosted runner keep their keys.
+ */
+export const LOCAL_RUNNER = "http://127.0.0.1:8788";
+export const HOSTED_RUNNER =
+  (import.meta.env.VITE_HOSTED_RUNNER as string | undefined) || "https://agent-wallet-runner.nielshallgren.workers.dev";
+const RUNNER_OPT_IN = "agentwallet.runner.local";
+const pageIsLocal = /\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(location.origin);
+function prefersLocalRunner() {
+  try {
+    return localStorage.getItem(RUNNER_OPT_IN) === "1";
+  } catch {
+    return false;
+  }
+}
+export const RUNNER: string =
+  (import.meta.env.VITE_AGENTS_RUNNER as string | undefined) || (pageIsLocal || prefersLocalRunner() ? LOCAL_RUNNER : HOSTED_RUNNER);
+export const runnerIsHosted = RUNNER === HOSTED_RUNNER;
+/** On the hosted site the user can pick either runner; local pages always use the local one. */
+export const canSwitchRunner = !pageIsLocal && !import.meta.env.VITE_AGENTS_RUNNER;
 /** The Buyer's market (Keepers v2, `buy(token_id, listing_id)`). */
 export const MARKET = KEEPERS_V2;
 export const SEAT_STORAGE = YOCTO / 10n;
@@ -493,7 +514,8 @@ export type Job = {
  * only for that account's agents. Tokens stay in this browser's localStorage.
  */
 type RunnerSession = { accountId: string; token: string; expiresAt: number };
-const SESSIONS_KEY = "agentwallet.runner.sessions";
+/** Per runner: a session from the hosted runner is no use on the local one, and the other way round. */
+const SESSIONS_KEY = `agentwallet.runner.sessions:${RUNNER}`;
 let currentAccount = "";
 
 function sessions(): Record<string, RunnerSession> {
@@ -599,19 +621,11 @@ async function runnerFetch<T>(path: string, init?: RequestInit, interactive = tr
 }
 
 /**
- * A hosted page only looks for a runner on the visitor's own computer once they
- * say they run one: probing 127.0.0.1 from a website otherwise just fills the
- * console with blocked requests. Local pages and a configured runner always look.
+ * Always a runner to talk to now: the hosted one by default on the hosted site
+ * (no stray probes of 127.0.0.1 from a website), the local one when chosen.
  */
-const RUNNER_OPT_IN = "agentwallet.runner.local";
 export function runnerWanted() {
-  if (import.meta.env.VITE_AGENTS_RUNNER) return true;
-  if (/\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(location.origin)) return true;
-  try {
-    return localStorage.getItem(RUNNER_OPT_IN) === "1";
-  } catch {
-    return false;
-  }
+  return true;
 }
 export function setLocalRunner(on: boolean) {
   try {
