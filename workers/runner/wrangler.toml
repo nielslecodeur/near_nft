@@ -1,0 +1,21 @@
+# Agent Wallet runner on Cloudflare Workers (free plan). See README.md here.
+name = "agent-wallet-runner"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+# Every minute: run every agent's mission once.
+[triggers]
+crons = ["* * * * *"]
+
+# Created with: npx wrangler d1 create agent-wallet-runner (then paste its id here).
+[[d1_databases]]
+binding = "DB"
+database_name = "agent-wallet-runner"
+database_id = "local-only"
+
+[vars]
+AGENTS = "agents-v1.everkeep-dev-mw0weth5.testnet"
+AGENTS_V2 = "agents-v2.everkeep-dev-mw0weth5.testnet"
+ORIGINS = "https://near-nft-wheat.vercel.app,http://127.0.0.1:5173,http://localhost:5173"
+RPC_NODES = "https://test.rpc.fastnear.com,https://near-testnet.drpc.org,https://rpc.testnet.fastnear.com"
+# Secrets (never here): npx wrangler secret put SECRETS_KEY / ADMIN_TOKEN
