@@ -5,7 +5,7 @@
  * contract only ever sees the seat kind and its policy.
  */
 import type { LucideIcon } from "lucide-react";
-import { BrainCircuit, CalendarClock, Gem, HandCoins, PiggyBank, Plug, ReceiptText, Tag } from "lucide-react";
+import { BrainCircuit, CalendarClock, Gem, HandCoins, PiggyBank, Plug, ReceiptText, Send, ShoppingBag, Tag } from "lucide-react";
 import type { Kind } from "./agents";
 
 export type RoleId =
@@ -16,7 +16,9 @@ export type RoleId =
   | "splitter"
   | "payroll"
   | "byo-payer"
-  | "byo-buyer";
+  | "byo-buyer"
+  | "payer"
+  | "buyer";
 
 export type Unit = "minutes" | "hours" | "days" | "weeks";
 export const UNIT_SECONDS: Record<Unit, number> = {
@@ -118,8 +120,8 @@ export const BYO_ROLES: Role[] = [
   {
     id: "byo-payer",
     kind: "Payer",
-    name: "Your AI agent · pays",
-    tagline: "Plug in your own AI (Claude, Codex, any MCP agent). It pays in USDC, only inside your limits.",
+    name: "Import an agent",
+    tagline: "Bring your own AI (Claude Code, Codex, Cursor or any MCP agent) and let it act through this NFT, inside your limits.",
     icon: BrainCircuit,
     byo: true,
     payees: "many",
@@ -129,8 +131,8 @@ export const BYO_ROLES: Role[] = [
   {
     id: "byo-buyer",
     kind: "Buyer",
-    name: "Your AI agent · buys",
-    tagline: "Plug in your own AI. It buys Keepers in NEAR, only inside your limits.",
+    name: "Import an agent",
+    tagline: "Bring your own AI (Claude Code, Codex, Cursor or any MCP agent) and let it act through this NFT, inside your limits.",
     icon: Plug,
     byo: true,
     payees: "none",
@@ -139,6 +141,33 @@ export const BYO_ROLES: Role[] = [
 ];
 
 export const ALL_ROLES = [...ROLES, ...BYO_ROLES];
+/** What the role pickers show: the built-in jobs, then one "Import an agent" card. */
+export const PICKER_ROLES = [...ROLES, BYO_ROLES[0]];
 export const roleOf = (id?: string) => ALL_ROLES.find((r) => r.id === id);
-/** Fallback role for seats created before roles existed. */
-export const defaultRole = (kind: Kind) => (kind === "Buyer" ? ROLES[0] : ROLES[2]);
+/**
+ * Neutral roles for an agent whose job is not known in this browser (seen
+ * read-only, hired on another computer, or older than roles). Never offered in
+ * a picker: guessing "Subscriptions" for every payer was wrong.
+ */
+export const GENERIC_ROLES: Record<Kind, Role> = {
+  Payer: {
+    id: "payer",
+    kind: "Payer",
+    name: "Payer",
+    tagline: "Pays in USDC, only to the accounts its owner allowed.",
+    icon: Send,
+    payees: "many",
+    defaults: { perTx: "1", perDay: "3", budget: "5", amount: "1", every: 1, unit: "days" },
+  },
+  Buyer: {
+    id: "buyer",
+    kind: "Buyer",
+    name: "Buyer",
+    tagline: "Buys on the Keepers market, under its owner's limits.",
+    icon: ShoppingBag,
+    payees: "none",
+    defaults: { perTx: "1", perDay: "2", budget: "1", maxPrice: "1", minTier: 0 },
+  },
+};
+export const defaultRole = (kind: Kind) => GENERIC_ROLES[kind];
+export const isGeneric = (r: Role) => r.id === "payer" || r.id === "buyer";

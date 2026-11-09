@@ -9,11 +9,16 @@ import {
   KEEPERS_V2,
   YOCTO,
   fnCall,
+  readyWallet,
   sendRaw,
+  signNep413,
   returnedValue,
   viewAccessKey,
   viewOn,
+  type RawTx,
 } from "./chain";
+import { rpc } from "../client";
+export { friendlyError } from "./errors";
 
 export const AGENTS =
   import.meta.env.VITE_AGENTS_ID || "agents-v1.everkeep-dev-mw0weth5.testnet";
@@ -107,6 +112,16 @@ export const refundOf = (account: string) =>
   });
 export const usdcBalance = async (account: string) =>
   BigInt(await viewOn<string>(USDC, "ft_balance_of", { account_id: account }));
+
+/** Liquid NEAR on an account (yocto), 0 when it does not exist. */
+export async function nearBalance(account: string): Promise<bigint> {
+  try {
+    const r = await rpc("query", { request_type: "view_account", account_id: account, finality: "final" });
+    return BigInt((r as { amount: string }).amount);
+  } catch {
+    return 0n;
+  }
+}
 
 /** Who owns an NFT right now, read from its own contract. */
 export async function nftOwner(contract: string, tokenId: string) {
@@ -358,12 +373,85 @@ export type Job = {
   lastResult?: string;
 };
 
-async function runnerFetch<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Runner sign-in: the runner only obeys a session token it gave out against a
+ * wallet-signed NEP-413 challenge (one signature, no transaction, 12 h), and
+ * only for that account's agents. Tokens stay in this browser's localStorage.
+ */
+type RunnerSession = { accountId: string; token: string; expiresAt: number };
+const SESSIONS_KEY = "agentwallet.runner.sessions";
+let currentAccount = "";
+
+function sessions(): Record<string, RunnerSession> {
+  try {
+    return JSON.parse(localStorage.getItem(SESSIONS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+function saveSessions(all: Record<string, RunnerSession>) {
+  try {
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(all));
+  } catch {
+    /* private mode: the session lasts for this page only */
+  }
+}
+const memorySessions: Record<string, RunnerSession> = {};
+function sessionOf(accountId: string): RunnerSession | null {
+  const s = memorySessions[accountId] ?? sessions()[accountId];
+  return s && s.expiresAt > Date.now() + 60_000 ? s : null;
+}
+function forgetSession(accountId: string) {
+  delete memorySessions[accountId];
+  const all = sessions();
+  delete all[accountId];
+  saveSessions(all);
+}
+
+/** The runner answered "sign in first": the page shows an Unlock button. */
+export class RunnerLockedError extends Error {
+  constructor() {
+    super("The runner needs you to sign in (one wallet signature, no transaction).");
+  }
+}
+
+export const runnerSignedIn = (accountId: string) => !!sessionOf(accountId);
+
+/** One NEP-413 signature in the wallet; returns the account it signed for. */
+export async function runnerSignIn(accountId?: string): Promise<string> {
+  const who = accountId || currentAccount || (await readyWallet()).signer;
+  const c = await runnerRequest<{ nonce: string; message: string; recipient: string }>("/auth/challenge", {
+    method: "POST",
+    body: JSON.stringify({ accountId: who }),
+  });
+  const signed = await signNep413({
+    message: c.message,
+    recipient: c.recipient,
+    nonce: Uint8Array.from(atob(c.nonce), (ch) => ch.charCodeAt(0)),
+  });
+  if (signed.accountId !== who) throw new Error(`The wallet is connected as ${signed.accountId}, not ${who}.`);
+  const session = await runnerRequest<RunnerSession>("/auth/session", {
+    method: "POST",
+    body: JSON.stringify({ nonce: c.nonce, ...signed }),
+  });
+  memorySessions[who] = session;
+  saveSessions({ ...sessions(), [who]: session });
+  currentAccount = who;
+  return who;
+}
+
+export async function runnerSignOut(accountId: string) {
+  const s = sessionOf(accountId);
+  forgetSession(accountId);
+  if (s) await runnerRequest("/auth/logout", { method: "POST" }, s.token).catch(() => {});
+}
+
+async function runnerRequest<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
   let r: Response;
   try {
     r = await fetch(RUNNER + path, {
       ...init,
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
       signal: AbortSignal.timeout(60_000),
     });
   } catch {
@@ -372,24 +460,51 @@ async function runnerFetch<T>(path: string, init?: RequestInit): Promise<T> {
     );
   }
   const data = await r.json();
+  if (r.status === 401) throw new RunnerLockedError();
   if (!r.ok) throw new Error(data.error || `Runner error ${r.status}`);
   return data as T;
 }
 
+/**
+ * A runner call with this account's session. `interactive`: when the session is
+ * missing or expired, ask for the signature right away and retry once (the
+ * user is acting); otherwise throw RunnerLockedError (background reads).
+ */
+async function runnerFetch<T>(path: string, init?: RequestInit, interactive = true, accountId = currentAccount): Promise<T> {
+  const s = accountId ? sessionOf(accountId) : null;
+  try {
+    if (!s) throw new RunnerLockedError();
+    return await runnerRequest<T>(path, init, s.token);
+  } catch (e) {
+    if (!(e instanceof RunnerLockedError)) throw e;
+    if (accountId) forgetSession(accountId);
+    if (!interactive) throw e;
+    const who = await runnerSignIn(accountId || undefined);
+    return runnerRequest<T>(path, init, sessionOf(who)!.token);
+  }
+}
+
 export const runnerHealth = () =>
-  runnerFetch<{ agents: string; tick_seconds: number }>("/health");
+  runnerRequest<{ agents: string; tick_seconds: number }>("/health");
 export const runnerNewKey = (accountId: string) =>
-  runnerFetch<{ publicKey: string }>("/keys", {
-    method: "POST",
-    body: JSON.stringify({ accountId }),
-  }).then((r) => r.publicKey);
-export const runnerJobs = (accountId: string) =>
-  runnerFetch<Job[]>(`/jobs?accountId=${encodeURIComponent(accountId)}`);
+  runnerFetch<{ publicKey: string }>(
+    "/keys",
+    { method: "POST", body: JSON.stringify({ accountId }) },
+    true,
+    accountId,
+  ).then((r) => r.publicKey);
+/** Background read: throws RunnerLockedError instead of opening the wallet. */
+export const runnerJobs = (accountId: string) => {
+  currentAccount = accountId;
+  return runnerFetch<Job[]>(`/jobs?accountId=${encodeURIComponent(accountId)}`, undefined, false, accountId);
+};
 export const runnerSaveJob = (job: Job) =>
-  runnerFetch<Job>(`/jobs/${job.seatId}`, {
-    method: "PUT",
-    body: JSON.stringify(job),
-  });
+  runnerFetch<Job>(
+    `/jobs/${job.seatId}`,
+    { method: "PUT", body: JSON.stringify(job) },
+    true,
+    job.accountId,
+  );
 export const runnerRunNow = (seatId: string) =>
   runnerFetch<{ result: string }>(`/jobs/${seatId}/run`, { method: "POST" });
 export const runnerPause = (seatId: string) =>
@@ -495,7 +610,24 @@ export async function usdcReady(account: string) {
 // remembers, in this browser, which seats are "yours" (role, name, public key).
 // ---------------------------------------------------------------------------
 
-export type ByoRecord = { seatId: string; role: string; name?: string; publicKey: string };
+export type AgentTool = "claude-code" | "codex" | "cursor" | "other";
+export const AGENT_TOOLS: { id: AgentTool; label: string }[] = [
+  { id: "claude-code", label: "Claude Code" },
+  { id: "codex", label: "Codex" },
+  { id: "cursor", label: "Cursor" },
+  { id: "other", label: "Other MCP agent" },
+];
+export type ByoRecord = {
+  seatId: string;
+  role: string;
+  name?: string;
+  publicKey: string;
+  /** Imported agent identity (shown on the card), kept in this browser. */
+  tool?: AgentTool;
+  avatar?: string;
+  source?: string;
+  hiredAt?: number;
+};
 const BYO_STORE = "agentwallet.byo";
 
 export function byoAgents(): Record<string, ByoRecord> {
@@ -540,8 +672,56 @@ export function downloadJson(filename: string, data: unknown) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** What to run so an MCP agent drives this seat. */
-export const mcpCommand = (file: string) => `npx tsx scripts/agent-mcp.ts --key ${file}`;
+/**
+ * The MCP server as ONE file that plain `node` (18+) runs: no clone, no npm
+ * install. Built by `npm run build:mcp` into public/mcp/ and committed, so the
+ * raw GitHub URL works even before the site is hosted.
+ */
+export const MCP_BUNDLE_URL =
+  import.meta.env.VITE_MCP_BUNDLE_URL ||
+  "https://raw.githubusercontent.com/nielslecodeur/near_nft/keepers/public/mcp/agent-wallet.mjs";
+
+/** Downloads the bundle next to the key file; works in bash, zsh, PowerShell and cmd (node only). */
+export const mcpDownload = `node -e "fetch('${MCP_BUNDLE_URL}').then(r=>r.text()).then(t=>require('fs').writeFileSync('agent-wallet.mjs',t))"`;
+
+/** What to run so an MCP agent drives this seat (from the folder holding both files). */
+export const mcpCommand = (file: string) => `node agent-wallet.mjs --key ${file}`;
+
+/**
+ * How to register the seat's MCP server in each tool: download the one-file
+ * server next to the key file, then point the tool at both with full paths.
+ * Returns where it goes and what to paste.
+ */
+export function mcpSetup(tool: AgentTool, name: string, file: string) {
+  const dir = "<folder with the key file>";
+  const args = [`${dir}/agent-wallet.mjs`, "--key", `${dir}/${file}`];
+  const json = JSON.stringify({ mcpServers: { [name]: { command: "node", args } } }, null, 2);
+  switch (tool) {
+    case "claude-code":
+      return {
+        where: "In a terminal, in the folder where you saved the key file",
+        snippet: `${mcpDownload}
+claude mcp add ${name} -- node "$PWD/agent-wallet.mjs" --key "$PWD/${file}"`,
+      };
+    case "codex":
+      return {
+        where: "Download the server next to the key file, then add this to ~/.codex/config.toml",
+        snippet: `${mcpDownload}
+
+[mcp_servers.${name}]
+command = "node"
+args = [${args.map((a) => `"${a}"`).join(", ")}]`,
+      };
+    case "cursor":
+      return { where: "Download the server next to the key file, then add this to .cursor/mcp.json", snippet: `${mcpDownload}\n\n${json}` };
+    default:
+      return { where: "Download the server next to the key file, then add this stdio server to your agent's MCP settings", snippet: `${mcpDownload}\n\n${json}` };
+  }
+}
+
+/** A short, safe slug for MCP server names. */
+export const mcpName = (name: string | undefined, seatId: string) =>
+  `${(name || "my-agent").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "my-agent"}-${seatId}`;
 
 // ---------------------------------------------------------------------------
 // Explorer links for the on-chain log: the contract logs actions, not their
@@ -574,12 +754,13 @@ const METHODS: Record<string, string[]> = {
 
 /**
  * The owner's recent transactions to the agents contract, newest first.
- * Cached a minute, one request in flight per owner, and no call at all for a
- * minute after the explorer says 429.
+ * Cached `maxAgeMs` (a minute by default; live pages ask sooner while their
+ * newest entry has no link yet), one request in flight per owner, and no call
+ * at all for a minute after the explorer says 429.
  */
-export function ownerTxs(owner: string, oldest: bigint): Promise<IndexedTx[]> {
+export function ownerTxs(owner: string, oldest: bigint, maxAgeMs = 60_000): Promise<IndexedTx[]> {
   const hit = txCache.get(owner);
-  if (hit && Date.now() - hit.at < 60_000) return Promise.resolve(hit.txs);
+  if (hit && Date.now() - hit.at < maxAgeMs) return Promise.resolve(hit.txs);
   if (Date.now() < explorerBackoffUntil) return Promise.resolve(hit?.txs ?? []);
   const running = inflight.get(owner);
   if (running) return running;
@@ -640,4 +821,75 @@ export function txForEntry(e: { action: string; at: string }, txs: IndexedTx[]) 
   const at = BigInt(e.at);
   const best = txs.find((t) => t.ts <= at && at - t.ts <= 60_000_000_000n && methods.includes(t.method));
   return best?.hash ?? null;
+}
+
+/**
+ * Take over (or re-arm) a seat in ONE wallet request: set the limits, resume it
+ * if paused, add the budget and give the agent its key.
+ */
+export async function setupSeat(seat: Seat, policy: Policy, amount: bigint, publicKey: string) {
+  const agentCalls = [
+    fnCall("set_policy", { seat_id: seat.seat_id, policy }, 1n, 20n),
+    ...(seat.paused ? [fnCall("resume", { seat_id: seat.seat_id }, 1n, 15n)] : []),
+    ...(seat.kind === "Buyer" && amount > 0n ? [fnCall("fund", { seat_id: seat.seat_id }, amount, 15n)] : []),
+    fnCall("set_agent_key", { seat_id: seat.seat_id, public_key: publicKey }, 1n, 15n),
+  ];
+  const txs: RawTx[] = [
+    {
+      receiverId: "self",
+      actions: [
+        {
+          type: "AddKey",
+          params: {
+            publicKey,
+            accessKey: { permission: { receiverId: AGENTS, allowance: KEY_ALLOWANCE.toString(), methodNames: AGENT_METHODS } },
+          },
+        },
+      ],
+    },
+    { receiverId: AGENTS, actions: agentCalls },
+  ];
+  if (seat.kind === "Payer" && amount > 0n)
+    txs.push({
+      receiverId: USDC,
+      actions: [
+        fnCall(
+          "ft_transfer_call",
+          { receiver_id: AGENTS, amount: amount.toString(), msg: JSON.stringify({ seat_id: seat.seat_id }) },
+          1n,
+          100n,
+        ),
+      ],
+    });
+  return sendRaw(txs);
+}
+
+/**
+ * Hand the NFT over in ONE wallet request: optionally take the budget back,
+ * switch the agent off (clear its key on the seat and delete it from this
+ * account), then nft_transfer to the new owner.
+ */
+export async function transferSeatNft(seat: Seat, receiver: string, withdrawBudget: boolean) {
+  const txs: RawTx[] = [];
+  const agentCalls = [
+    ...(withdrawBudget && seat.balance !== "0" ? [fnCall("withdraw", { seat_id: seat.seat_id, amount: null }, 1n, 50n)] : []),
+    ...(seat.agent_key ? [fnCall("set_agent_key", { seat_id: seat.seat_id, public_key: null }, 1n, 15n)] : []),
+  ];
+  if (agentCalls.length) txs.push({ receiverId: AGENTS, actions: agentCalls });
+  if (seat.agent_key) txs.push({ receiverId: "self", actions: [{ type: "DeleteKey", params: { publicKey: seat.agent_key } }] });
+  txs.push({
+    receiverId: seat.nft_contract,
+    actions: [fnCall("nft_transfer", { receiver_id: receiver, token_id: seat.token_id, memo: "agent wallet transfer" }, 1n, 50n)],
+  });
+  return sendRaw(txs);
+}
+
+/** True when `account` exists on testnet (to catch typos before a transfer). */
+export async function accountExists(account: string) {
+  try {
+    await rpc("query", { request_type: "view_account", account_id: account, finality: "final" });
+    return true;
+  } catch {
+    return false;
+  }
 }

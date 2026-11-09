@@ -225,7 +225,7 @@ export function VaultPage({
           <Button
             variant="primary"
             icon={Sparkles}
-            onClick={() => navigate("/keepers")}
+            onClick={() => navigate("/market")}
           >
             Mint or buy a Keeper
           </Button>

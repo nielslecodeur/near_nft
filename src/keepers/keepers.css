@@ -1122,3 +1122,125 @@ body {
     display: none;
   }
 }
+
+/* Market (/market): where buyer agents shop */
+.mk-hero {
+  align-items: start;
+}
+.mk-steps {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mk-steps li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--stroke-border) solid var(--nx-line);
+  border-radius: var(--nx-radius-card);
+  background: var(--nx-glass);
+}
+.mk-steps svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--nx-accent);
+}
+.mk-steps strong {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+.mk-steps span {
+  color: var(--nx-muted);
+  font-size: var(--type-sm);
+  line-height: var(--line-relaxed);
+}
+.mk-buyers {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mk-buyers li {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: var(--stroke-border) solid var(--nx-line);
+  border-radius: var(--nx-radius-chip);
+  background: var(--nx-glass);
+  font-size: var(--type-sm);
+}
+.mk-buyers a {
+  color: var(--nx-text);
+}
+.mk-reach {
+  color: var(--color-up);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+.mk-reach[data-none] {
+  color: var(--nx-muted);
+  font-weight: var(--weight-regular);
+}
+.mk-sub {
+  margin: calc(var(--space-2) * -1) 0 0;
+  font-size: var(--type-sm);
+}
+.mk-item {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+.mk-match {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--nx-muted);
+  font-size: var(--type-xs);
+}
+.mk-match[data-ok] {
+  color: var(--color-up);
+  font-weight: var(--weight-semibold);
+}
+.mk-match svg {
+  flex: none;
+  width: 0.95rem;
+  height: 0.95rem;
+}
+.mk-about summary {
+  display: grid;
+  gap: var(--space-1);
+  cursor: pointer;
+  list-style: none;
+}
+.mk-about summary::-webkit-details-marker {
+  display: none;
+}
+.mk-about summary h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+.mk-about summary h2::after {
+  content: "+";
+  color: var(--nx-accent);
+  font-weight: var(--weight-regular);
+}
+.mk-about[open] summary h2::after {
+  content: "–";
+}
+.mk-about .kp-features {
+  margin-top: var(--space-4);
+}
+@media (max-width: 40rem) {
+  .mk-buyers li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

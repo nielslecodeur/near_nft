@@ -9,7 +9,8 @@
  * decided, including the refusal reason.
  *
  *   npm run agent:runner            # in another terminal
- *   claude mcp add agent-wallet -- npx tsx scripts/agent-mcp.ts
+ *   npm run build:mcp               # once: one-file bundle, starts in < 1 s
+ *   claude mcp add agent-wallet -- node scripts/agent-mcp-launch.mjs
  *
  * Key mode (--key <file>): drives YOUR agent with the key file the Agent Wallet
  * gave you when you hired "Your AI agent" (no runner needed).
@@ -23,16 +24,19 @@
  *      AGENTS_RUNNER (default http://127.0.0.1:8788), NEAR_TESTNET_RPC.
  * stdout is the MCP channel: logs go to stderr only.
  */
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { MemoryStore, Runner } from "./agent-runner-core.js";
+// Bundled in, so the one-file build (public/mcp/agent-wallet.mjs) runs anywhere, without the repo.
+import pub from "../public/testnet.json";
+import publicDemoKey from "../demo/agent-key.json";
 
 const RPC = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 const RUNNER = process.env.AGENTS_RUNNER || "http://127.0.0.1:8788";
 const EXPLORER = "https://testnet.nearblocks.io";
-const pub = JSON.parse(await readFile(new URL("../public/testnet.json", import.meta.url), "utf8"));
 const AGENTS: string = process.env.AGENTS_CONTRACT || pub.agents.contract;
 const MARKET: string = pub.keepers.contract;
 const log = (...a: unknown[]) => console.error("[agent-mcp]", ...a);
@@ -43,6 +47,19 @@ const log = (...a: unknown[]) => console.error("[agent-mcp]", ...a);
  *                 hired "Your AI agent"); everything that key may do
  *   --demo        the public demo agent (demo/agent-key.json), agent_pay only
  */
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  console.error(`Agent Wallet MCP server (stdio). NEAR testnet, agents contract ${AGENTS}.
+
+  node agent-wallet.mjs --demo              drive the public demo agent (no wallet, no setup)
+  node agent-wallet.mjs --key <file>        drive YOUR agent with the key file the Agent Wallet gave you
+  node agent-wallet.mjs                     drive the agents of a local runner (npm run agent:runner)
+
+Register it, e.g. in Claude Code:  claude mcp add agent-wallet -- node /path/agent-wallet.mjs --key /path/agent-12-key.json
+Tools: list_agents, agent_status, list_market, pay, buy, pause. The contract enforces every limit.
+Env: AGENTS_KEY_FILE, AGENTS_DEMO=1, AGENTS_ACCOUNT, AGENTS_RUNNER, AGENTS_RUNNER_TOKEN, NEAR_TESTNET_RPC.
+Docs: https://github.com/nielslecodeur/near_nft/blob/keepers/AGENTS.md`);
+  process.exit(0);
+}
 const keyArg = process.argv.indexOf("--key");
 const KEY_FILE =
   keyArg > 0 ? process.argv[keyArg + 1] : process.env.AGENTS_KEY_FILE || null;
@@ -51,7 +68,7 @@ type DemoKey = { account_id: string; seat_id: string; public_key: string; secret
 const demoKey: DemoKey | null = KEY_FILE
   ? JSON.parse(await readFile(KEY_FILE, "utf8"))
   : DEMO_MODE
-    ? JSON.parse(await readFile(new URL("../demo/agent-key.json", import.meta.url), "utf8"))
+    ? (publicDemoKey as DemoKey)
     : null;
 /** In demo mode the server signs itself with the public key (no runner needed). */
 const demoRunner = demoKey
@@ -91,7 +108,7 @@ type Seat = {
 };
 type LogEntry = { seq: string; at: string; action: string; status: string; amount: string; counterparty: string | null; detail: string };
 type Listing = { token_id: string; owner_id: string; tier_name: string; list_price: string; listing_id: string };
-type Job = { seatId: string; accountId: string; kind: string; role?: string; name?: string; lastResult?: string };
+type Job = { seatId: string; accountId: string; kind: string; role?: string; name?: string; lastResult?: string; publicKey?: string; keyFile?: boolean };
 
 async function view<T>(contract: string, method: string, args: object = {}): Promise<T> {
   const r = await (
@@ -117,9 +134,41 @@ async function view<T>(contract: string, method: string, args: object = {}): Pro
 }
 
 /** Jobs the server can act for: the demo job in demo mode, the runner's otherwise. */
+/**
+ * Imported agents ("Import an agent") are driven by the user's own AI with a
+ * key file, not by the runner. Their name lives only in that file, so read the
+ * agent-<seat>-key.json files next to this server (cwd and repo root) for the
+ * name, never the secret. Used only while the file's key is the seat's key.
+ */
+async function keyFileJobs(): Promise<Job[]> {
+  const dirs = [...new Set([process.cwd(), fileURLToPath(new URL("..", import.meta.url))])];
+  const found = new Map<string, Job>();
+  for (const dir of dirs) {
+    const names = await readdir(dir).catch(() => [] as string[]);
+    for (const n of names.filter((n) => /^agent-\d+-key\.json$/.test(n))) {
+      try {
+        const f = JSON.parse(await readFile(`${dir}/${n}`, "utf8")) as Partial<DemoKey>;
+        if (f.seat_id && f.public_key && f.account_id)
+          found.set(f.seat_id, { seatId: f.seat_id, accountId: f.account_id, kind: f.kind ?? "Payer", role: "byo", name: f.name, publicKey: f.public_key, keyFile: true });
+      } catch {
+        /* not a key file */
+      }
+    }
+  }
+  return [...found.values()];
+}
+
+/** The runner's job for a seat, else the imported agent whose key file matches the seat's key. */
+const jobOf = (s: Seat, jobs: Job[]) =>
+  jobs.find((j) => j.seatId === s.seat_id && !j.keyFile) ?? jobs.find((j) => j.seatId === s.seat_id && j.keyFile && j.publicKey === s.agent_key);
+
 async function jobsFor(who?: string): Promise<Job[]> {
   if (demoJob) return [demoJob];
-  return runner<Job[]>(who ? `/jobs?accountId=${encodeURIComponent(who)}` : "/jobs");
+  const [fromRunner, fromFiles] = await Promise.all([
+    runner<Job[]>(who ? `/jobs?accountId=${encodeURIComponent(who)}` : "/jobs").catch(() => [] as Job[]),
+    keyFileJobs(),
+  ]);
+  return [...fromRunner, ...fromFiles.filter((j) => !who || j.accountId === who)];
 }
 
 /** Pay or buy through the runner, or directly with the public key in demo mode. */
@@ -133,14 +182,34 @@ async function act(seatId: string, body: Record<string, string | undefined>): Pr
   return runner<{ ok: boolean; tx: string }>(`/jobs/${seatId}/act`, { method: "POST", body: JSON.stringify(body) });
 }
 
+/**
+ * The runner's admin token: AGENTS_RUNNER_TOKEN, else the file the runner
+ * writes at each start (.local/runner-token in the repo, or in the cwd). Read
+ * on every call, so a runner restart (new token) needs no MCP restart.
+ */
+async function runnerToken(): Promise<string | null> {
+  if (process.env.AGENTS_RUNNER_TOKEN) return process.env.AGENTS_RUNNER_TOKEN.trim();
+  for (const file of [fileURLToPath(new URL("../.local/runner-token", import.meta.url)), `${process.cwd()}/.local/runner-token`]) {
+    const t = await readFile(file, "utf8").catch(() => "");
+    if (t.trim()) return t.trim();
+  }
+  return null;
+}
+
 async function runner<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await runnerToken();
   let res: Response;
   try {
-    res = await fetch(RUNNER + path, { ...init, headers: { "content-type": "application/json" } });
+    res = await fetch(RUNNER + path, {
+      ...init,
+      headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    });
   } catch {
     throw new Error(`The agent runner is not reachable at ${RUNNER}. Start it with: npm run agent:runner`);
   }
   const data = await res.json();
+  if (res.status === 401)
+    throw new Error("The runner refused this server's token. Start the runner from this repo (it writes .local/runner-token) or set AGENTS_RUNNER_TOKEN.");
   if (!res.ok) throw new Error(data.error || `runner error ${res.status}`);
   return data as T;
 }
@@ -183,19 +252,20 @@ const ROLE_NAMES: Record<string, string> = {
   allowance: "Allowance",
   splitter: "Bill splitter",
   payroll: "Payroll & tips",
+  byo: "Imported agent",
 };
 const roleName = (s: Seat, job?: Job) =>
-  ROLE_NAMES[job?.role ?? ""] ?? (s.kind === "Buyer" ? "Collector" : "Subscriptions");
+  ROLE_NAMES[job?.role ?? ""] ?? (s.kind === "Buyer" ? "Buyer" : "Payer");
 
 function describe(s: Seat, job?: Job) {
   const p = s.policy;
   return {
     seat_id: s.seat_id,
-    name: job?.name || `${roleName(s, job)} #${s.seat_id}`,
+    name: job?.name || `${ROLE_NAMES[job?.role ?? ""] ?? "Agent"} #${s.seat_id}`,
     role: roleName(s, job),
     kind: s.kind,
     nft: `${s.nft_contract} #${s.token_id}`,
-    status: !p ? "reset (no limits)" : s.paused ? "paused" : !s.agent_key ? "no access key" : !job ? "no key in this runner" : "active",
+    status: !p ? "reset (no limits)" : s.paused ? "paused" : !s.agent_key ? "no access key" : !job ? "no key in this runner" : job.keyFile ? "active (your own AI, key file)" : "active",
     budget: fmt(s.balance, s.asset),
     spent_today: fmt(s.spent_today, s.asset),
     left_today: fmt(s.left_today, s.asset),
@@ -246,7 +316,7 @@ server.registerTool(
         view<Seat[]>(AGENTS, "seats_for_owner", { account_id: who }),
         jobsFor(who).catch(() => [] as Job[]),
       ]);
-      return text({ account: who, agents: seats.map((s) => describe(s, jobs.find((j) => j.seatId === s.seat_id))) });
+      return text({ account: who, agents: seats.map((s) => describe(s, jobOf(s, jobs))) });
     } catch (e) {
       return fail(e);
     }
@@ -263,7 +333,7 @@ server.registerTool(
   async ({ seat_id }) => {
     try {
       const s = await seatOrThrow(seat_id);
-      const job = (await jobsFor().catch(() => [] as Job[])).find((j) => j.seatId === seat_id);
+      const job = jobOf(s, await jobsFor().catch(() => [] as Job[]));
       const entries = (await view<LogEntry[]>(AGENTS, "seat_log", { seat_id })).filter((e) => e.status !== "pending").slice(0, 10);
       return text({
         ...describe(s, job),

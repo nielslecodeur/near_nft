@@ -369,6 +369,44 @@ try {
   assert.equal((await seat("2")).owner, alice.accountId);
   pass("Carol (new NFT owner) claims the empty seat; Bob cannot claim Alice's");
 
+  // Take over in ONE transaction, as the UI does: set_policy + resume + set_agent_key,
+  // with Carol's own new agent key; then her agent pays within her limits.
+  const carolKey = KeyPair.fromRandom("ed25519");
+  assert.ok(
+    (
+      await carol.transact(carol.accountId, [
+        actions.addFunctionCallAccessKey(carolKey.getPublicKey(), agents.accountId, ["agent_pay", "agent_buy", "pause"], N),
+      ])
+    ).succeeded,
+  );
+  const takeover = await carol.transact(agents.accountId, [
+    actions.functionCall(
+      "set_policy",
+      { seat_id: "1", policy: { per_tx_max: USDC.toString(), per_day_max: (2n * USDC).toString(), payees: [shop.accountId], market: null } },
+      30_000_000_000_000n,
+      1n,
+    ),
+    actions.functionCall("resume", { seat_id: "1" }, 15_000_000_000_000n, 1n),
+    actions.functionCall("set_agent_key", { seat_id: "1", public_key: carolKey.getPublicKey().toString() }, 15_000_000_000_000n, 1n),
+  ]);
+  assert.ok(takeover.succeeded && !takeover.receiptFailures.length, takeover.receiptFailureMessages.join());
+  await root.call(usdc, "storage_deposit", { account_id: carol.accountId, registration_only: true }, { attachedDeposit: N / 100n });
+  await alice.call(usdc, "ft_transfer", { receiver_id: carol.accountId, amount: (3n * USDC).toString() }, { attachedDeposit: 1n });
+  await carol.call(
+    usdc,
+    "ft_transfer_call",
+    { receiver_id: agents.accountId, amount: (3n * USDC).toString(), msg: JSON.stringify({ seat_id: "1" }) },
+    { attachedDeposit: 1n, gas: GAS },
+  );
+  const carolAgent = new SandboxAccount(carol.accountId, chain.rpcAddr, carolKey);
+  const before = await ftBalance(shop.accountId);
+  const paid = await carolAgent.callRaw(agents, "agent_pay", { seat_id: "1", payee: shop.accountId, amount: USDC.toString() }, { gas: 100_000_000_000_000n });
+  assert.ok(paid.succeeded && !paid.receiptFailures.length, paid.receiptFailureMessages.join());
+  assert.equal(await ftBalance(shop.accountId), before + USDC);
+  assert.equal((await seat("1")).paused, false);
+  assert.equal((await log("1"))[0].status, "done");
+  pass("Carol takes the agent over in one transaction (limits, resume, key) and her agent pays");
+
   const aliceUsdc = await ftBalance(alice.accountId);
   await alice.call(agents, "withdraw_refund", {}, { attachedDeposit: 1n, gas: GAS });
   assert.equal(await ftBalance(alice.accountId), aliceUsdc + 8_500_000n);

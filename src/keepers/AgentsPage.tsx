@@ -25,8 +25,10 @@ import type { Job, LogEntry, OwnedNft, Policy, Seat } from "./agents";
 import { EXAMPLES, parseAsk, type Intent } from "./ask";
 import { CHARACTERS, characterFromMedia } from "./nft-art";
 import { NFTCard, NFTCardEmpty, NFTCardSkeleton, type NftCardModel } from "./NFTCard";
-import { ALL_ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
+import { ALL_ROLES, BYO_ROLES, PICKER_ROLES, UNIT_SECONDS, defaultRole, isGeneric, roleOf, type Role, type RoleId, type Unit } from "./roles";
 import { generateAgentKey } from "./agentKey";
+import { AgentDashboard } from "./AgentDashboard";
+import { LiveDot, ToastStack, useFresh, useLivePoll, useTitleBadge, useToasts, type Toast } from "./live";
 import type { Wallet } from "./KeepersApp";
 import "./agents.css";
 import "./agents-stage.css";
@@ -60,14 +62,16 @@ const ago = (ns: string | number) => {
 const txIn = (text?: string) => text?.match(/tx ([1-9A-HJ-NP-Za-km-z]{43,44})/)?.[1];
 const min = (...v: bigint[]) => v.reduce((a, b) => (a < b ? a : b));
 
-const roleFor = (seat: Seat, job?: Job): Role =>
+export const roleFor = (seat: Seat, job?: Job): Role =>
   roleOf(job?.role) ?? roleOf(ag.byoAgents()[seat.seat_id]?.role) ?? defaultRole(seat.kind);
-const nameFor = (seat: Seat, job?: Job) =>
-  job?.name || ag.byoAgents()[seat.seat_id]?.name || `${roleFor(seat, job).name} #${seat.seat_id}`;
+export const nameFor = (seat: Seat, job?: Job) => {
+  const role = roleFor(seat, job);
+  return job?.name || ag.byoAgents()[seat.seat_id]?.name || `${isGeneric(role) ? "Agent" : role.name} #${seat.seat_id}`;
+};
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 type Status = { label: string; tone: "up" | "down" | "neutral" | "brand"; note: string; live: boolean };
-function statusOf(seat: Seat, job: Job | undefined, nftOwner: string | null, runnerUp: boolean): Status {
+function statusOf(seat: Seat, job: Job | undefined, nftOwner: string | null, runnerUp: boolean, runnerLocked = false): Status {
   if (nftOwner && nftOwner !== seat.owner)
     return { label: "NFT sold", tone: "down", note: "The NFT changed hands: the agent is stopped.", live: false };
   if (!seat.policy) return { label: "Reset", tone: "down", note: "No limits set.", live: false };
@@ -76,14 +80,38 @@ function statusOf(seat: Seat, job: Job | undefined, nftOwner: string | null, run
   const byo = ag.byoAgents()[seat.seat_id];
   if (!job && byo && seat.agent_key === byo.publicKey)
     return { label: "Your AI", tone: "brand", note: "Driven by your own AI agent over MCP, inside these limits.", live: true };
+  if (!job && runnerLocked)
+    return { label: "Runner locked", tone: "neutral", note: "Unlock the runner to see its mission (one signature, no fee).", live: false };
   if (!job) return { label: "No mission", tone: "neutral", note: "The runner has no key for it.", live: false };
   if (!runnerUp) return { label: "Runner offline", tone: "down", note: "Start npm run agent:runner.", live: false };
   return { label: "Active", tone: "up", note: "Acts on its own, within its limits.", live: true };
 }
 
+/** True once `on` has stayed true for `ms`: hints that only make sense after a short wait. */
+export function useSlow(on: boolean, ms = 1200) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!on) return setSlow(false);
+    const t = setTimeout(() => setSlow(true), ms);
+    return () => clearTimeout(t);
+  }, [on, ms]);
+  return slow;
+}
+
+/** Shown while a request may be waiting in the wallet's window. */
+export function WalletWait() {
+  return (
+    <p className="ag-waiting" role="status">
+      <span className="ag-waiting-dot" aria-hidden="true" />
+      Working on it. If your wallet opened, approve or cancel the request there.
+    </p>
+  );
+}
+
 /** Runs one wallet or runner action with busy/error/success state. */
 function useAction(refresh: () => void) {
   const [busy, setBusy] = useState("");
+  const waiting = useSlow(busy !== "");
   const [msg, setMsg] = useState<{ tone: "success" | "error"; text: string; href?: string } | null>(null);
   const run = useCallback(
     async (label: string, ok: string, fn: () => Promise<unknown>) => {
@@ -95,14 +123,17 @@ function useAction(refresh: () => void) {
         setMsg({ tone: "success", text: ok, href: hash ? ag.txLink(hash) : undefined });
         refresh();
       } catch (e) {
-        setMsg({ tone: "error", text: (e as Error).message });
+        setMsg({ tone: "error", text: ag.friendlyError(e) });
       } finally {
         setBusy("");
       }
     },
     [refresh],
   );
-  const notice = msg && (
+  const notice = waiting ? (
+    <WalletWait />
+  ) : (
+    msg && (
     <Notice tone={msg.tone} title={msg.tone === "error" ? "Not done" : "Done"}>
       {msg.text}{" "}
       {msg.href && (
@@ -111,28 +142,73 @@ function useAction(refresh: () => void) {
         </a>
       )}
     </Notice>
+  )
   );
   return { busy, run, notice };
 }
 
-function useRunner(account: string) {
+/**
+ * The local runner: online or not, and whether this account signed in to it
+ * (it only shows and drives an account's agents after one NEP-413 signature).
+ */
+export function useRunner(account: string) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [up, setUp] = useState<boolean | null>(null);
+  const [locked, setLocked] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState("");
   const load = useCallback(async () => {
     if (!account) return;
     try {
       await ag.runnerHealth();
-      setJobs(await ag.runnerJobs(account));
       setUp(true);
     } catch {
       setUp(false);
+      return;
+    }
+    try {
+      setJobs(await ag.runnerJobs(account));
+      setLocked(false);
+    } catch (e) {
+      if (e instanceof ag.RunnerLockedError) {
+        setJobs([]);
+        setLocked(true);
+      } else setUp(false);
     }
   }, [account]);
+  const unlock = useCallback(async () => {
+    setUnlocking(true);
+    setUnlockError("");
+    try {
+      await ag.runnerSignIn(account);
+      await load();
+    } catch (e) {
+      setUnlockError(ag.friendlyError(e));
+    } finally {
+      setUnlocking(false);
+    }
+  }, [account, load]);
   useEffect(() => void load(), [load]);
-  return { jobs, up: up === true, checked: up !== null, reload: load };
+  return { jobs, up: up === true, checked: up !== null, locked: up === true && locked, unlock, unlocking, unlockError, reload: load };
 }
 
-function useImages(items: { key: string; contract: string; token: string }[]) {
+/** Shown while the runner is online but this account has not signed in to it. */
+function RunnerLockedNotice({ runner }: { runner: ReturnType<typeof useRunner> }) {
+  if (!runner.locked) return null;
+  return (
+    <Notice tone="info" title="Unlock your agent runner">
+      The runner on this computer only obeys you after one wallet signature: no transaction, no fee, valid 12 hours.
+      Other sites and accounts cannot drive your agents.{" "}
+      <Button variant="primary" icon={KeyRound} busy={runner.unlocking} onClick={() => void runner.unlock()}>
+        Unlock
+      </Button>
+      {runner.unlockError && <span className="ag-problems"> {runner.unlockError}</span>}
+      {runner.unlocking && <WalletWait />}
+    </Notice>
+  );
+}
+
+export function useImages(items: { key: string; contract: string; token: string }[]) {
   const [images, setImages] = useState<Record<string, string | null>>({});
   const wanted = items.map((i) => i.key).join("|");
   useEffect(() => {
@@ -154,12 +230,31 @@ function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: Re
   );
 }
 
+/** Downscales an uploaded avatar to 128 px (WebP data URL) so it fits in local storage. */
+function shrinkImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const size = 128;
+      const c = document.createElement("canvas");
+      c.width = c.height = size;
+      const ctx = c.getContext("2d")!;
+      const side = Math.min(img.width, img.height);
+      ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+      URL.revokeObjectURL(img.src);
+      resolve(c.toDataURL("image/webp", 0.85));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 /**
  * NFT artwork with a fixed box (no layout shift). `undefined` = still loading,
  * `null` = the NFT has no usable image: a neutral night tile with its name,
  * never a stand-in character.
  */
-function NftArt({ src, label }: { src: string | null | undefined; label: string }) {
+export function NftArt({ src, label }: { src: string | null | undefined; label: string }) {
   const [failed, setFailed] = useState(false);
   if (src && !failed)
     return <img className="ag-art" src={src} alt={label} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
@@ -184,6 +279,8 @@ function seatModel(
   last?: string,
 ): NftCardModel {
   const Icon = role.icon;
+  const imported = role.byo ? ag.byoAgents()[s.seat_id] : undefined;
+  const toolLabel = imported?.tool ? ag.AGENT_TOOLS.find((t) => t.id === imported.tool)?.label : undefined;
   const character = image?.startsWith("/nft-art/") ? CHARACTERS.find((c) => image === c.image) : undefined;
   const collection = character ? character.collection : collectionLabel(s.nft_contract);
   let until: number | undefined;
@@ -194,14 +291,18 @@ function seatModel(
   return {
     id: s.seat_id,
     name: nameFor(s, job),
-    description: character?.description ?? role.tagline,
+    description: imported?.source
+      ? imported.source.replace(/^https?:\/\//, "")
+      : imported
+        ? `Your own AI, ${s.kind === "Payer" ? "pays in USDC" : "buys Keepers"} inside these limits`
+        : (character?.description ?? role.tagline),
     image,
     imageAlt: `${collection} #${s.token_id}`,
     // Portrait Characters art fills the card; any other NFT art is shown whole, uncropped.
     fit: character ? "cover" : "contain",
     collection,
-    subtitle: role.name,
-    avatar: <Icon />,
+    subtitle: imported ? `Imported · ${toolLabel ?? "MCP agent"}` : role.name,
+    avatar: imported?.avatar ? <img src={imported.avatar} alt="" /> : <Icon />,
     timer: until ? { until } : { label: last ? ago(last) : "new" },
     status: { label: st.label, tone: st.tone },
     fact: { label: "Today", value: ag.formatAsset(s.spent_today, s.asset) },
@@ -401,7 +502,7 @@ function AskBar({
     try {
       setPlan(await planFor(parseAsk(sentence), { account, seats, jobs, runnerUp, pauseAll }));
     } catch (e) {
-      setPlan({ title: "Could not prepare this", checks: [{ ok: false, text: (e as Error).message }] });
+      setPlan({ title: "Could not prepare this", checks: [{ ok: false, text: ag.friendlyError(e) }] });
     } finally {
       setBusy(false);
     }
@@ -414,7 +515,7 @@ function AskBar({
       setPlan(null);
       onDone();
     } catch (e) {
-      setResult({ ok: false, text: (e as Error).message });
+      setResult({ ok: false, text: ag.friendlyError(e) });
     } finally {
       setBusy(false);
     }
@@ -548,7 +649,14 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
   const [feedTx, setFeedTx] = useState<Record<string, string>>({});
   const [refund, setRefund] = useState({ near: "0", usdc: "0" });
   const [error, setError] = useState("");
-  const runner = useRunner(account);
+  // A read-only view is someone else's wallet: this computer's runner has nothing to say about it.
+  const runner = useRunner(readOnly ? "" : account);
+  const fresh = useFresh(account);
+  const { toasts, push, dismiss } = useToasts();
+  const jobsRef = useRef<Job[]>([]);
+  jobsRef.current = runner.jobs;
+  const linkedRef = useRef("");
+  const badgeRef = useRef<(n: number) => void>(() => {});
   const askRef = useRef<HTMLInputElement>(null);
   const [focus, setFocus] = useState(0);
   const [tab, setTab] = useState<"activity" | "roles">("activity");
@@ -576,30 +684,35 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       setLastAt(latest);
       const shown = collapse(logs.sort((a, b) => (BigInt(b.at) > BigInt(a.at) ? 1 : -1))).slice(0, 20);
       setFeed(shown);
+      // Live: what the agents did since the last read (nothing on the first read).
+      const added = new Set(fresh.take(logs.map(feedKey)));
+      const moves = logs.filter((e) => added.has(feedKey(e)) && e.status !== "info" && e.status !== "pending").slice(0, 3);
+      for (const e of [...moves].reverse()) push(toastFor(e, jobsRef.current.find((j) => j.seatId === e.seat.seat_id), navigate));
+      badgeRef.current(moves.length);
       // Explorer links: match each entry to the owner's transaction (best effort, never blocks the page).
+      // While the newest entry has no link yet, ask the explorer again sooner.
+      const newest = shown[0] ? feedKey(shown[0]) : "";
       if (shown.length)
         void ag
-          .ownerTxs(account, BigInt(shown.at(-1)!.at) - 60_000_000_000n)
+          .ownerTxs(account, BigInt(shown.at(-1)!.at) - 60_000_000_000n, newest === linkedRef.current ? 60_000 : 20_000)
           .then((txs) => {
             const m: Record<string, string> = {};
             for (const e of shown) {
               const h = ag.txForEntry(e, txs);
-              if (h) m[`${e.seat.seat_id}-${e.seq}`] = h;
+              if (h) m[feedKey(e)] = h;
             }
+            if (m[newest]) linkedRef.current = newest;
             setFeedTx(m);
           })
           .catch(() => {});
       setError("");
     } catch (e) {
-      setError((e as Error).message);
+      setError(ag.friendlyError(e));
     }
     void runner.reload();
-  }, [account, runner.reload]);
-  useEffect(() => {
-    void load();
-    const t = setInterval(() => void load(), 10_000);
-    return () => clearInterval(t);
-  }, [load]);
+  }, [account, runner.reload, fresh.take, push, navigate]);
+  const live = useLivePoll(load, 6000);
+  badgeRef.current = useTitleBadge(live.hidden);
   const { busy, run, notice } = useAction(load);
   const images = useImages((seats ?? []).map((s) => ({ key: s.seat_id, contract: s.nft_contract, token: s.token_id })));
 
@@ -610,7 +723,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       else (t.usdc += BigInt(s.balance)), (t.todayUsdc += BigInt(s.spent_today));
       t.done += s.done;
       t.refused += s.refused;
-      if (statusOf(s, runner.jobs.find((j) => j.seatId === s.seat_id), owners[s.seat_id] ?? null, runner.up).live) t.active++;
+      if (statusOf(s, runner.jobs.find((j) => j.seatId === s.seat_id), owners[s.seat_id] ?? null, runner.up, runner.locked).live) t.active++;
     }
     return t;
   }, [seats, runner.jobs, runner.up, owners]);
@@ -641,7 +754,10 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
               its own budget, inside limits the contract enforces. Call it any time; sell the NFT and it stops.
             </p>
             <div className="ag-intro-actions">
-              <Button variant="primary" icon={WalletIcon} onClick={() => void wallet.connect()}>
+              <Button variant="primary" icon={Sparkles} onClick={() => navigate("/agents/start")}>
+                Start my first agent
+              </Button>
+              <Button variant="secondary" icon={WalletIcon} onClick={() => void wallet.connect()}>
                 Open my Agent Wallet
               </Button>
               <a
@@ -663,7 +779,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
 
   const focused = seats && seats.length ? seats[Math.min(focus, seats.length - 1)] : null;
   const focusedJob = focused ? runner.jobs.find((j) => j.seatId === focused.seat_id) : undefined;
-  const focusedStatus = focused ? statusOf(focused, focusedJob, owners[focused.seat_id] ?? null, runner.up) : null;
+  const focusedStatus = focused ? statusOf(focused, focusedJob, owners[focused.seat_id] ?? null, runner.up, runner.locked) : null;
   const focusedCap = BigInt(focused?.policy?.per_day_max ?? "0");
   const focusedPct = focused && focusedCap > 0n ? Number((BigInt(focused.spent_today) * 100n) / focusedCap) : 0;
 
@@ -684,6 +800,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
           Agents only act while it runs: <code>npm run agent:runner</code>. Budgets and limits stay safe on chain.
         </Notice>
       )}
+      {!readOnly && <RunnerLockedNotice runner={runner} />}
       {notice}
       {!readOnly && (refund.near !== "0" || refund.usdc !== "0") && (
         <Notice tone="info" title="Money set aside for you">
@@ -719,7 +836,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
           {!readOnly && (
             <div className="ag-stage-actions">
               <Badge tone={runner.up ? "up" : runner.checked ? "down" : "neutral"} icon={Zap}>
-                {runner.up ? "Runner online" : runner.checked ? "Runner offline" : "Checking runner"}
+                {runner.locked ? "Runner locked" : runner.up ? "Runner online" : runner.checked ? "Runner offline" : "Checking runner"}
               </Badge>
               <Button
                 variant="danger"
@@ -758,11 +875,21 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
           </div>
         ) : seats.length === 0 ? (
           <div className="ag-stage-empty">
-            <p>{readOnly ? "This wallet has no agent yet." : "No agent yet. Hire one and put it on any NFT you own."}</p>
-            {!readOnly && (
-              <Button variant="primary" icon={Plus} onClick={() => navigate("/agents/new")}>
-                Hire an agent
-              </Button>
+            {readOnly ? (
+              <p>This wallet has no agent yet.</p>
+            ) : (
+              <>
+                <strong className="ag-empty-title">No agent yet. Start with one that pays you back.</strong>
+                <p>Five guided steps, about two minutes, free test tokens only. It ends with your agent acting on its own.</p>
+                <div className="ag-buttons">
+                  <Button variant="primary" icon={Sparkles} onClick={() => navigate("/agents/start")}>
+                    Start my first agent
+                  </Button>
+                  <Button variant="ghost" icon={Plus} onClick={() => navigate("/agents/new")}>
+                    Hire with my own rules
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         ) : (
@@ -771,7 +898,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
               ...seats.map((s) => {
                 const job = runner.jobs.find((j) => j.seatId === s.seat_id);
                 const role = roleFor(s, job);
-                const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up);
+                const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up, runner.locked);
                 return (
                   <NFTCard
                     key={s.seat_id}
@@ -873,7 +1000,10 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
 
       {tab === "activity" ? (
         <section className="kp-vault-section" aria-labelledby="ag-feed">
-          <h2 id="ag-feed">Activity</h2>
+          <div className="ag-feed-head">
+            <h2 id="ag-feed">Activity</h2>
+            <LiveDot updatedAt={live.updatedAt} hidden={live.hidden} />
+          </div>
           {feed.length === 0 ? (
             <p className="ag-muted">Nothing yet. Every action, and every attempt the contract blocked, shows up here.</p>
           ) : (
@@ -881,7 +1011,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
               {feed.map((e) => {
                 const job = runner.jobs.find((j) => j.seatId === e.seat.seat_id);
                 return (
-                  <li key={`${e.seat.seat_id}-${e.seq}`} data-status={e.status}>
+                  <li key={feedKey(e)} data-status={e.status} data-new={fresh.fresh.has(feedKey(e)) || undefined}>
                     <span className="ag-feed-dot" aria-hidden="true" />
                     <div>
                       <strong>{nameFor(e.seat, job)}</strong> {verb(e)}
@@ -910,8 +1040,51 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       ) : (
         <RoleGallery navigate={navigate} />
       )}
+      <ToastStack toasts={toasts} dismiss={dismiss} txFor={(id) => (feedTx[id] ? ag.txLink(feedTx[id]) : undefined)} />
     </div>
   );
+}
+
+/** The contract's log actions, as people say them. */
+const ACTION_LABELS: Record<string, string> = {
+  pay: "Payment",
+  buy: "Purchase",
+  deliver: "Delivery",
+  fund: "Top-up",
+  withdraw: "Withdrawal",
+  create: "Hired",
+  key: "Key",
+  pause: "Paused",
+  resume: "Resumed",
+  policy: "New limits",
+  reset: "Reset",
+  claim: "New owner",
+};
+
+/** One feed entry's identity across reads: its seat and its sequence number in that seat's log. */
+const feedKey = (e: { seat: Seat; seq: string }) => `${e.seat.seat_id}-${e.seq}`;
+
+/** The toast for something an agent just did, or was blocked from doing. */
+function toastFor(e: FeedItem, job: Job | undefined, navigate: Nav): Toast {
+  const amount = e.amount !== "0" ? ` ${ag.formatAsset(e.amount, e.seat.asset)}` : "";
+  const to =
+    e.counterparty && e.action !== "deliver"
+      ? ` ${e.action === "buy" ? "on" : e.action === "claim" ? "from" : "to"} ${shortAccount(e.counterparty)}`
+      : "";
+  const blocked = e.status === "refused";
+  return {
+    id: feedKey(e),
+    tone: e.status === "done" ? "up" : blocked || e.status === "failed" ? "down" : "neutral",
+    title: `${nameFor(e.seat, job)} ${verb(e)}${amount}${to}`,
+    body: blocked
+      ? `Blocked on chain: ${e.detail}. Nothing was spent.`
+      : e.status === "failed"
+        ? `It failed and the money came back: ${e.detail}.`
+        : ["pay", "buy", "deliver"].includes(e.action)
+          ? "On its own, with its limited key: no signature from you."
+          : undefined,
+    onOpen: () => navigate(`/agents/${e.seat.seat_id}`),
+  };
 }
 
 /**
@@ -1066,7 +1239,7 @@ function RoleGallery({ navigate }: { navigate: Nav }) {
     <section className="kp-vault-section" aria-labelledby="ag-roles">
       <h2 id="ag-roles">Roles you can hire</h2>
       <div className="ag-roles">
-        {ALL_ROLES.map((r) => {
+        {PICKER_ROLES.map((r) => {
           const Icon = r.icon;
           return (
             <button key={r.id} type="button" className="ag-role" onClick={() => navigate(`/agents/new?role=${r.id}`)}>
@@ -1124,9 +1297,16 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   const [phase, setPhase] = useState<"form" | "creating" | "funding" | "done">("form");
   const [seat, setSeat] = useState<Seat | null>(null);
   const [error, setError] = useState("");
-  const [byoKey, setByoKey] = useState<{ seat: Seat; file: ReturnType<typeof ag.agentKeyFile> } | null>(null);
+  const [byoKey, setByoKey] = useState<{ seat: Seat; file: ReturnType<typeof ag.agentKeyFile>; record: ag.ByoRecord } | null>(null);
+  /** "Import an agent": who the agent is (shown on its card) and which tool runs it. */
+  const [ident, setIdent] = useState<{ tool: ag.AgentTool; avatar: string; source: string }>({
+    tool: "claude-code",
+    avatar: "",
+    source: "",
+  });
 
   const [minting, setMinting] = useState(false);
+  const slowHire = useSlow(phase === "creating" || phase === "funding" || minting);
 
   /** Loads the user's NFTs; `prefer` selects a token right after it was minted. */
   const loadNfts = useCallback(
@@ -1158,7 +1338,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       const token = await ag.mintExampleNft(account);
       await loadNfts({ contract: ag.EXAMPLE_NFT, token });
     } catch (e) {
-      setError((e as Error).message);
+      setError(ag.friendlyError(e));
     } finally {
       setMinting(false);
     }
@@ -1244,10 +1424,20 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
         const key = generateAgentKey();
         await ag.fundAndGrant(s!, budget ?? 0n, key.publicKey);
         const name = d.name.trim() || undefined;
-        ag.rememberByo({ seatId: s!.seat_id, role: role.id, name, publicKey: key.publicKey });
+        const record: ag.ByoRecord = {
+          seatId: s!.seat_id,
+          role: role.id,
+          name,
+          publicKey: key.publicKey,
+          tool: ident.tool,
+          avatar: ident.avatar || undefined,
+          source: ident.source.trim() || undefined,
+          hiredAt: Date.now(),
+        };
+        ag.rememberByo(record);
         const file = ag.agentKeyFile(s!, key, name);
         ag.downloadJson(`agent-${s!.seat_id}-key.json`, file);
-        setByoKey({ seat: s!, file });
+        setByoKey({ seat: s!, file, record });
         setPhase("done");
         return;
       }
@@ -1276,7 +1466,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       setPhase("done");
       navigate(`/agents/${s!.seat_id}`);
     } catch (e) {
-      setError((e as Error).message);
+      setError(ag.friendlyError(e));
       setPhase("form");
     }
   }
@@ -1285,7 +1475,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   if (byoKey)
     return (
       <div className="ag-page">
-        <ConnectYourAi seat={byoKey.seat} file={byoKey.file} navigate={navigate} />
+        <ConnectYourAi seat={byoKey.seat} file={byoKey.file} record={byoKey.record} navigate={navigate} />
       </div>
     );
   const busy = phase === "creating" || phase === "funding";
@@ -1309,17 +1499,18 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       </header>
 
       <div className="ag-roles" role="radiogroup" aria-label="Role">
-        {ALL_ROLES.map((r) => {
+        {PICKER_ROLES.map((r) => {
           const Icon = r.icon;
           return (
             <button
               key={r.id}
               type="button"
               role="radio"
-              aria-checked={role.id === r.id}
+              aria-checked={r.byo ? !!role.byo : role.id === r.id}
               className="ag-role"
               disabled={!!seat || busy}
               onClick={() => {
+                if (r.byo && role.byo) return;
                 setRole(r);
                 setD(draftFor(r));
               }}
@@ -1392,12 +1583,88 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
           </details>
         </section>
 
+        {role.byo && (
+          <section className="ag-panel" aria-labelledby="ag-import">
+            <h2 id="ag-import">
+              <RoleIcon aria-hidden="true" className="ag-inline-icon" /> Your agent
+            </h2>
+            <p className="ag-muted">
+              It keeps running where it already runs. This NFT gives it a budget and a key that can only act inside the
+              limits below.
+            </p>
+            <div className="ag-form">
+              <Select label="Which tool runs it?" value={ident.tool} onChange={(e) => setIdent({ ...ident, tool: e.target.value as ag.AgentTool })}>
+                {ag.AGENT_TOOLS.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </Select>
+              <Input label="Its name" placeholder="My trading bot" value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
+              <Input
+                label="Source (optional)"
+                placeholder="github.com/you/your-agent"
+                value={ident.source}
+                onChange={(e) => setIdent({ ...ident, source: e.target.value })}
+                hint="Shown on its card as a link. We never run its code."
+              />
+              <div className="ag-avatar-field">
+                <span className="ag-avatar-preview" aria-hidden="true">
+                  {ident.avatar ? <img src={ident.avatar} alt="" /> : <RoleIcon />}
+                </span>
+                <Input
+                  label="Avatar (image URL)"
+                  placeholder="https://example.com/avatar.png"
+                  value={ident.avatar.startsWith("data:") ? "" : ident.avatar}
+                  onChange={(e) => setIdent({ ...ident, avatar: e.target.value.trim() })}
+                />
+                <label className="ag-upload">
+                  or upload
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void shrinkImage(f).then((avatar) => setIdent((x) => ({ ...x, avatar })));
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="ag-kinds" role="radiogroup" aria-label="What may it do?">
+              {BYO_ROLES.map((r) => {
+                const Icon = r.icon;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={role.id === r.id}
+                    className="ag-kind-pick"
+                    disabled={!!seat || busy}
+                    onClick={() => {
+                      setRole(r);
+                      setD((x) => ({ ...draftFor(r), name: x.name }));
+                    }}
+                  >
+                    <Icon aria-hidden="true" />
+                    <strong>{r.kind === "Payer" ? "Pay in USDC" : "Buy Keepers in NEAR"}</strong>
+                    <span>{r.kind === "Payer" ? "Only to the accounts you list." : "Only on the Keepers market."}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <section className="ag-panel" aria-labelledby="ag-limits">
           <h2 id="ag-limits">
-            <RoleIcon aria-hidden="true" className="ag-inline-icon" /> {role.name}: rules
+            <RoleIcon aria-hidden="true" className="ag-inline-icon" /> {role.byo ? "Its limits" : `${role.name}: rules`}
           </h2>
           <div className="ag-form">
-            <Input label="Name (optional)" placeholder={role.name} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
+            {!role.byo && (
+              <Input label="Name (optional)" placeholder={role.name} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
+            )}
             {role.byo && role.kind === "Buyer" ? null : role.kind === "Buyer" ? (
               <>
                 <Input label="Highest price per card (NEAR)" inputMode="decimal" value={d.maxPrice} onChange={(e) => setD({ ...d, maxPrice: e.target.value })} />
@@ -1497,6 +1764,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
             <CircleX aria-hidden="true" className="ag-inline-icon" /> {problems[0]}
           </p>
         )}
+        {slowHire && <WalletWait />}
       </section>
       </aside>
       </div>
@@ -1506,54 +1774,103 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
 }
 
 
-/** Shown once after hiring "Your AI agent": the key file and how to plug an MCP agent in. */
+/** Shown once after "Import an agent": the key file, the setup for the chosen tool, and a live check. */
 function ConnectYourAi({
   seat,
   file,
+  record,
   navigate,
 }: {
   seat: Seat;
   file: ReturnType<typeof ag.agentKeyFile>;
+  record: ag.ByoRecord;
   navigate: Nav;
 }) {
-  const name = `agent-${seat.seat_id}-key.json`;
-  const lines = [
-    `# 1. In this repo, keep the key file next to the project (never commit it)`,
-    `#    Claude Code / Codex: register the server`,
-    `claude mcp add my-agent-${seat.seat_id} -- npx tsx scripts/agent-mcp.ts --key ./${name}`,
-    `# 2. Or run it yourself`,
-    ag.mcpCommand(`./${name}`),
-  ];
+  const keyName = `agent-${seat.seat_id}-key.json`;
+  const tool = record.tool ?? "claude-code";
+  const toolLabel = ag.AGENT_TOOLS.find((t) => t.id === tool)?.label ?? "your agent";
+  const setup = ag.mcpSetup(tool, ag.mcpName(record.name, seat.seat_id), keyName);
+  const [first, setFirst] = useState<LogEntry | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Live check: the first pay/buy the contract logs for this agent after it was hired.
+  useEffect(() => {
+    let stop = false;
+    const since = BigInt(record.hiredAt ?? 0) * 1_000_000n;
+    const tick = async () => {
+      const entries = await ag.seatLog(seat.seat_id).catch(() => [] as LogEntry[]);
+      const hit = entries.find((e) => (e.action === "pay" || e.action === "buy") && e.status !== "pending" && BigInt(e.at) >= since);
+      if (!stop && hit) setFirst(hit);
+      if (!stop && !hit) setTimeout(() => void tick(), 5000);
+    };
+    void tick();
+    return () => {
+      stop = true;
+    };
+  }, [seat.seat_id, record.hiredAt]);
+
   return (
     <section className="ag-stage ag-connect" aria-labelledby="ag-connect-title">
       <div className="ag-room" aria-hidden="true" />
-      <header className="ag-hire-head">
-        <h1 id="ag-connect-title">Agent #{seat.seat_id} is ready for your AI</h1>
-        <p className="ag-muted">
-          Its key was made in this browser and downloaded as <code>{name}</code>. It is not stored anywhere else: keep it
-          private, and revoke it from the agent page if it leaks.
-        </p>
+      <header className="ag-connect-head">
+        <span className="ag-avatar-preview ag-avatar-preview--lg" aria-hidden="true">
+          {record.avatar ? <img src={record.avatar} alt="" /> : <WalletCards />}
+        </span>
+        <div>
+          <h1 id="ag-connect-title">{record.name || `Agent #${seat.seat_id}`} now lives in your NFT</h1>
+          <p className="ag-muted">
+            Connect it from {toolLabel}. Its key was made in this browser and downloaded as <code>{keyName}</code>; it is
+            stored nowhere else.
+          </p>
+        </div>
       </header>
       <ol className="ag-connect-steps">
         <li>
-          <strong>Keep the key file.</strong> It can only call <code>agent_pay</code>, <code>agent_buy</code> and{" "}
-          <code>pause</code> on <code>{shortAccount(ag.AGENTS)}</code>, with no deposit.
+          <strong>Keep the key file in a folder of your own</strong> (not a synced or shared one). It can only call{" "}
+          <code>agent_pay</code>, <code>agent_buy</code> and <code>pause</code>, with no deposit: it cannot withdraw or move
+          your NFT. Never commit or share it.
           <div className="ag-buttons">
-            <Button icon={Download} onClick={() => ag.downloadJson(name, file)}>
+            <Button icon={Download} onClick={() => ag.downloadJson(keyName, file)}>
               Download again
             </Button>
           </div>
         </li>
         <li>
-          <strong>Plug in your AI over MCP</strong> (Claude Code, Codex or any MCP agent):
-          <pre className="ag-code">{lines.join("\n")}</pre>
+          <strong>Add it to {toolLabel}.</strong> <span className="ag-muted">{setup.where}</span>
+          <pre className="ag-code">{setup.snippet}</pre>
+          <div className="ag-buttons">
+            <Button
+              variant="ghost"
+              onClick={() =>
+                void navigator.clipboard.writeText(setup.snippet).then(
+                  () => setCopied(true),
+                  () => setCopied(false),
+                )
+              }
+            >
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </div>
         </li>
         <li>
-          <strong>Ask it</strong>, for example: “list my agents”, then “
-          {seat.kind === "Payer" ? `pay 1 USDC to ${seat.policy?.payees[0] ?? "a payee on the list"} with agent ${seat.seat_id}` : `buy the cheapest Keeper under 0.5 NEAR with agent ${seat.seat_id}`}
-          ”. Anything over the limits is refused by the contract and shows up in the agent's log.
+          <strong>Ask it something</strong>, for example: “
+          {seat.kind === "Payer"
+            ? `pay 1 USDC to ${seat.policy?.payees[0] ?? "an account on the list"} with agent ${seat.seat_id}`
+            : `buy the cheapest Keeper under 0.5 NEAR with agent ${seat.seat_id}`}
+          ”. Anything over the limits is refused on chain.
         </li>
       </ol>
+      <div className="ag-firstmove" data-done={!!first} role="status" aria-live="polite">
+        <span className="ag-firstmove-dot" aria-hidden="true" />
+        {first ? (
+          <span>
+            Your agent made its first move: {first.action === "pay" ? "a payment" : "a purchase"}{" "}
+            {first.status === "done" ? "went through" : `was ${first.status === "refused" ? "blocked" : first.status} (${first.detail})`}.
+          </span>
+        ) : (
+          <span>Waiting for your agent's first action…</span>
+        )}
+      </div>
       <div className="ag-buttons">
         <Button variant="primary" onClick={() => navigate(`/agents/${seat.seat_id}`)}>
           Open the agent
@@ -1567,30 +1884,260 @@ function ConnectYourAi({
 // /agents/:id — one agent
 // ---------------------------------------------------------------------------
 
-function SpendBars({ log, asset }: { log: LogEntry[]; asset: "NEAR" | "USDC" }) {
-  const days = useMemo(() => {
-    const out: { day: string; total: bigint }[] = [];
-    const today = Math.floor(Date.now() / 86_400_000);
-    for (let i = 6; i >= 0; i--) out.push({ day: new Date((today - i) * 86_400_000).toISOString().slice(5, 10), total: 0n });
-    for (const e of log) {
-      if (e.status !== "done" || (e.action !== "pay" && e.action !== "buy")) continue;
-      const d = Math.floor(Number(BigInt(e.at) / 1_000_000n) / 86_400_000);
-      const idx = 6 - (today - d);
-      if (idx >= 0 && idx < 7) out[idx].total += BigInt(e.amount);
+/**
+ * Take over a seat after claiming it (or re-arm one that was reset): pick a job
+ * of the same kind (or import your own AI), set limits and budget, then ONE
+ * wallet request sets the policy, resumes, funds and gives the agent its key.
+ */
+function TakeOverPanel({
+  seat,
+  account,
+  navigate,
+  onDone,
+}: {
+  seat: Seat;
+  account: string;
+  navigate: Nav;
+  onDone: () => void;
+}) {
+  const choices = ALL_ROLES.filter((r) => r.kind === seat.kind && (r.byo ? r === BYO_ROLES.find((b) => b.kind === seat.kind) : true));
+  const [role, setRole] = useState<Role>(choices[0]);
+  const [d, setD] = useState<Draft>(draftFor(choices[0]));
+  const [tool, setTool] = useState<ag.AgentTool>("claude-code");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [connect, setConnect] = useState<{ snippet: string; where: string; file: string } | null>(null);
+  const slow = useSlow(busy);
+  const asset = seat.asset;
+  const perTx = ag.parseAsset(d.perTx, asset);
+  const perDay = ag.parseAsset(d.perDay, asset);
+  const budget = ag.parseAsset(d.budget, asset);
+  const payees = d.payees.split(/[\s,]+/).filter(Boolean);
+  const maxPrice = ag.parseAsset(d.maxPrice, "NEAR");
+  const amount = ag.parseAsset(d.amount, "USDC");
+  const every = Number(d.every);
+  const problem =
+    !perTx || !perDay || perDay < perTx
+      ? "Set the caps (the daily cap must be at least the cap per action)."
+      : budget === null
+        ? "Set the budget."
+        : seat.kind === "Payer" && (payees.length === 0 || payees.length > 10)
+          ? "List 1 to 10 accounts it may pay."
+          : !role.byo && seat.kind === "Buyer" && !maxPrice
+            ? "Set the highest price per card."
+            : !role.byo && seat.kind === "Payer" && (!amount || !(every >= 1))
+              ? "Set the amount and how often."
+              : "";
+
+  async function setUp() {
+    setBusy(true);
+    setError("");
+    try {
+      const policy: Policy = {
+        per_tx_max: perTx!.toString(),
+        per_day_max: perDay!.toString(),
+        payees: seat.kind === "Payer" ? payees : [],
+        market: seat.kind === "Buyer" ? ag.MARKET : null,
+      };
+      const name = d.name.trim() || undefined;
+      if (role.byo) {
+        const key = generateAgentKey();
+        await ag.setupSeat(seat, policy, budget ?? 0n, key.publicKey);
+        ag.rememberByo({ seatId: seat.seat_id, role: role.id, name, publicKey: key.publicKey, tool, hiredAt: Date.now() });
+        const file = `agent-${seat.seat_id}-key.json`;
+        ag.downloadJson(file, ag.agentKeyFile(seat, key, name));
+        setConnect({ ...ag.mcpSetup(tool, ag.mcpName(name, seat.seat_id), file), file });
+      } else {
+        const publicKey = await ag.runnerNewKey(account);
+        await ag.setupSeat(seat, policy, budget ?? 0n, publicKey);
+        await ag.runnerSaveJob({
+          seatId: seat.seat_id,
+          accountId: account,
+          publicKey,
+          kind: seat.kind,
+          role: role.id,
+          name,
+          buyer: seat.kind === "Buyer" ? { maxPrice: maxPrice!.toString(), minTier: Number(d.minTier) } : undefined,
+          payer:
+            seat.kind === "Payer"
+              ? { payments: payees.map((p) => ({ payee: p, amount: amount!.toString(), everySeconds: every * UNIT_SECONDS[d.unit], memo: role.name.toLowerCase() })) }
+              : undefined,
+        });
+      }
+      onDone();
+    } catch (e) {
+      setError(ag.friendlyError(e));
+    } finally {
+      setBusy(false);
     }
-    return out;
-  }, [log]);
-  const max = days.reduce((m, d) => (d.total > m ? d.total : m), 0n);
-  return (
-    <figure className="ag-bars" aria-label="Spent per day, last 7 days">
-      {days.map((d) => (
-        <div key={d.day} title={`${d.day}: ${ag.formatAsset(d.total, asset)}`}>
-          <span style={{ height: `${max > 0n ? Math.max(4, Number((d.total * 100n) / max)) : 4}%` }} data-zero={d.total === 0n} />
-          <small>{d.day}</small>
+  }
+
+  if (connect)
+    return (
+      <section className="ag-stage ag-takeover" aria-labelledby="ag-takeover-title">
+        <div className="ag-room" aria-hidden="true" />
+        <h2 id="ag-takeover-title">Your agent is set up: connect your AI</h2>
+        <p className="ag-muted">
+          The key file <code>{connect.file}</code> was downloaded. Keep it in a folder of your own. {connect.where}:
+        </p>
+        <pre className="ag-code">{connect.snippet}</pre>
+        <div className="ag-buttons">
+          <Button variant="primary" onClick={() => navigate(`/agents/${seat.seat_id}`)}>
+            Done
+          </Button>
         </div>
-      ))}
-      <figcaption className="ag-muted">Spent per day, last 7 days (from the on-chain log)</figcaption>
-    </figure>
+      </section>
+    );
+
+  return (
+    <section className="ag-stage ag-takeover" aria-labelledby="ag-takeover-title">
+      <div className="ag-room" aria-hidden="true" />
+      <h2 id="ag-takeover-title">Set up this agent</h2>
+      <p className="ag-muted">
+        It is yours now, with its history but no limits, no budget and no key. Choose what it does, then one wallet request
+        sets everything.
+      </p>
+      {error && (
+        <Notice tone="error" title="Not done">
+          {error}
+        </Notice>
+      )}
+      <div className="ag-roles" role="radiogroup" aria-label="Job">
+        {choices.map((r) => {
+          const Icon = r.icon;
+          return (
+            <button
+              key={r.id}
+              type="button"
+              role="radio"
+              aria-checked={role.id === r.id}
+              className="ag-role"
+              disabled={busy}
+              onClick={() => {
+                setRole(r);
+                setD((x) => ({ ...draftFor(r), name: x.name }));
+              }}
+            >
+              <Icon aria-hidden="true" />
+              <strong>{r.name}</strong>
+              <span>{r.tagline}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="ag-form">
+        <Input label="Name (optional)" placeholder={role.name} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
+        {role.byo && (
+          <Select label="Which tool runs your AI?" value={tool} onChange={(e) => setTool(e.target.value as ag.AgentTool)}>
+            {ag.AGENT_TOOLS.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </Select>
+        )}
+        {seat.kind === "Payer" && (
+          <Input
+            label="Accounts it may pay (comma separated)"
+            placeholder="shop.testnet"
+            value={d.payees}
+            onChange={(e) => setD({ ...d, payees: e.target.value })}
+          />
+        )}
+        {!role.byo && seat.kind === "Buyer" && (
+          <Input label="Highest price per card (NEAR)" inputMode="decimal" value={d.maxPrice} onChange={(e) => setD({ ...d, maxPrice: e.target.value })} />
+        )}
+        {!role.byo && seat.kind === "Payer" && (
+          <>
+            <Input label="USDC each time" inputMode="decimal" value={d.amount} onChange={(e) => setD({ ...d, amount: e.target.value })} />
+            <div className="ag-every">
+              <Input label="Every" inputMode="numeric" value={d.every} onChange={(e) => setD({ ...d, every: e.target.value })} />
+              <Select label="Unit" value={d.unit} onChange={(e) => setD({ ...d, unit: e.target.value as Unit })}>
+                {(Object.keys(UNIT_SECONDS) as Unit[]).map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </>
+        )}
+        <Input label={`Cap per action (${asset})`} inputMode="decimal" value={d.perTx} onChange={(e) => setD({ ...d, perTx: e.target.value })} />
+        <Input label={`Cap per day (${asset})`} inputMode="decimal" value={d.perDay} onChange={(e) => setD({ ...d, perDay: e.target.value })} />
+        <Input label={`Budget (${asset})`} inputMode="decimal" value={d.budget} onChange={(e) => setD({ ...d, budget: e.target.value })} />
+      </div>
+      <div className="ag-buttons">
+        <Button variant="primary" icon={KeyRound} busy={busy} disabled={!!problem || busy} onClick={() => void setUp()}>
+          Set up and start ({role.byo ? "your AI" : role.name})
+        </Button>
+      </div>
+      {problem && !busy && (
+        <p className="ag-problems" role="status">
+          <CircleX aria-hidden="true" className="ag-inline-icon" /> {problem}
+        </p>
+      )}
+      {slow && <WalletWait />}
+    </section>
+  );
+}
+
+/**
+ * Hand the NFT to someone else. One wallet request: take the budget back
+ * (optional), switch this agent off and delete its key, then transfer the NFT.
+ */
+function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
+  const [to, setTo] = useState("");
+  const [withdraw, setWithdraw] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const slow = useSlow(busy);
+  const receiver = to.trim().toLowerCase();
+  const valid = /^[a-z0-9._-]{2,64}$/.test(receiver) && receiver !== seat.owner;
+
+  async function transfer() {
+    setBusy(true);
+    setError("");
+    try {
+      if (!(await ag.accountExists(receiver))) throw new Error(`${receiver} does not exist on testnet. Check the spelling.`);
+      await ag.transferSeatNft(seat, receiver, withdraw);
+      navigate("/agents");
+    } catch (e) {
+      setError(ag.friendlyError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <details className="ag-transfer">
+      <summary>Transfer this NFT</summary>
+      <ul className="ag-transfer-facts">
+        <li>The agent stays on the NFT with its history; the new owner claims it and sets their own limits and AI.</li>
+        <li>Your agent's key is switched off and deleted from your account in the same request.</li>
+        <li>
+          Budget: {ag.formatAsset(seat.balance, seat.asset)}.{" "}
+          {withdraw ? "It comes back to your wallet now." : "It stays yours, set aside to withdraw later."}
+        </li>
+      </ul>
+      {error && (
+        <Notice tone="error" title="Not done">
+          {error}
+        </Notice>
+      )}
+      <div className="kp-action-row">
+        <Input label="New owner (NEAR account)" placeholder="friend.testnet" value={to} onChange={(e) => setTo(e.target.value)} />
+        <Button variant="danger" busy={busy} disabled={!valid || busy} onClick={() => void transfer()}>
+          Transfer
+        </Button>
+      </div>
+      {seat.balance !== "0" && (
+        <label className="ag-check">
+          <input type="checkbox" checked={withdraw} onChange={(e) => setWithdraw(e.target.checked)} /> Take my budget back
+          first
+        </label>
+      )}
+      {slow && <WalletWait />}
+    </details>
   );
 }
 
@@ -1606,6 +2153,10 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
   const [mission, setMission] = useState<{ maxPrice: string; amount: string; every: string } | null>(null);
   const runner = useRunner(account || seat?.owner || "");
   const job = runner.jobs.find((j) => j.seatId === id);
+  const fresh = useFresh(id);
+  const { toasts, push, dismiss } = useToasts();
+  const jobRef = useRef<Job | undefined>(undefined);
+  jobRef.current = job;
 
   const load = useCallback(async () => {
     const s = await ag.getSeat(id);
@@ -1613,10 +2164,13 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
     if (!s) return;
     const entries = await ag.seatLog(id);
     setLog(entries);
+    const added = new Set(fresh.take(entries.filter((e) => e.status !== "pending").map((e) => e.seq)));
+    for (const e of entries.filter((x) => added.has(x.seq) && x.status !== "info").slice(0, 3).reverse())
+      push({ ...toastFor({ ...e, seat: s }, jobRef.current, () => {}), id: e.seq, onOpen: undefined });
     const newest = entries[0]?.seq ?? "";
     if (entries.length && newest !== linkedSeq.current)
       void ag
-        .ownerTxs(s.owner, BigInt(entries.at(-1)!.at) - 60_000_000_000n)
+        .ownerTxs(s.owner, BigInt(entries.at(-1)!.at) - 60_000_000_000n, 20_000)
         .then((txs) => {
           const m: Record<string, string> = {};
           for (const e of entries) {
@@ -1631,12 +2185,8 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
     setNftOwner(await ag.nftOwner(s.nft_contract, s.token_id).catch(() => null));
     setGasLeft(s.agent_key ? await ag.keyAllowance(s.owner, s.agent_key) : undefined);
     void runner.reload();
-  }, [id, runner.reload]);
-  useEffect(() => {
-    void load();
-    const t = setInterval(() => void load(), 8_000);
-    return () => clearInterval(t);
-  }, [load]);
+  }, [id, runner.reload, fresh.take, push]);
+  const live = useLivePoll(load, 6000);
   const { busy, run, notice } = useAction(load);
   const images = useImages(seat ? [{ key: "art", contract: seat.nft_contract, token: seat.token_id }] : []);
 
@@ -1653,7 +2203,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
   const RoleIcon = role.icon;
   const mine = account === seat.owner;
   const canClaim = !!account && nftOwner === account && !mine;
-  const st = statusOf(seat, job, nftOwner, runner.up);
+  const st = statusOf(seat, job, nftOwner, runner.up, runner.locked);
   const cap = BigInt(seat.policy?.per_day_max ?? "0");
   const fundValue = ag.parseAsset(fund, seat.asset);
   const firstPay = job?.payer?.payments[0];
@@ -1752,8 +2302,9 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
       {notice}
       {canClaim && (
         <Notice tone="info" title="You own this NFT now">
-          The agent still belongs to {shortAccount(seat.owner)}. Claim it to set your own rules; their budget stays theirs.{" "}
-          <Button variant="primary" busy={busy === "claim"} onClick={() => run("claim", "Agent claimed", () => ag.claimSeat(seat))}>
+          The agent still belongs to {shortAccount(seat.owner)}. Claim it (one signature), then set it up with your own
+          limits and AI; their budget stays theirs.{" "}
+          <Button variant="primary" busy={busy === "claim"} onClick={() => run("claim", "Agent claimed: now set it up below", () => ag.claimSeat(seat))}>
             Claim the agent
           </Button>
         </Notice>
@@ -1763,6 +2314,12 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
           The agent is stopped. Your budget is still yours: withdraw it below.
         </Notice>
       )}
+      {mine && <RunnerLockedNotice runner={runner} />}
+      {mine && nftOwner === account && !seat.policy && (
+        <TakeOverPanel seat={seat} account={account} navigate={navigate} onDone={() => void load()} />
+      )}
+
+      {seat.policy && <AgentDashboard seat={seat} log={log} />}
 
       <div className="ag-columns">
         <section className="kp-vault-section">
@@ -1793,15 +2350,33 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
                 </dd>
               </>
             )}
-            {role.byo && (
-              <>
-                <dt>Connect</dt>
-                <dd>
-                  <code>{ag.mcpCommand(`./agent-${seat.seat_id}-key.json`)}</code>
-                  <span className="ag-muted"> · lost the file? Revoke access, then Give access makes a new one.</span>
-                </dd>
-              </>
-            )}
+            {role.byo && (() => {
+              const rec = ag.byoAgents()[seat.seat_id];
+              const tool = rec?.tool ?? "claude-code";
+              const setup = ag.mcpSetup(tool, ag.mcpName(rec?.name, seat.seat_id), `agent-${seat.seat_id}-key.json`);
+              return (
+                <>
+                  <dt>Runs in</dt>
+                  <dd>{ag.AGENT_TOOLS.find((t) => t.id === tool)?.label}</dd>
+                  {rec?.source && (
+                    <>
+                      <dt>Source</dt>
+                      <dd>
+                        <a href={/^https?:/.test(rec.source) ? rec.source : `https://${rec.source}`} target="_blank" rel="noreferrer">
+                          {rec.source.replace(/^https?:\/\//, "")}
+                        </a>
+                      </dd>
+                    </>
+                  )}
+                  <dt>Connect</dt>
+                  <dd>
+                    <span className="ag-muted">{setup.where}</span>
+                    <pre className="ag-code">{setup.snippet}</pre>
+                    <span className="ag-muted">Lost the key file? Revoke access, then Give access makes and downloads a new one.</span>
+                  </dd>
+                </>
+              );
+            })()}
             <dt>Last run</dt>
             <dd>
               {job?.lastResult ? (
@@ -1919,13 +2494,16 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
               </Button>
             </div>
             <p className="kp-hint">These need your wallet. The agent's key can do none of them.</p>
+            {nftOwner === account && <TransferPanel seat={seat} navigate={navigate} />}
           </section>
         )}
       </div>
 
       <section className="kp-vault-section">
-        <h2>Activity</h2>
-        <SpendBars log={log} asset={seat.asset} />
+        <div className="ag-feed-head">
+          <h2>Activity</h2>
+          <LiveDot updatedAt={live.updatedAt} hidden={live.hidden} />
+        </div>
         <div className="kp-table-wrap">
           <table className="kp-table">
             <thead>
@@ -1941,13 +2519,13 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
             </thead>
             <tbody>
               {collapse(log.filter((e, i) => e.status !== "pending" || (i === 0 && seat.in_flight > 0))).map((e) => (
-                <tr key={e.seq}>
+                <tr key={e.seq} data-new={fresh.fresh.has(e.seq) || undefined}>
                   <td>
                     {ago(e.at)}
                     {e.count > 1 && <span className="ag-muted"> → {ago(e.firstAt)}</span>}
                   </td>
                   <td>
-                    {e.action}
+                    {ACTION_LABELS[e.action] ?? e.action}
                     {e.count > 1 && <span className="ag-times">×{e.count}</span>}
                   </td>
                   <td>
@@ -1980,6 +2558,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
           : the last 50 entries. Blocked attempts are written by the contract itself.
         </p>
       </section>
+      <ToastStack toasts={toasts} dismiss={dismiss} txFor={(seq) => (logTx[seq] ? ag.txLink(logTx[seq]) : undefined)} />
     </div>
   );
 }
@@ -2045,7 +2624,7 @@ export function VaultAgents({ account, navigate }: { account: string; navigate: 
           : seats.map((s) => {
               const job = runner.jobs.find((j) => j.seatId === s.seat_id);
               const role = roleFor(s, job);
-              const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up);
+              const st = statusOf(s, job, owners[s.seat_id] ?? null, runner.up, runner.locked);
               return (
                 <NFTCard
                   key={s.seat_id}
