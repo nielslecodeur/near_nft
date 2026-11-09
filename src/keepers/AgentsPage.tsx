@@ -302,7 +302,9 @@ function seatModel(
   return {
     id: s.seat_id,
     name: nameFor(s, job),
-    description: s.profile?.manifest
+    description: ag.parseGatedUrl(s.profile?.manifest)
+      ? "Private skill: opens for the NFT's holder only"
+      : s.profile?.manifest
       ? s.profile.manifest.replace(/^https:\/\//, "")
       : imported?.source
       ? imported.source.replace(/^https?:\/\//, "")
@@ -1138,7 +1140,12 @@ function AgentIdentity({ seat, mine, onSaved }: { seat: Seat; mine: boolean; onS
                   <strong>{p.name}</strong>
                   {p.role && <span className="ag-muted"> · {p.role}</span>}
                   {p.tool && <span className="ag-muted"> · runs in {p.tool}</span>}
-                  {p.manifest && (
+                  {p.manifest && ag.parseGatedUrl(p.manifest) ? (
+                    <>
+                      {" "}
+                      · <a href="#ag-skill-title">private skill (NFT holder only)</a>
+                    </>
+                  ) : p.manifest && (
                     <>
                       {" "}
                       ·{" "}
@@ -1233,10 +1240,198 @@ export function RunnerSwitch() {
 /** "github.com/x/y" -> "https://github.com/x/y" (the contract only takes https links). */
 const httpsLink = (u: string) => (/^https?:\/\//.test(u.trim()) ? u.trim().replace(/^http:/, "https:") : u.trim() ? `https://${u.trim()}` : "");
 
+/** Saves text as a file on the user's computer. */
+function downloadText(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * A private skill: the NFT is the key. Everyone sees its card (name, size, fingerprint);
+ * only the NFT's current holder, signed in with NEP-413, can open it or replace it.
+ */
+function GatedSkill({
+  seat,
+  gate,
+  account,
+  holder,
+  connect,
+}: {
+  seat: Seat;
+  gate: { nftContract: string; tokenId: string };
+  account: string;
+  holder: string | null;
+  connect: () => void;
+}) {
+  const [meta, setMeta] = useState<ag.GatedMeta | null | undefined>();
+  const [skill, setSkill] = useState<{ name: string; content: string; sha256: string } | null>(null);
+  const [draft, setDraft] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const slow = useSlow(busy);
+  const loadMeta = useCallback(
+    () => void ag.gatedMeta(gate.nftContract, gate.tokenId).then(setMeta, () => setMeta(null)),
+    [gate.nftContract, gate.tokenId],
+  );
+  useEffect(loadMeta, [loadMeta]);
+  // A different wallet must not keep what the previous one opened.
+  useEffect(() => {
+    setSkill(null);
+    setDraft(null);
+    setError("");
+  }, [account]);
+  const isHolder = !!account && account === holder;
+  const explain = (e: unknown) =>
+    e instanceof ag.RunnerHttpError && e.status === 403
+      ? `${shortAccount(account)} does not hold this NFT${holder ? ` (${shortAccount(holder)} does)` : ""}: only its holder can open the skill.`
+      : ag.friendlyError(e);
+
+  async function open() {
+    setBusy(true);
+    setError("");
+    try {
+      setSkill(await ag.gatedRead(account, gate.nftContract, gate.tokenId));
+    } catch (e) {
+      setError(explain(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function save(text: string) {
+    setBusy(true);
+    setError("");
+    try {
+      const name = skill?.name ?? (meta?.exists ? meta.name : ag.skillFolder(text, seat.profile?.name ?? "agent-skill"));
+      const r = await ag.gatedWrite(account, gate.nftContract, gate.tokenId, name, text);
+      setSkill({ name: r.name, content: text, sha256: r.sha256 });
+      setDraft(null);
+      loadMeta();
+    } catch (e) {
+      setError(explain(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const install = skill ? ag.gatedInstall(skill.name, skill.content) : "";
+  return (
+    <section className="kp-vault-section ag-skill" aria-labelledby="ag-skill-title">
+      <h2 id="ag-skill-title">
+        <KeyRound aria-hidden="true" className="ag-inline-icon" /> Its private skill
+      </h2>
+      <p className="ag-muted">
+        This NFT is the key. Only its current holder can open the skill: each time, the runner asks {shortAccount(gate.nftContract)} who
+        holds token #{gate.tokenId}. Send the NFT and the access goes with it; the old holder loses it.
+      </p>
+      {meta === undefined ? (
+        <Skeleton label="Reading the skill's card" />
+      ) : meta === null ? (
+        <p className="ag-muted">The skill service did not answer. Try again in a minute.</p>
+      ) : meta.exists ? (
+        <dl className="ag-gated-card">
+          <div>
+            <dt>Skill</dt>
+            <dd>{meta.name}</dd>
+          </div>
+          <div>
+            <dt>Size</dt>
+            <dd>{(meta.size / 1024).toFixed(1)} KB</dd>
+          </div>
+          <div>
+            <dt>Fingerprint</dt>
+            <dd title={`sha256 ${meta.sha256}`}>
+              <code>{meta.sha256.slice(0, 16)}…</code>
+            </dd>
+          </div>
+          <div>
+            <dt>Updated</dt>
+            <dd>{new Date(meta.updatedAt).toLocaleString()}</dd>
+          </div>
+        </dl>
+      ) : (
+        <p className="ag-muted">No skill stored for this NFT yet.</p>
+      )}
+      {error && (
+        <Notice tone="error" title="Not opened">
+          {error}
+        </Notice>
+      )}
+      {!account ? (
+        <div className="ag-buttons">
+          <Button variant="primary" icon={WalletIcon} onClick={connect}>
+            Connect the wallet that holds it
+          </Button>
+        </div>
+      ) : holder && !isHolder ? (
+        <p>
+          <strong>Locked.</strong>{" "}
+          <span className="ag-muted">Only the holder of this NFT ({shortAccount(holder)}) can open it.</span>
+        </p>
+      ) : draft !== null ? (
+        <div className="ag-private-skill">
+          <label className="ag-field-label" htmlFor="ag-gated-edit">
+            New SKILL.md
+          </label>
+          <textarea id="ag-gated-edit" className="ag-textarea" rows={10} spellCheck={false} value={draft} onChange={(e) => setDraft(e.target.value)} />
+          <div className="ag-buttons">
+            <Button variant="primary" busy={busy} disabled={busy || !draft.trim() || new TextEncoder().encode(draft).length > 65_536} onClick={() => void save(draft)}>
+              Save it for this NFT
+            </Button>
+            <Button variant="secondary" disabled={busy} onClick={() => setDraft(null)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : skill ? (
+        <>
+          <p>
+            <strong>Claude Code</strong>{" "}
+            <span className="ag-muted">(writes ~/.claude/skills/{skill.name}/SKILL.md; macOS, Linux, WSL or Git Bash)</span>
+          </p>
+          <pre className="ag-code ag-code--long">{install}</pre>
+          <div className="ag-buttons">
+            <Button variant="primary" onClick={() => void navigator.clipboard.writeText(install).then(() => setCopied(true))}>
+              {copied ? "Copied" : "Copy the command"}
+            </Button>
+            <Button variant="secondary" icon={Download} onClick={() => downloadText("SKILL.md", skill.content)}>
+              Download SKILL.md
+            </Button>
+            <Button variant="secondary" onClick={() => setDraft(skill.content)}>
+              Replace it
+            </Button>
+          </div>
+          <p className="ag-muted">
+            Any other AI or chatbot: paste the SKILL.md as its instructions. Whoever holds the NFT next opens it the same way; you will not.
+          </p>
+        </>
+      ) : (
+        <div className="ag-buttons">
+          {meta?.exists ? (
+            <Button variant="primary" icon={KeyRound} busy={busy} disabled={busy} onClick={() => void open()}>
+              Open the skill
+            </Button>
+          ) : (
+            <Button variant="primary" disabled={busy} onClick={() => setDraft("")}>
+              Add its skill
+            </Button>
+          )}
+          <span className="ag-muted">One message to sign the first time (no transaction): it proves you hold the NFT.</span>
+        </div>
+      )}
+      {slow && <WalletWait />}
+    </section>
+  );
+}
+
 /** The agent's skill: where it comes from, and how to install it (Claude Code, or any chatbot). */
-function SkillInstall({ seat }: { seat: Seat }) {
+function SkillInstall({ seat, account, holder, connect }: { seat: Seat; account: string; holder: string | null; connect: () => void }) {
   const link = seat.profile?.manifest || (ag.byoAgents()[seat.seat_id]?.source ? httpsLink(ag.byoAgents()[seat.seat_id]!.source!) : "");
   const [copied, setCopied] = useState(false);
+  const gate = ag.parseGatedUrl(link);
+  if (gate) return <GatedSkill seat={seat} gate={gate} account={account} holder={holder} connect={connect} />;
   if (!link) return null;
   const install = ag.skillInstall(link);
   const pinned = install?.commit ?? null;
@@ -1543,10 +1738,12 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   const [error, setError] = useState("");
   const [byoKey, setByoKey] = useState<{ seat: Seat; file: ReturnType<typeof ag.agentKeyFile>; record: ag.ByoRecord } | null>(null);
   /** "Import an agent": who the agent is (shown on its card) and which tool runs it. */
-  const [ident, setIdent] = useState<{ tool: ag.AgentTool; avatar: string; source: string }>({
+  const [ident, setIdent] = useState<{ tool: ag.AgentTool; avatar: string; source: string; priv: boolean; skill: string }>({
     tool: "claude-code",
     avatar: "",
     source: "",
+    priv: false,
+    skill: "",
   });
 
   const [minting, setMinting] = useState(false);
@@ -1623,12 +1820,19 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   }, [usdc, role.id]);
 
   const skillLink = ident.source.trim();
+  const privSkill = role.skillOnly && ident.priv;
+  const skillBytes = new TextEncoder().encode(ident.skill).length;
   const problems = role.skillOnly
     ? [
         !pick ? "Pick the NFT that will carry the agent." : "",
         pick && taken[`${pick.contract}:${pick.token_id}`] ? "This NFT already has an agent." : "",
         !d.name.trim() ? "Give it a name." : "",
-        !skillLink ? "Paste the link to the agent or skill (GitHub)." : "",
+        !privSkill && !skillLink ? "Paste the link to the agent or skill (GitHub)." : "",
+        privSkill && !ident.skill.trim() ? "Paste or upload its SKILL.md." : "",
+        privSkill && skillBytes > 65_536 ? "The skill must be at most 64 KB." : "",
+        privSkill && pick && ag.gatedUrl(pick.contract, pick.token_id).length > 160
+          ? "This NFT's id is too long for a private skill link: pick another NFT."
+          : "",
       ].filter(Boolean)
     : [
     !pick ? "Pick the NFT that will carry the agent." : "",
@@ -1647,7 +1851,9 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
     !role.byo && role.kind === "Buyer" && !maxPrice ? "Set the highest price per card." : "",
   ].filter(Boolean);
 
-  const summary = role.skillOnly
+  const summary = privSkill
+    ? `${d.name.trim() || "Your agent"} goes on the NFT with a private skill: its text is stored encrypted, and only whoever holds the NFT can open it. Send the NFT and the access goes with it; the old holder loses it.`
+    : role.skillOnly
     ? `${d.name.trim() || "Your agent"} goes on the NFT with a link to its skill${ag.parseGitHub(httpsLink(skillLink)) ? " on GitHub" : ""}, written on chain. No budget, no key, nothing to spend: whoever owns the NFT owns this agent card, and anyone you send it to gets the install steps.`
     : role.byo
     ? `Your own AI agent will ${role.kind === "Buyer" ? "buy Keepers in NEAR" : `pay in USDC, only to ${payees.length ? payees.map(shortAccount).join(", ") : "?"}`}, never more than ${d.perTx} ${asset} at once or ${d.perDay} ${asset} a day, from a ${d.budget} ${asset} budget. You get its key as a file; the contract enforces the limits whatever the AI decides.`
@@ -1668,12 +1874,16 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
           market: role.kind === "Buyer" ? ag.MARKET : null,
         };
         const source = ident.source.trim();
+        if (privSkill) {
+          // First the skill, sealed for this NFT (one NEP-413 signature, no transaction): the runner checks we hold it.
+          await ag.gatedWrite(account, pick!.contract, pick!.token_id, ag.skillFolder(ident.skill, d.name), ident.skill);
+        }
         const profile = ag.profileFor({
           name: d.name.trim() || role.name,
           role: role.skillOnly ? ag.SKILL_ROLE : role.id,
           tool: role.byo ? ident.tool : "runner",
           avatar: role.byo ? ident.avatar : null,
-          manifest: role.byo && source ? httpsLink(source) : null,
+          manifest: privSkill ? ag.gatedUrl(pick!.contract, pick!.token_id) : role.byo && source ? httpsLink(source) : null,
         });
         // An identity-only agent has no policy: the contract lets it spend nothing.
         const id = await ag.createSeat(pick!.contract, pick!.token_id, role.kind, role.skillOnly ? null : policy, profile);
@@ -1869,6 +2079,54 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
                 ))}
               </Select>
               <Input label="Its name" placeholder="My trading bot" value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
+              {role.skillOnly && (
+                <label className="ag-check">
+                  <input
+                    type="checkbox"
+                    checked={ident.priv}
+                    disabled={!!seat || busy}
+                    onChange={(e) => setIdent({ ...ident, priv: e.target.checked })}
+                  />
+                  <span>
+                    <strong>Keep its skill private</strong>
+                    <span className="ag-muted"> : only the NFT's holder can open it. Send the NFT and the access goes with it.</span>
+                  </span>
+                </label>
+              )}
+              {privSkill ? (
+                <div className="ag-private-skill">
+                  <label className="ag-field-label" htmlFor="ag-skill-text">
+                    Its SKILL.md
+                  </label>
+                  <textarea
+                    id="ag-skill-text"
+                    className="ag-textarea"
+                    rows={8}
+                    spellCheck={false}
+                    placeholder={"---\nname: my-skill\ndescription: What it does and when to use it.\n---\n\nInstructions for the AI..."}
+                    value={ident.skill}
+                    disabled={!!seat || busy}
+                    onChange={(e) => setIdent({ ...ident, skill: e.target.value })}
+                  />
+                  <div className="ag-private-skill-row">
+                    <label className="ag-upload">
+                      Upload a .md file
+                      <input
+                        type="file"
+                        accept=".md,.markdown,.txt,text/markdown,text/plain"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void f.text().then((skill) => setIdent((x) => ({ ...x, skill })));
+                        }}
+                      />
+                    </label>
+                    <span className="ag-muted">
+                      {skillBytes ? `${(skillBytes / 1024).toFixed(1)} KB of 64 KB` : "Up to 64 KB."} Stored encrypted by the Agent Wallet
+                      runner, never on chain.
+                    </span>
+                  </div>
+                </div>
+              ) : (
               <Input
                 label={role.skillOnly ? "Link to the agent or skill" : "Source (optional)"}
                 placeholder={role.skillOnly ? "github.com/janestreet/agent_skills" : "github.com/you/your-agent"}
@@ -1880,6 +2138,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
                     : "Shown on its card as a link. We never run its code."
                 }
               />
+              )}
               <div className="ag-avatar-field">
                 <span className="ag-avatar-preview" aria-hidden="true">
                   {ident.avatar ? <img src={ident.avatar} alt="" /> : <RoleIcon />}
@@ -2031,6 +2290,11 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
         <p className="ag-summary">{summary}</p>
         {role.skillOnly ? (
           <ol className="ag-sign-steps">
+            {privSkill && (
+              <li data-state={phase === "creating" ? "now" : "todo"}>
+                One message to sign (no transaction): it proves you hold the NFT, and the skill is stored encrypted for it.
+              </li>
+            )}
             <li data-state={phase === "creating" ? "now" : "todo"}>
               One signature: put it on {pick ? `${pick.label} #${pick.token_id}` : "your NFT"} with its name and link on chain (0.1 NEAR
               storage, refunded if you close it).
@@ -2688,7 +2952,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
           </Button>
         </Notice>
       )}
-      <SkillInstall seat={seat} />
+      <SkillInstall seat={seat} account={account} holder={nftOwner} connect={() => void wallet.connect()} />
       {mine && nftOwner === account && !seat.policy && !ag.isSkillSeat(seat) && (
         <TakeOverPanel seat={seat} account={account} navigate={navigate} onDone={() => void load()} />
       )}

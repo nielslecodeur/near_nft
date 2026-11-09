@@ -163,6 +163,16 @@ Built-in roles (Collector, Subscriptions, Allowance, ...) run in a local service
 and acts on a schedule: `npm run agent:runner` (127.0.0.1:8788). A browser signs in once with a NEP-413
 signature from a full-access key (no transaction) and then sees and drives only its own agents; local
 tools use the admin token in `.local/runner-token`. API: [`public/openapi/runner.json`](public/openapi/runner.json).
+The hosted app uses the same runner on Cloudflare Workers (`https://agent-wallet-runner.nielshallgren.workers.dev`, `workers/runner/`).
+
+### Private skills: the NFT is the key
+
+The hosted runner keeps a private SKILL.md per NFT (encrypted, ≤ 64 KB). Only the account that holds the NFT
+now can read or replace it (NEP-413 session, then `nft_token` checked on every request); after a transfer the old
+holder gets 403. Public card, no text: `GET /gated/<nft_contract>/<token_id>/meta`. Read: `GET /gated/<c>/<t>`;
+store: `PUT /gated/<c>/<t>` `{name, content}`. An agent card points to it with its v2 profile
+`manifest = <runner>/gated/<c>/<t>`; the app then shows the holder an install command for Claude Code.
+Example: v2 seat 7. Proof: `npx tsx scripts/gated-skill-proof.ts` (6 checks, real testnet NFT transfer).
 
 ## For developers
 

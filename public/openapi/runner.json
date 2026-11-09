@@ -2,16 +2,20 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Agent Wallet runner",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "summary": "Local service that holds agent keys and acts for agents on NEAR testnet.",
     "description": "The runner (scripts/agent-runner.ts, `npm run agent:runner`) listens on 127.0.0.1 only. It holds function-call keys that can call only agent_pay, agent_buy and pause on the agents contract, with no deposit; the contract enforces every limit (cap per action, daily cap, allowed payees, market, budget) and logs every refusal. Every route except /health and /auth/* needs `Authorization: Bearer <token>`: a 12-hour session token obtained by signing a NEP-413 challenge with a FullAccess key of the account (scoped to that account's agents), or the admin token the runner writes to .local/runner-token at each start (for local tools such as the MCP server). Requests must use Host 127.0.0.1 or localhost; browser requests from origins other than the Agent Wallet get 403.",
     "license": { "name": "MIT", "identifier": "MIT" }
   },
-  "servers": [{ "url": "http://127.0.0.1:8788", "description": "Local runner (default port; AGENTS_RUNNER_PORT)" }],
+  "servers": [
+    { "url": "http://127.0.0.1:8788", "description": "Local runner (default port; AGENTS_RUNNER_PORT)" },
+    { "url": "https://agent-wallet-runner.nielshallgren.workers.dev", "description": "Hosted runner (Cloudflare Workers, testnet); the only one that serves /gated" }
+  ],
   "security": [{ "bearer": [] }],
   "tags": [
     { "name": "auth", "description": "NEP-413 sign-in" },
-    { "name": "jobs", "description": "Agent missions run by the runner" }
+    { "name": "jobs", "description": "Agent missions run by the runner" },
+    { "name": "gated", "description": "Private skills: the NFT is the key. Hosted runner only." }
   ],
   "paths": {
     "/health": {
@@ -118,6 +122,15 @@
         },
         "responses": { "200": { "description": "Outcome", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" }, "tx": { "type": "string" }, "result": { "type": "string" } } } } } }, "400": { "$ref": "#/components/responses/Error" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "$ref": "#/components/responses/Forbidden" } }
       }
+    },
+    "/gated/{nftContract}/{tokenId}/meta": {
+      "parameters": [{ "name": "nftContract", "in": "path", "required": true, "schema": { "type": "string" }, "example": "nft.examples.testnet" }, { "name": "tokenId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "URL-encoded" }],
+      "get": { "tags": ["gated"], "summary": "The public card of a private skill: never its text", "security": [], "responses": { "200": { "description": "Card", "content": { "application/json": { "schema": { "oneOf": [{ "type": "object", "properties": { "exists": { "const": false} } }, { "type": "object", "properties": { "exists": { "const": true}, "name": { "type": "string" }, "size": { "type": "integer", "description": "bytes" }, "sha256": { "type": "string", "description": "hex, of the skill's text" }, "updatedAt": { "type": "integer", "description": "ms since epoch" } } }]} } } } } }
+    },
+    "/gated/{nftContract}/{tokenId}": {
+      "parameters": [{ "name": "nftContract", "in": "path", "required": true, "schema": { "type": "string" }, "example": "nft.examples.testnet" }, { "name": "tokenId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "URL-encoded" }],
+      "get": { "tags": ["gated"], "summary": "Read the private skill: only the NFT's current holder", "description": "Needs a NEP-413 session of the account that holds the NFT now: the runner calls `nft_token` on the NFT contract on every request, so after a transfer the old holder gets 403 and the new one can read. The admin token is not accepted.", "responses": { "200": { "description": "Skill", "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "content": { "type": "string" }, "sha256": { "type": "string" }, "updatedAt": { "type": "integer" } } } } } }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "description": "This account does not hold the NFT", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }, "404": { "$ref": "#/components/responses/Error" } } },
+      "put": { "tags": ["gated"], "summary": "Store or replace the private skill: only the NFT's current holder", "description": "Stored encrypted (AES-GCM). Point the agent's on-chain profile `manifest` at `<runner>/gated/<nftContract>/<tokenId>` so apps know where it lives.", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["name", "content"], "properties": { "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$", "description": "Folder name for ~/.claude/skills/<name>" }, "content": { "type": "string", "maxLength": 65536, "description": "The SKILL.md text, at most 64 KB" } } } } } }, "responses": { "200": { "description": "Stored", "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "sha256": { "type": "string" }, "size": { "type": "integer" } } } } } }, "400": { "$ref": "#/components/responses/Error" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "description": "This account does not hold the NFT", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } } } }
     }
   },
   "components": {

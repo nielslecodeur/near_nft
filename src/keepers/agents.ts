@@ -354,7 +354,7 @@ export const shareLink = (seat: Seat) => `${PUBLIC_URL}/agents/${seat.seat_id}`;
 export function shareMessage(seat: Seat, name: string) {
   return `I sent you an AI agent on an NFT: "${name}". Open ${shareLink(seat)}, connect your NEAR testnet wallet and claim it: it becomes yours, with its profile and history${
     seat.balance !== "0" && seat.budget_follows ? " and its budget" : ""
-  }.`;
+  }.${parseGatedUrl(seat.profile?.manifest) ? " Its skill is private: the NFT is the key, so only you can open it now." : ""}`;
 }
 
 /** Profile fields the contract accepts: https links only, bounded lengths. Returns null without a name. */
@@ -533,33 +533,33 @@ export type Job = {
  */
 type RunnerSession = { accountId: string; token: string; expiresAt: number };
 /** Per runner: a session from the hosted runner is no use on the local one, and the other way round. */
-const SESSIONS_KEY = `agentwallet.runner.sessions:${RUNNER}`;
+const sessionsKey = (base: string) => `agentwallet.runner.sessions:${base}`;
 let currentAccount = "";
 
-function sessions(): Record<string, RunnerSession> {
+function sessions(base = RUNNER): Record<string, RunnerSession> {
   try {
-    return JSON.parse(localStorage.getItem(SESSIONS_KEY) || "{}");
+    return JSON.parse(localStorage.getItem(sessionsKey(base)) || "{}");
   } catch {
     return {};
   }
 }
-function saveSessions(all: Record<string, RunnerSession>) {
+function saveSessions(all: Record<string, RunnerSession>, base = RUNNER) {
   try {
-    localStorage.setItem(SESSIONS_KEY, JSON.stringify(all));
+    localStorage.setItem(sessionsKey(base), JSON.stringify(all));
   } catch {
     /* private mode: the session lasts for this page only */
   }
 }
 const memorySessions: Record<string, RunnerSession> = {};
-function sessionOf(accountId: string): RunnerSession | null {
-  const s = memorySessions[accountId] ?? sessions()[accountId];
+function sessionOf(accountId: string, base = RUNNER): RunnerSession | null {
+  const s = memorySessions[`${base}|${accountId}`] ?? sessions(base)[accountId];
   return s && s.expiresAt > Date.now() + 60_000 ? s : null;
 }
-function forgetSession(accountId: string) {
-  delete memorySessions[accountId];
-  const all = sessions();
+function forgetSession(accountId: string, base = RUNNER) {
+  delete memorySessions[`${base}|${accountId}`];
+  const all = sessions(base);
   delete all[accountId];
-  saveSessions(all);
+  saveSessions(all, base);
 }
 
 /** The runner answered "sign in first": the page shows an Unlock button. */
@@ -569,28 +569,32 @@ export class RunnerLockedError extends Error {
   }
 }
 
-export const runnerSignedIn = (accountId: string) => !!sessionOf(accountId);
+export const runnerSignedIn = (accountId: string, base = RUNNER) => !!sessionOf(accountId, base);
 
 /** One NEP-413 signature in the wallet; returns the account it signed for. */
-export async function runnerSignIn(accountId?: string): Promise<string> {
+export async function runnerSignIn(accountId?: string, base = RUNNER): Promise<string> {
   const who = accountId || currentAccount || (await readyWallet()).signer;
-  const c = await runnerRequest<{ nonce: string; message: string; recipient: string }>("/auth/challenge", {
-    method: "POST",
-    body: JSON.stringify({ accountId: who }),
-  });
+  const c = await runnerRequest<{ nonce: string; message: string; recipient: string }>(
+    "/auth/challenge",
+    { method: "POST", body: JSON.stringify({ accountId: who }) },
+    undefined,
+    base,
+  );
   const signed = await signNep413({
     message: c.message,
     recipient: c.recipient,
     nonce: Uint8Array.from(atob(c.nonce), (ch) => ch.charCodeAt(0)),
   });
   if (signed.accountId !== who) throw new Error(`The wallet is connected as ${signed.accountId}, not ${who}.`);
-  const session = await runnerRequest<RunnerSession>("/auth/session", {
-    method: "POST",
-    body: JSON.stringify({ nonce: c.nonce, ...signed }),
-  });
-  memorySessions[who] = session;
-  saveSessions({ ...sessions(), [who]: session });
-  currentAccount = who;
+  const session = await runnerRequest<RunnerSession>(
+    "/auth/session",
+    { method: "POST", body: JSON.stringify({ nonce: c.nonce, ...signed }) },
+    undefined,
+    base,
+  );
+  memorySessions[`${base}|${who}`] = session;
+  saveSessions({ ...sessions(base), [who]: session }, base);
+  if (base === RUNNER) currentAccount = who;
   return who;
 }
 
@@ -600,10 +604,10 @@ export async function runnerSignOut(accountId: string) {
   if (s) await runnerRequest("/auth/logout", { method: "POST" }, s.token).catch(() => {});
 }
 
-async function runnerRequest<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
+async function runnerRequest<T>(path: string, init?: RequestInit, token?: string, base = RUNNER): Promise<T> {
   let r: Response;
   try {
-    r = await fetch(RUNNER + path, {
+    r = await fetch(base + path, {
       ...init,
       headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
       signal: AbortSignal.timeout(60_000),
@@ -615,8 +619,17 @@ async function runnerRequest<T>(path: string, init?: RequestInit, token?: string
   }
   const data = await r.json();
   if (r.status === 401) throw new RunnerLockedError();
-  if (!r.ok) throw new Error(data.error || `Runner error ${r.status}`);
+  if (!r.ok) throw new RunnerHttpError(r.status, data.error || `Runner error ${r.status}`);
   return data as T;
+}
+
+export class RunnerHttpError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
 }
 
 /**
@@ -624,18 +637,68 @@ async function runnerRequest<T>(path: string, init?: RequestInit, token?: string
  * missing or expired, ask for the signature right away and retry once (the
  * user is acting); otherwise throw RunnerLockedError (background reads).
  */
-async function runnerFetch<T>(path: string, init?: RequestInit, interactive = true, accountId = currentAccount): Promise<T> {
-  const s = accountId ? sessionOf(accountId) : null;
+async function runnerFetch<T>(path: string, init?: RequestInit, interactive = true, accountId = currentAccount, base = RUNNER): Promise<T> {
+  const s = accountId ? sessionOf(accountId, base) : null;
   try {
     if (!s) throw new RunnerLockedError();
-    return await runnerRequest<T>(path, init, s.token);
+    return await runnerRequest<T>(path, init, s.token, base);
   } catch (e) {
     if (!(e instanceof RunnerLockedError)) throw e;
-    if (accountId) forgetSession(accountId);
+    if (accountId) forgetSession(accountId, base);
     if (!interactive) throw e;
-    const who = await runnerSignIn(accountId || undefined);
-    return runnerRequest<T>(path, init, sessionOf(who)!.token);
+    const who = await runnerSignIn(accountId || undefined, base);
+    return runnerRequest<T>(path, init, sessionOf(who, base)!.token, base);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Private skills: the NFT is the key. Stored (encrypted) by the hosted runner;
+// only the NFT's current holder, signed in with NEP-413, can read or replace one.
+// ---------------------------------------------------------------------------
+
+/** The on-chain profile's link to a private skill held for this NFT. */
+export const gatedUrl = (nftContract: string, tokenId: string) =>
+  `${HOSTED_RUNNER}/gated/${encodeURIComponent(nftContract)}/${encodeURIComponent(tokenId)}`;
+export function parseGatedUrl(url: string | null | undefined) {
+  const m = new RegExp(`^${HOSTED_RUNNER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/gated/([^/]+)/([^/]+)$`).exec(url ?? "");
+  return m ? { nftContract: decodeURIComponent(m[1]), tokenId: decodeURIComponent(m[2]) } : null;
+}
+export type GatedMeta = { exists: false } | { exists: true; name: string; size: number; sha256: string; updatedAt: number };
+export async function gatedMeta(nftContract: string, tokenId: string): Promise<GatedMeta> {
+  const r = await fetch(`${gatedUrl(nftContract, tokenId)}/meta`, { signal: AbortSignal.timeout(15_000) });
+  if (!r.ok) throw new Error(`Skill service ${r.status}`);
+  return r.json();
+}
+/** Opens the skill (one wallet signature the first time). Throws RunnerHttpError 403 when the account does not hold the NFT. */
+export const gatedRead = (account: string, nftContract: string, tokenId: string) =>
+  runnerFetch<{ name: string; content: string; sha256: string; updatedAt: number }>(
+    `/gated/${encodeURIComponent(nftContract)}/${encodeURIComponent(tokenId)}`,
+    undefined,
+    true,
+    account,
+    HOSTED_RUNNER,
+  );
+export const gatedWrite = (account: string, nftContract: string, tokenId: string, name: string, content: string) =>
+  runnerFetch<{ name: string; sha256: string; size: number }>(
+    `/gated/${encodeURIComponent(nftContract)}/${encodeURIComponent(tokenId)}`,
+    { method: "PUT", body: JSON.stringify({ name, content }) },
+    true,
+    account,
+    HOSTED_RUNNER,
+  );
+/** A folder name for the skill: its SKILL.md front matter `name`, else the agent's name. */
+export function skillFolder(content: string, fallback: string) {
+  const fm = /^---\s*\n([\s\S]*?)\n---/.exec(content)?.[1] ?? "";
+  const named = /^name:\s*["']?([^"'\n]+)["']?\s*$/m.exec(fm)?.[1]?.trim() ?? "";
+  const slug = (named || fallback).toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^[^a-z0-9]+|-+$/g, "").slice(0, 64);
+  return slug || "agent-skill";
+}
+/** One command that writes the skill into Claude Code (~/.claude/skills/<name>/SKILL.md). */
+export function gatedInstall(name: string, content: string) {
+  // The text is never expanded (quoted marker); a skill that contains the marker line gets a longer one.
+  let marker = "AGENT_WALLET_SKILL_END";
+  while (content.split("\n").includes(marker)) marker += "_";
+  return `mkdir -p ~/.claude/skills/${name} && cat > ~/.claude/skills/${name}/SKILL.md <<'${marker}'\n${content.replace(/\n?$/, "\n")}${marker}`;
 }
 
 /**

@@ -12,6 +12,10 @@ The same runner as `scripts/agent-runner.ts`, hosted: it holds agent keys and ac
 - **Trust**: whoever runs the Worker holds the agents' keys. Each key can only call `agent_pay`,
   `agent_buy` and `pause` with no deposit, inside the limits the contract enforces: it can never withdraw,
   change limits or move an NFT. Testnet only.
+- **Private skills, the NFT as the key** (`/gated/<nft_contract>/<token_id>`): the holder of an NFT stores a
+  SKILL.md for it (encrypted, at most 64 KB). Only the account that holds the NFT *now* can read or replace it:
+  every request asks the NFT contract (`nft_token`) after a NEP-413 sign-in. Send the NFT and the access goes
+  with it. Anyone can read its public card (`/meta`: name, size, sha256), never its text.
 
 ## Deploy (once)
 
@@ -40,6 +44,11 @@ hired v2 seat 6 with it, **Cloudflare's cron paid 0.1 USDC by itself** (tx `Dm2D
 in the seat's on-chain log) and a 0.2 USDC payment through the Worker was refused on chain as over the
 per-action cap (tx `3yZBp5Gs72Xy9ZJ6EAY49jEYjehVKrbfpxve2fPAxAW9`). A freshly deployed cron took about three
 minutes to start firing.
+
+Private skills (`docs/results/gated-skill-proof.json`, 6 checks): a fresh NFT for the demo account; a non-holder
+can neither store nor read, signed-out callers get 401; the holder stores and reads; the public card has no text;
+the agent card v2-7 links to the skill; after the NFT moves, the old holder gets 403 and the new one reads the
+same skill and claims the card.
 
 ## Run it locally
 

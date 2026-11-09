@@ -5,6 +5,9 @@
  * scripts/runner-logic.ts), so the app and the MCP server talk to either:
  *   - fetch: /health, /auth/* (NEP-413 sign-in), /keys, /jobs (one account's agents per session)
  *   - scheduled (every minute): runs every job once
+ * Gated skills: /gated/<nft_contract>/<token_id> holds a private agent skill that
+ * only the NFT's current holder can read or replace (NEP-413 session + nft_token
+ * on every call), so transferring the NFT transfers the access; /meta is public.
  * Storage is D1; agent secret keys are encrypted with AES-GCM under SECRETS_KEY
  * (a Worker secret). Each agent key can only call agent_pay / agent_buy / pause
  * with no deposit, inside the limits the agents contract enforces.
@@ -41,12 +44,12 @@ class D1Store implements Store {
     this.aes ??= await crypto.subtle.importKey("raw", fromBase64(this.env.SECRETS_KEY), "AES-GCM", false, ["encrypt", "decrypt"]);
     return this.aes;
   }
-  private async seal(text: string) {
+  async seal(text: string) {
     const iv = random(12);
     const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await this.key(), new TextEncoder().encode(text)));
     return `${toBase64(iv)}.${toBase64(ct)}`;
   }
-  private async open(sealed: string) {
+  async open(sealed: string) {
     const [iv, ct] = sealed.split(".");
     return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromBase64(iv) }, await this.key(), fromBase64(ct)));
   }
@@ -144,6 +147,47 @@ async function route(req: Request, env: Env): Promise<Response> {
     const expiresAt = Date.now() + SESSION_MS;
     await env.DB.prepare("INSERT INTO sessions (hash, account, expires) VALUES (?, ?, ?)").bind(await sha(token), c.account, expiresAt).run();
     return send(200, { token, accountId: c.account, expiresAt });
+  }
+
+  // ---------------------------------------------------------------- gated skills
+  const g = url.pathname.match(/^\/gated\/([^/]+)\/([^/]+?)(\/meta)?$/);
+  if (g) {
+    const nftContract = decodeURIComponent(g[1]);
+    const tokenId = decodeURIComponent(g[2]);
+    if (!isAccount(nftContract) || !tokenId || tokenId.length > 128) return send(400, { error: "bad NFT" });
+    const id = `${nftContract}:${tokenId}`;
+    const row = await env.DB.prepare("SELECT name, content_enc, sha256, size, updated_at, updated_by FROM gated WHERE nft = ?").bind(id).first<{
+      name: string; content_enc: string; sha256: string; size: number; updated_at: number; updated_by: string;
+    }>();
+    if (g[3]) {
+      if (req.method !== "GET") return send(405, { error: "GET only" });
+      return send(200, row ? { exists: true, name: row.name, size: row.size, sha256: row.sha256, updatedAt: row.updated_at } : { exists: false });
+    }
+    const caller = await principal(env, req.headers.get("authorization"));
+    if (!caller || caller.admin) return send(401, { error: "sign in with the wallet that holds this NFT", code: "auth" });
+    const holder = (await chain.view<{ owner_id: string } | null>(nftContract, "nft_token", { token_id: tokenId }).catch(() => null))?.owner_id;
+    if (holder !== caller.accountId)
+      return send(403, { error: `only the holder of ${nftContract} #${tokenId} can open its skill${holder ? "" : " (NFT not found)"}` });
+    if (req.method === "GET") {
+      if (!row) return send(404, { error: "no private skill on this NFT" });
+      return send(200, { name: row.name, content: await store.open(row.content_enc), sha256: row.sha256, updatedAt: row.updated_at });
+    }
+    if (req.method === "PUT") {
+      const b = await body();
+      const name = typeof b.name === "string" ? b.name.trim() : "";
+      const content = typeof b.content === "string" ? b.content : "";
+      if (!/^[a-z0-9][a-z0-9._-]{0,63}$/i.test(name)) return send(400, { error: "name: letters, digits, . _ - (a folder name)" });
+      const size = new TextEncoder().encode(content).length;
+      if (!size || size > 65_536) return send(400, { error: "content: 1 byte to 64 KB" });
+      const digest = await sha(content);
+      await env.DB.prepare(
+        "INSERT INTO gated (nft, name, content_enc, sha256, size, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(nft) DO UPDATE SET name = excluded.name, content_enc = excluded.content_enc, sha256 = excluded.sha256, size = excluded.size, updated_at = excluded.updated_at, updated_by = excluded.updated_by",
+      )
+        .bind(id, name, await store.seal(content), digest, size, Date.now(), caller.accountId)
+        .run();
+      return send(200, { name, sha256: digest, size });
+    }
+    return send(405, { error: "GET or PUT" });
   }
 
   const who = await principal(env, req.headers.get("authorization"));

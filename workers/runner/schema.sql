@@ -21,3 +21,13 @@ CREATE TABLE IF NOT EXISTS challenges (
   message TEXT NOT NULL,
   expires INTEGER NOT NULL
 );
+-- Private skills gated by an NFT: only its current holder (checked with nft_token on every call) can read or replace one.
+CREATE TABLE IF NOT EXISTS gated (
+  nft TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  content_enc TEXT NOT NULL,
+  sha256 TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  updated_by TEXT NOT NULL
+);
