@@ -2635,6 +2635,194 @@ function TakeOverPanel({
   );
 }
 
+/** The agent market's live listing for this agent (null when not for sale, or stale). */
+function useListing(seat: Seat | null | undefined, holder: string | null) {
+  const [listing, setListing] = useState<ag.AgentListing | null>(null);
+  const v2 = seat?.version === "v2";
+  const [contract, token] = [seat?.nft_contract ?? "", seat?.token_id ?? ""];
+  const reload = useCallback(() => {
+    if (!v2) return setListing(null);
+    void ag.agentListing(contract, token).then(setListing);
+  }, [v2, contract, token]);
+  useEffect(reload, [reload]);
+  // An approval left behind after the NFT moved, or for another agent, sells nothing.
+  const live = seat && listing && listing.seat_id === seat.num && (!holder || listing.seller === holder) ? listing : null;
+  return [live, reload] as const;
+}
+
+const nearText = (yocto: string | bigint) => ag.formatAsset(BigInt(yocto), "NEAR");
+
+/** The agent's owner puts it on the agent market, with or without its budget. */
+function SellPanel({ seat, listing, onChange }: { seat: Seat; listing: ag.AgentListing | null; onChange: () => void }) {
+  const [price, setPrice] = useState("");
+  const [withBudget, setWithBudget] = useState(seat.balance !== "0");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const slow = useSlow(busy);
+  const yocto = ag.parseAsset(price, "NEAR");
+  const act = async (f: () => Promise<unknown>) => {
+    setBusy(true);
+    setError("");
+    try {
+      await f();
+      onChange();
+    } catch (e) {
+      setError(ag.friendlyError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (seat.version !== "v2") return null;
+  if (listing)
+    return (
+      <div className="ag-transfer ag-sell">
+        <Notice tone="info" title={`For sale at ${nearText(listing.price)}`}>
+          {listing.budget !== "0"
+            ? `With its budget: the buyer gets at least ${ag.formatAsset(listing.budget, seat.asset)}. The agent stays paused until it is sold.`
+            : "Without its budget."}{" "}
+          You are paid the moment someone buys it.{" "}
+          <Button variant="secondary" busy={busy} disabled={busy} onClick={() => void act(() => ag.delistAgent(listing))}>
+            Take it off the market
+          </Button>
+        </Notice>
+        {error && (
+          <Notice tone="error" title="Not done">
+            {error}
+          </Notice>
+        )}
+        {slow && <WalletWait />}
+      </div>
+    );
+  return (
+    <details className="ag-transfer ag-sell">
+      <summary>Sell this agent</summary>
+      <ul className="ag-transfer-facts">
+        <li>
+          Listed on the agent market (<code>{shortAccount(ag.AGENT_MARKET)}</code>, no fee). The buyer gets the NFT with the agent's name,
+          its skill and its record ({seat.done} done, {seat.refused} blocked, {seat.owners ?? 1} owner{(seat.owners ?? 1) > 1 ? "s" : ""}).
+        </li>
+        <li>You are paid only once the NFT has moved and the budget you promised is still in the agent; otherwise the buyer is refunded.</li>
+      </ul>
+      {seat.balance !== "0" && (
+        <label className="ag-check">
+          <input type="checkbox" checked={withBudget} onChange={(e) => setWithBudget(e.target.checked)} />
+          <span>
+            Sell it with its budget of {ag.formatAsset(seat.balance, seat.asset)}{" "}
+            <span className="ag-muted">(the agent is paused until it is sold, and the budget is promised to the buyer on chain)</span>
+          </span>
+        </label>
+      )}
+      {error && (
+        <Notice tone="error" title="Not listed">
+          {error}
+        </Notice>
+      )}
+      <div className="kp-action-row">
+        <Input label="Price (NEAR)" inputMode="decimal" placeholder="1" value={price} onChange={(e) => setPrice(e.target.value)} />
+        <Button
+          variant="primary"
+          busy={busy}
+          disabled={!yocto || yocto <= 0n || busy}
+          onClick={() => void act(() => ag.listAgent(seat, yocto!, withBudget && seat.balance !== "0"))}
+        >
+          Put it on sale
+        </Button>
+      </div>
+      <p className="kp-hint">
+        One wallet request: {withBudget && seat.balance !== "0" ? "pause the agent and promise its budget, then " : ""}let the market sell the
+        NFT at this price.
+      </p>
+      {slow && <WalletWait />}
+    </details>
+  );
+}
+
+/** Anyone else sees the agent's price and buys it. */
+function ForSalePanel({
+  seat,
+  listing,
+  account,
+  connect,
+  onBought,
+}: {
+  seat: Seat;
+  listing: ag.AgentListing;
+  account: string;
+  connect: () => void;
+  onBought: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<{ bought: boolean; reason?: string } | null>(null);
+  const slow = useSlow(busy);
+  async function buy() {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await ag.buyAgent(listing, account);
+      setResult(r);
+      onBought();
+    } catch (e) {
+      setError(ag.friendlyError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (result)
+    return result.bought && !result.reason ? (
+      <Notice tone="success" title="Bought: the NFT is yours">
+        Claim the agent below (one signature){listing.budget !== "0" ? ` to receive its budget of ${ag.formatAsset(listing.budget, seat.asset)}` : ""}.
+      </Notice>
+    ) : (
+      <Notice tone="info" title="Not sold: your NEAR came back">
+        The market refunded {nearText(listing.price)}: {result.reason}.{result.bought ? " You keep the NFT as well." : ""}
+      </Notice>
+    );
+  return (
+    <section className="kp-vault-section ag-for-sale" aria-labelledby="ag-for-sale-title">
+      <h2 id="ag-for-sale-title">For sale: {nearText(listing.price)}</h2>
+      <ul className="ag-transfer-facts">
+        <li>
+          {listing.budget !== "0" ? (
+            <>
+              <strong>With its budget</strong>: at least {ag.formatAsset(listing.budget, seat.asset)} stays in the agent for you (it holds{" "}
+              {ag.formatAsset(seat.balance, seat.asset)} now).
+            </>
+          ) : (
+            "Without a budget: you get the NFT, the agent's name, skill and record."
+          )}
+        </li>
+        <li>
+          Its record comes along: {seat.done} done, {seat.refused} blocked, {ag.formatAsset(seat.spent_total, seat.asset)} spent,{" "}
+          {seat.owners ?? 1} owner{(seat.owners ?? 1) > 1 ? "s" : ""} so far.
+        </li>
+        <li>
+          The market (<code>{shortAccount(ag.AGENT_MARKET)}</code>, no admin key) pays {shortAccount(listing.seller)} only once the NFT is yours and
+          the budget is still there. If anything is off, you get your NEAR back.
+        </li>
+      </ul>
+      {error && (
+        <Notice tone="error" title="Not bought">
+          {error}
+        </Notice>
+      )}
+      <div className="ag-buttons">
+        {account ? (
+          <Button variant="primary" icon={WalletCards} busy={busy} disabled={busy} onClick={() => void buy()}>
+            Buy it for {nearText(listing.price)}
+          </Button>
+        ) : (
+          <Button variant="primary" icon={WalletIcon} onClick={connect}>
+            Connect a wallet to buy it
+          </Button>
+        )}
+        <span className="ag-muted">Then claim it here with one signature: its limits are yours to set.</span>
+      </div>
+      {slow && <WalletWait />}
+    </section>
+  );
+}
+
 /**
  * Hand the NFT to someone else. One wallet request: take the budget back
  * (optional), switch this agent off and delete its key, then transfer the NFT.
@@ -2798,6 +2986,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
   const live = useLivePoll(load, 6000);
   const { busy, run, notice } = useAction(load);
   const images = useImages(seat ? [{ key: "art", contract: seat.nft_contract, token: seat.token_id }] : []);
+  const [listing, reloadListing] = useListing(seat, nftOwner);
 
   if (seat === undefined) return <Skeleton label="Loading the agent" />;
   if (seat === null)
@@ -2943,7 +3132,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         </Notice>
       )}
       {mine && <RunnerLockedNotice runner={runner} />}
-      {!account && (
+      {!account && !listing && (
         <Notice tone="info" title="Was this NFT sent to you?">
           Connect your NEAR testnet wallet: if you own it now, you can claim this agent{seat.profile ? ` (${seat.profile.name})` : ""} with one
           signature.{" "}
@@ -2951,6 +3140,9 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
             Connect my wallet
           </Button>
         </Notice>
+      )}
+      {listing && account !== listing.seller && (
+        <ForSalePanel seat={seat} listing={listing} account={account} connect={() => void wallet.connect()} onBought={() => (void load(), reloadListing())} />
       )}
       <SkillInstall seat={seat} account={account} holder={nftOwner} connect={() => void wallet.connect()} />
       {mine && nftOwner === account && !seat.policy && !ag.isSkillSeat(seat) && (
@@ -3154,7 +3346,8 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
               </label>
             )}
             <p className="kp-hint">These need your wallet. The agent's key can do none of them.</p>
-            {nftOwner === account && <TransferPanel seat={seat} name={nameFor(seat, job)} navigate={navigate} />}
+            {nftOwner === account && <SellPanel seat={seat} listing={listing} onChange={() => (void load(), reloadListing())} />}
+            {nftOwner === account && !listing && <TransferPanel seat={seat} name={nameFor(seat, job)} navigate={navigate} />}
           </section>
         )}
       </div>

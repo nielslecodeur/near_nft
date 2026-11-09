@@ -1485,3 +1485,41 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* Agent market: agents for sale with their NFT */
+.mk-agent-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.mk-agent {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-card);
+  background: var(--nx-glass);
+  color: var(--nx-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.mk-agent:hover,
+.mk-agent:focus-visible {
+  border-color: var(--nx-accent);
+}
+.mk-agent span {
+  font-size: var(--type-sm);
+  overflow-wrap: anywhere;
+}
+.mk-agent-sales {
+  margin-top: var(--space-3);
+  font-size: var(--type-sm);
+}
+.ag-for-sale h2 {
+  margin-bottom: var(--space-2);
+}

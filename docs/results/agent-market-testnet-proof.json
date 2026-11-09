@@ -1,0 +1,36 @@
+{
+  "at": "2026-11-09T21:20:19.694Z",
+  "market": "agent-market-v1.everkeep-dev-mw0weth5.testnet",
+  "agents": "agents-v2.everkeep-dev-mw0weth5.testnet",
+  "seat_key": "v2-8",
+  "nft": "nft.examples.testnet #character-space-warrior-sale-1794259169110",
+  "price_near": "0.2",
+  "budget_usdc": "0.3",
+  "stats": {
+    "listed": 0,
+    "sold": 1,
+    "refunded": 1,
+    "volume": "200000000000000000000000"
+  },
+  "checks": [
+    "demo-agent.everkeep-dev-mw0weth5.testnet has agent v2-8 \"Grant scout\" on nft.examples.testnet #character-space-warrior-sale-1794259169110 with 0.3 USDC",
+    "listed on agent-market-v1.everkeep-dev-mw0weth5.testnet for 0.2 NEAR with 0.3 USDC promised; the agent is paused and its budget follows the NFT",
+    "a purchase under other terms fails, a direct call to the payout callback fails, and the listing is untouched",
+    "bought: the NFT is everkeep-dev-mw0weth5.testnet's and the seller received the 0.2 NEAR only once the market saw the budget still there",
+    "claimed: the agent is the buyer's with its 0.3 USDC, its name and its record (owners 2)",
+    "a listing whose budget is not promised on chain cannot sell: the buyer's 0.2 NEAR came back (only gas spent) and the NFT stayed put"
+  ],
+  "transactions": {
+    "mint": "85ZzqRFFo2onyfQraqaKDumYj5c5HoomLMvabtgFqJJ9",
+    "create_seat": "H1maaQUFJLHzsy4bFe8wKz8UgSnhz2DggZsd7NAaXN3y",
+    "fund": "8tBFgpWgYZJgorX1Zj3Aj7AVZmcu3N6mzL8cWUgM4Aj4",
+    "pause_and_follow": "EzodpsW329kBHDVcWDBGYuen6pSA8Wa1h8FkqEgq3DUi",
+    "nft_approve": "HWNet2vzPTU9RQnpQywEf7woQGfwbHxbxpavQ3eQ9dfm",
+    "buy_wrong_terms": "aSaENShy2mK1onH9Xj7U1vrMRjvZ5AC8wuWniUhqddf",
+    "callback_direct": "3CndZRVivMmiY5RDA6u7DP519iuEN5z1BxWema8NNDxS",
+    "buy": "7i9LomysyTVJYqoFPq5uWA6QYKDYoTErL4jTEDKdZJxb",
+    "claim": "8a13WdPrSmDCeqN17bwS7gAsig3om5h6W9wdTmUkdsBm",
+    "relist_unbacked": "HHFKWkrSdLLArvbLkYF7W8FhnUjrUsU8ndBYQb3vtRA",
+    "buy_refunded": "BfkzTcN9vPiWs9AQhx9nBMwhVRitwVerRsGh6b43z8zg"
+  }
+}

@@ -1,5 +1,5 @@
 [workspace]
-members = ["contracts/wallet", "contracts/collection", "contracts/demo-token", "contracts/strategy", "contracts/test-receiver", "contracts/missions", "contracts/keepers", "contracts/agents", "contracts/agents-v2"]
+members = ["contracts/wallet", "contracts/collection", "contracts/demo-token", "contracts/strategy", "contracts/test-receiver", "contracts/missions", "contracts/keepers", "contracts/agents", "contracts/agents-v2", "contracts/agent-market"]
 resolver = "3"
 
 [profile.release]

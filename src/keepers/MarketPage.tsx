@@ -51,6 +51,72 @@ function buyerOf(seat: Seat, job: Job | undefined): Buyer {
   };
 }
 
+/** Agents for sale with the NFT that carries them (the agent market), and the last sales. */
+function AgentsForSale({ navigate }: { navigate: (to: string) => void }) {
+  const [items, setItems] = useState<{ listing: ag.AgentListing; seat: Seat | null }[] | null>(null);
+  const [sales, setSales] = useState<ag.AgentSale[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const [listings, last] = await Promise.all([ag.agentListings(), ag.agentSales()]);
+      const withSeats = await Promise.all(listings.map(async (listing) => ({ listing, seat: await ag.listedSeat(listing).catch(() => null) })));
+      if (!alive) return;
+      // Only listings whose seller still holds the agent.
+      setItems(withSeats.filter((x) => x.seat && x.seat.owner === x.listing.seller).sort((a, b) => (BigInt(a.listing.price) < BigInt(b.listing.price) ? -1 : 1)));
+      setSales(last.slice(0, 5));
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return (
+    <section className="kp-vault-section mk-agents" aria-labelledby="mk-agents-title">
+      <h2 id="mk-agents-title">Agents for sale</h2>
+      <p className="kp-hint">
+        Buy an AI agent with the NFT that carries it: its name, skill and on-chain record, and when the seller includes it, its budget. The
+        agent market (<code>{ag.AGENT_MARKET.split(".")[0]}</code>, no admin key, no fee) pays the seller only once the NFT is yours and the promised
+        budget is still in the agent; otherwise it refunds you.
+      </p>
+      {items === null ? (
+        <Skeleton label="Reading the agent market" />
+      ) : items.length === 0 ? (
+        <p className="ag-muted">No agent for sale right now. To sell one, open your agent and choose “Sell this agent”.</p>
+      ) : (
+        <ul className="mk-agent-list">
+          {items.map(({ listing, seat }) => (
+            <li key={`${listing.nft_contract}:${listing.token_id}`}>
+              <button type="button" className="mk-agent" onClick={() => navigate(`/agents/${seat!.seat_id}`)}>
+                <strong>{seat!.profile?.name ?? ag.seatLabel(seat!.seat_id)}</strong>
+                <span className="ag-muted">
+                  {seat!.profile?.role ?? seat!.kind} · {seat!.done} done · {seat!.refused} blocked · {seat!.owners ?? 1} owner
+                  {(seat!.owners ?? 1) > 1 ? "s" : ""}
+                </span>
+                <span>
+                  <b>{formatNear(BigInt(listing.price))} NEAR</b>
+                  {listing.budget !== "0" ? ` · with ${ag.formatAsset(listing.budget, seat!.asset)} of budget` : " · no budget"}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {sales.length > 0 && (
+        <details className="mk-agent-sales">
+          <summary>Last sales ({sales.length})</summary>
+          <ul>
+            {sales.map((s) => (
+              <li key={`${s.nft_contract}:${s.token_id}:${s.at}`}>
+                Agent v2-{s.seat_id} · {formatNear(BigInt(s.price))} NEAR{s.budget !== "0" ? " with its budget" : ""} ·{" "}
+                {new Date(Number(BigInt(s.at) / 1_000_000n)).toLocaleDateString()}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </section>
+  );
+}
+
 export function MarketPage({ wallet, navigate }: { wallet: Wallet; navigate: (to: string) => void }) {
   const account = wallet.account;
   const [config, setConfig] = useState<KeepersConfig | null>(null);
@@ -172,6 +238,8 @@ export function MarketPage({ wallet, navigate }: { wallet: Wallet; navigate: (to
           {error}
         </Notice>
       )}
+
+      <AgentsForSale navigate={navigate} />
 
       {account && (
         <section className="kp-vault-section" aria-labelledby="mk-buyers">
