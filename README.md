@@ -128,8 +128,8 @@ the guided first agent paying 5 times then stopped by its daily cap (seat 12).
 
 ## History and what existed before
 
-The repository's first commit is dated 2026-11-02, inside the hackathon window. It went through three
-stages:
+Nothing here predates the hackathon: all the code was written after the 2026-10-19 announcement, and the
+repository's first commit is dated 2026-11-02. It went through three stages:
 
 1. **Everkeep** (2026-11-02 → 05): savings positions as NFTs, thematic baskets, paid analysis missions.
    Its code is still here (`src/*.tsx`, `contracts/{wallet,collection,strategy,missions,demo-token,test-receiver}`)
