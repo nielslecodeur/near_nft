@@ -13,6 +13,11 @@ Any AI can drive it: Claude Code, Codex, Cursor or your own agent, through an MC
 
 **NEAR testnet only. Every token here is free test money.**
 
+**Live: [near-nft-wheat.vercel.app/agents](https://near-nft-wheat.vercel.app/agents)** · a real Agent Wallet, no wallet needed:
+[near-nft-wheat.vercel.app/agents?as=nifelst.testnet](https://near-nft-wheat.vercel.app/agents?as=nifelst.testnet) · an AI skill from GitHub
+carried by an NFT and handed to a friend: [/agents/v2-4](https://near-nft-wheat.vercel.app/agents/v2-4) · your first agent in five
+steps: [/agents/start](https://near-nft-wheat.vercel.app/agents/start)
+
 ## Try it
 
 ### 1. Watch an AI fail to overspend (no wallet, 1 minute)
