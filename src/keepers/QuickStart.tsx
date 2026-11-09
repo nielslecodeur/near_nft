@@ -12,7 +12,7 @@ import { CircleCheck, Copy, ExternalLink, KeyRound, PiggyBank, Sparkles, Wallet 
 import { Button, Notice, Skeleton } from "../terminal/primitives";
 import * as ag from "./agents";
 import type { LogEntry, OwnedNft, Seat } from "./agents";
-import { NftArt, WalletWait, useImages, useSlow } from "./AgentsPage";
+import { NftArt, RunnerOffline, WalletWait, useImages, useSlow } from "./AgentsPage";
 import { characterFromMedia } from "./nft-art";
 import { NFTCard } from "./NFTCard";
 import type { Wallet } from "./KeepersApp";
@@ -388,9 +388,7 @@ export function QuickStartPage({ wallet, navigate }: { wallet: Wallet; navigate:
               contract blocks it, and you will see why.
             </p>
             {runnerUp === false && (
-              <Notice tone="info" title="The agent runner is offline">
-                It is the program that acts for your agents. Start it with <code>npm run agent:runner</code>, then come back.
-              </Notice>
+              <RunnerOffline />
             )}
             <ol className="ag-sign-steps">
               <li data-state={ag.runnerSignedIn(account) ? "done" : sub === "unlock" ? "now" : "todo"}>

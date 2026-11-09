@@ -83,7 +83,8 @@ export async function ownedPlans(owner: string, offset = 0) {
  */
 const RPC_NODES = import.meta.env.VITE_RPC_URL
   ? [import.meta.env.VITE_RPC_URL as string]
-  : [TESTNET.rpc, "https://rpc.testnet.near.org"];
+  : // rpc.testnet.near.org is deprecated and answers 429 to everyone; dRPC's free tier and FastNEAR's other host instead.
+    [TESTNET.rpc, "https://near-testnet.drpc.org", "https://rpc.testnet.fastnear.com"];
 const restingUntil = new Map<string, number>();
 
 export async function rpc(method: string, params: object) {

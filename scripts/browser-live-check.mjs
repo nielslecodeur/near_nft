@@ -27,9 +27,13 @@ await page.route("**/*", async (route) => {
   }
   const p = body.params || {};
   const args = p.args_base64 ? JSON.parse(Buffer.from(p.args_base64, "base64").toString()) : {};
-  if (p.method_name !== "seat_log" || String(args.seat_id) !== "9" || !extra.length) return route.continue();
+  // Only the v1 demo agent's log (the demo account also holds a v2 agent).
+  if (p.method_name !== "seat_log" || String(args.seat_id) !== "9" || !/^agents-v1\./.test(p.account_id ?? "") || !extra.length)
+    return route.continue();
   const res = await route.fetch();
-  const json = await res.json();
+  const json = await res.json().catch(() => null);
+  // A rate-limited or failed answer goes through untouched: the app fails over and asks again.
+  if (!json?.result?.result) return route.fulfill({ response: res });
   const log = JSON.parse(Buffer.from(json.result.result).toString());
   const merged = [...extra, ...log];
   json.result.result = [...Buffer.from(JSON.stringify(merged))];
