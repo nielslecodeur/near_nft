@@ -276,7 +276,7 @@ function describe(s: Seat & { profile?: { name: string; role: string; tool: stri
     role: roleName(s, job),
     kind: s.kind,
     nft: `${s.nft_contract} #${s.token_id}`,
-    status: !p ? "reset (no limits)" : s.paused ? "paused" : !s.agent_key ? "no access key" : !job ? "no key in this runner" : job.keyFile ? "active (your own AI, key file)" : "active",
+    status: !p ? (s.profile?.role === "skill" ? "skill card (no budget, carries a skill link)" : "reset (no limits)") : s.paused ? "paused" : !s.agent_key ? "no access key" : !job ? "no key in this runner" : job.keyFile ? "active (your own AI, key file)" : "active",
     budget: fmt(s.balance, s.asset),
     spent_today: fmt(s.spent_today, s.asset),
     left_today: fmt(s.left_today, s.asset),

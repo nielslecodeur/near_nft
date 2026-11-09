@@ -19,6 +19,7 @@ import {
 } from "./chain";
 import { rpc } from "../client";
 export { friendlyError } from "./errors";
+export { parseGitHub, skillInstall } from "./skills";
 import { parseSeatKey, seatKey, seatLabel, type AgentsVersion } from "./seat-key";
 export { parseSeatKey, seatKey, seatLabel, type AgentsVersion };
 
@@ -283,7 +284,7 @@ export async function createSeat(
   nftContract: string,
   tokenId: string,
   kind: Kind,
-  policy: Policy,
+  policy: Policy | null,
   profile?: Profile | null,
 ) {
   const { outcomes } = await sendRaw([
@@ -301,6 +302,20 @@ export async function createSeat(
   ]);
   const id = returnedValue<string | null>(outcomes[0]);
   return id ? seatKey("v2", id) : null;
+}
+
+/** The profile role of an agent that only carries an identity and a skill (no policy, no budget). */
+export const SKILL_ROLE = "skill";
+export const isSkillSeat = (s: Seat) => s.version === "v2" && !s.policy && s.profile?.role === SKILL_ROLE;
+
+/** Where a shared agent link points: the hosted app when configured, else this page's origin. */
+export const PUBLIC_URL = (import.meta.env.VITE_PUBLIC_URL as string | undefined) || location.origin;
+export const isLocalUrl = (u: string) => /\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(u);
+export const shareLink = (seat: Seat) => `${PUBLIC_URL}/agents/${seat.seat_id}`;
+export function shareMessage(seat: Seat, name: string) {
+  return `I sent you an AI agent on an NFT: "${name}". Open ${shareLink(seat)}, connect your NEAR testnet wallet and claim it: it becomes yours, with its profile and history${
+    seat.balance !== "0" && seat.budget_follows ? " and its budget" : ""
+  }.`;
 }
 
 /** Profile fields the contract accepts: https links only, bounded lengths. Returns null without a name. */
