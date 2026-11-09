@@ -244,6 +244,10 @@ createServer(async (req, res) => {
     res.setHeader("vary", "origin");
     res.setHeader("access-control-allow-methods", "GET,POST,PUT,DELETE,OPTIONS");
     res.setHeader("access-control-allow-headers", "content-type,authorization");
+    // Chrome's Private Network Access: a hosted page (https://...) may call this local runner
+    // only if the preflight says so. The origin is already one of ORIGINS (AGENTS_RUNNER_ORIGINS).
+    if (req.headers["access-control-request-private-network"] === "true")
+      res.setHeader("access-control-allow-private-network", "true");
   }
   if (req.method === "OPTIONS") return res.writeHead(204).end();
   try {

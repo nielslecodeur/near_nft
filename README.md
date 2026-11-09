@@ -40,7 +40,7 @@ npm run dev            # http://127.0.0.1:5173
 npm run agent:runner   # second terminal: acts for the built-in roles
 ```
 
-On Windows, run both inside WSL (the repo's `node_modules` are installed from Linux). Connect a NEAR
+On Windows, run both inside WSL (the repo's `node_modules` are installed from Linux). To host it for free (Vercel, Netlify, Cloudflare Pages), see [`docs/hosting.md`](docs/hosting.md). Connect a NEAR
 **testnet** wallet (tested with Intear).
 
 | Do | You see |
