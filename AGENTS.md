@@ -10,9 +10,9 @@ Everything here is **NEAR testnet**: test tokens only, no real money.
 
 > **Reading this repo?** The hackathon project is the **Agent Wallet**: `contracts/agents`,
 > `src/keepers/*`, `scripts/agent-*`, `scripts/runner-*`. Folders such as `src/*.tsx` (Everkeep series,
-> baskets, missions), `contracts/{collection,strategy,missions,wallet,demo-token}` and most of `docs/`
-> belong to an earlier project kept in the same repo; ignore them. `contracts/keepers` is the market
-> buyer agents shop on.
+> baskets, missions), `contracts/{collection,strategy,missions,wallet,demo-token,test-receiver}` and the
+> Everkeep docs listed in [`docs/README.md`](docs/README.md) belong to Everkeep, the first iteration built
+> earlier in the same hackathon window; ignore them. `contracts/keepers` is the market buyer agents shop on.
 
 ## Connect an AI in three lines
 
