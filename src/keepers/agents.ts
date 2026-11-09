@@ -19,7 +19,25 @@ import {
 } from "./chain";
 import { rpc } from "../client";
 export { friendlyError } from "./errors";
-export { parseGitHub, skillInstall } from "./skills";
+export { parseGitHub, pinnedLink, skillInstall } from "./skills";
+import { parseGitHub as parseGitHubLink } from "./skills";
+
+/** The latest commit of a GitHub link's repo (its branch if it names one), from GitHub's public API. */
+export async function latestCommit(url: string): Promise<string | null> {
+  const g = parseGitHubLink(url);
+  if (!g) return null;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${g.owner}/${g.repo}/commits/${g.branch ?? "HEAD"}`, {
+      headers: { accept: "application/vnd.github+json" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) return null;
+    const d = (await r.json()) as { sha?: string };
+    return d.sha && /^[0-9a-f]{40}$/.test(d.sha) ? d.sha : null;
+  } catch {
+    return null;
+  }
+}
 import { parseSeatKey, seatKey, seatLabel, type AgentsVersion } from "./seat-key";
 export { parseSeatKey, seatKey, seatLabel, type AgentsVersion };
 
@@ -1040,9 +1058,18 @@ export async function setupSeat(seat: Seat, policy: Policy, amount: bigint, publ
  * switch the agent off (clear its key on the seat and delete it from this
  * account), then nft_transfer to the new owner.
  */
-export async function transferSeatNft(seat: Seat, receiver: string, budget: "withdraw" | "set-aside" | "follow") {
+export async function transferSeatNft(
+  seat: Seat,
+  receiver: string,
+  budget: "withdraw" | "set-aside" | "follow",
+  /** v2: the profile's skill link frozen on the commit of the handover, set in the same request. */
+  frozenManifest?: string | null,
+) {
   const txs: RawTx[] = [];
   const agentCalls = [
+    ...(frozenManifest && seat.version === "v2" && seat.profile
+      ? [fnCall("set_profile", { seat_id: seat.num, profile: { ...seat.profile, manifest: frozenManifest } }, 1n, 30n)]
+      : []),
     ...(budget === "withdraw" && seat.balance !== "0" ? [fnCall("withdraw", { seat_id: seat.num, amount: null }, 1n, 50n)] : []),
     // v2 only: the budget stays on the NFT for whoever claims it.
     ...(budget === "follow" && seat.version === "v2" && !seat.budget_follows
