@@ -1,0 +1,59 @@
+{
+  "at": "2026-11-09T14:57:04.846Z",
+  "contract": "agents-v2.everkeep-dev-mw0weth5.testnet",
+  "seat_id": "3",
+  "nft": "nft.examples.testnet #character-pocket-guide-v2-1794236150742",
+  "checks": [
+    "seat #3 created on nft.examples.testnet #character-pocket-guide-v2-1794236150742 with a profile on chain (owners = 1)",
+    "funded with 1 USDC; the agent key pays 0.1 USDC with no wallet signature",
+    "5 identical refused attempts are one log entry (times = 5); the payment stays visible",
+    "budget promised to the next owner; a withdraw proves NFT ownership on chain first, then pays out",
+    "after the sale the seller's withdraw is refused; 0.8 USDC is held for the buyer",
+    "the buyer claims it: profile kept, owners = 2, and he withdraws the 0.8 USDC left to him"
+  ],
+  "transactions": {
+    "mint": "FgqL97eJGNGGoZfhbSZXPCVygE5zoteMFSzEKgn9C41y",
+    "create_seat": "491hPgNiAXqDkz2EN71UwTcDxKpemfjnPhes3rjUdhyK",
+    "fund": "2CQbwhUF9qkYzq6FJmHxbUnjXC3rZshr4DPF5RJzEj74",
+    "add_agent_key": "CdpMGc2CcfGuXRp34vcfsJhNzpvJKU92ogaFSYPqtqSd",
+    "set_agent_key": "Es8pLBxU9EuU6CCuaT1BzLv7XWQKWWKxXLW4X4KNVDWU",
+    "agent_pay": "5kVxmmUEXLoEKWvBwX1cC7V47PaNs1mBq5MNPQrrsip5",
+    "refused": "2LfTtGKPCSPYfVWQPS4bEEd11ecar1EAkq2SXvF8SBnp",
+    "set_budget_follows": "GpzE5YM7TZJHtLmHBmEo2vSYpz2w7kTPBmBg6Enrayk6",
+    "withdraw_with_proof": "8YbUf4nCuQSFYVySFqpVtnxUpsncttEPeoPXzbARgFKm",
+    "nft_transfer": "921DPYS3AshvzJ1vGpoo8pky5yQUw2b5mHb6Vq4tcjNN",
+    "withdraw_after_sale": "BPAo2cHGo7ghjbRNiysSE8woFDc3dLJCz7YLHQKNwWRp",
+    "claim_seat": "7ALHGMM8xKSEByD7MTMS5pRsJb7oX23W3TfKga8UKaHB",
+    "buyer_withdraw": "7QjxE7xtWZuGbsLA6gdHxKbDSXwrZ62K7zi2U8AgTR2F"
+  },
+  "final_seat": {
+    "seat_id": "3",
+    "nft_contract": "nft.examples.testnet",
+    "token_id": "character-pocket-guide-v2-1794236150742",
+    "kind": "Payer",
+    "asset": "USDC",
+    "owner": "everkeep-dev-mw0weth5.testnet",
+    "agent_key": null,
+    "paused": true,
+    "policy": null,
+    "balance": "0",
+    "in_flight": 0,
+    "spent_today": "0",
+    "left_today": "0",
+    "spent_total": "100000",
+    "done": 1,
+    "refused": 5,
+    "failed": 0,
+    "created_at": "1794236156726077581",
+    "profile": {
+      "name": "Pocket money",
+      "role": "allowance",
+      "tool": "runner",
+      "avatar": "https://raw.githubusercontent.com/nielslecodeur/near_nft/keepers/public/nft-art/angel.webp",
+      "manifest": null
+    },
+    "owners": 2,
+    "budget_follows": false,
+    "held_for_next_owner": false
+  }
+}

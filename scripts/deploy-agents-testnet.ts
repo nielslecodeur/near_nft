@@ -4,6 +4,9 @@
  * seats can receive it. Keyless: the account is created, funded, deployed and
  * initialised in one transaction with no access key, so the code can never
  * change. A new version goes to a new account (AGENTS_VERSION=v2…).
+ *   AGENTS_VERSION=v2 npx tsx scripts/deploy-agents-testnet.ts [--execute]
+ * deploys artifacts/agents_v2.wasm; v1 stays in public/testnet.json "agents",
+ * later versions are recorded beside it ("agents_v2", ...).
  * Default is a read-only dry run; pass --execute to deploy.
  */
 import { Account, JsonRpcProvider, KeyPairSigner, actions } from "near-api-js";
@@ -12,13 +15,14 @@ import { createHash } from "node:crypto";
 import { testnetCredential } from "./testnet-credentials.js";
 
 const N = 10n ** 24n;
-// Code storage (~282 KB ≈ 2.82 NEAR) plus a buffer for state; each seat brings its own 0.1 NEAR.
-const FUNDING = 33n * 10n ** 23n; // 3.3 NEAR
+// Code storage (v1 ~282 KB ≈ 2.82 NEAR, v2 ~302 KB ≈ 3.02 NEAR) plus a buffer for
+// state; each seat brings its own 0.1 NEAR.
 const TOKEN_STORAGE = 125n * 10n ** 19n; // NEP-145 registration on USDC
 /** Circle USDC testnet: the only asset Payer seats use, fixed at init. */
 const USDC = "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af";
 const execute = process.argv.includes("--execute"),
   version = process.env.AGENTS_VERSION || "v1",
+  wasmPath = version === "v1" ? "artifacts/agents.wasm" : `artifacts/agents_${version}.wasm`,
   endpoint = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 const { credential } = await testnetCredential(),
   parent = credential.account_id,
@@ -74,8 +78,9 @@ const failed = (r: { receipts_outcome: { outcome: { status: unknown } }[] }) =>
 const status = await rpc("status", {});
 if (status.chain_id !== "testnet") throw Error("TESTNET_ONLY");
 const usdcMeta = await viewOn(USDC, "ft_metadata");
-const code = await readFile("artifacts/agents.wasm"),
+const code = await readFile(wasmPath),
   codeHash = bs58(code);
+const FUNDING = version === "v1" ? 33n * 10n ** 23n : 35n * 10n ** 23n; // 3.3 / 3.5 NEAR
 const parentBalance = BigInt(
   (
     await rpc("query", {
@@ -103,6 +108,7 @@ console.log(
     {
       network: "testnet",
       contract: id,
+      wasm: wasmPath,
       deployer: parent,
       usdc: USDC,
       usdc_symbol: usdcMeta.symbol,
@@ -192,7 +198,9 @@ const record = {
   config,
 };
 const pub = JSON.parse(await readFile("public/testnet.json", "utf8"));
-pub.agents = { contract: id, code_hash: codeHash, network: "testnet", usdc: USDC };
+const entry = { contract: id, code_hash: codeHash, network: "testnet", usdc: USDC };
+if (version === "v1") pub.agents = entry;
+else pub[`agents_${version}`] = entry;
 await writeFile("public/testnet.json", JSON.stringify(pub, null, 2) + "\n");
 await mkdir("docs/results", { recursive: true });
 await writeFile(

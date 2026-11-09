@@ -48,5 +48,11 @@
     "code_hash": "9U2S5GhWuR68DSQQ7kPdYXxWe4emkL8cVzfUP4Yr76rY",
     "network": "testnet",
     "usdc": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af"
+  },
+  "agents_v2": {
+    "contract": "agents-v2.everkeep-dev-mw0weth5.testnet",
+    "code_hash": "2UrxHirDiERyi6wHCvVfTAoHPbByMkuLu4TtYb2vqDsL",
+    "network": "testnet",
+    "usdc": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af"
   }
 }
