@@ -203,3 +203,27 @@ record `docs/results/agents-v2-testnet-deployment.json`). v1 keeps running uncha
   withdraws it): `docs/results/agents-v2-testnet-proof.json`.
 - Found while proving it: a function-call key's allowance must cover the gas a call *reserves*
   (about 0.1 NEAR for 100 TGas), so agent keys keep a 1 NEAR allowance.
+
+## Agent market (2026-11-09)
+
+`agent-market-v1.everkeep-dev-mw0weth5.testnet` (`contracts/agent-market`, keyless, no fee) sells a v2 agent with
+the NFT that carries it. The seller lists through NEP-178 (`nft_approve` with the price, the seat and the budget
+promised to the buyer). A purchase is three checks around one transfer:
+
+| Step | What the market checks | If it fails |
+|---|---|---|
+| 1. Before the transfer | The NFT carries the listed seat, held by the seller; with a promised budget, the agent is paused, `budget_follows` is on and the balance covers the promise | Buyer refunded, nothing moves |
+| 2. Transfer | `nft_transfer` with the seller's approval | Buyer refunded |
+| 3. After the transfer | The same seat still holds the promised budget with `budget_follows` on (or the buyer already claimed it) | Buyer refunded **and keeps the NFT** |
+
+Why step 3 holds: once the NFT has left the seller, v2 refuses their `withdraw` and their `set_budget_follows(false)`
+(both prove NFT ownership first), so a promised budget can only disappear before the transfer, and then the seller
+loses the sale and the NFT. The pause in step 1 keeps an honest seller's running agent from spending the promise in
+between. The buyer repeats the price and budget they saw, so a re-listing cannot change the deal under them; the
+listing leaves the market when a purchase starts, so two buyers cannot race. Callbacks are `#[private]`.
+
+Not covered: royalties (`nft_transfer`, not `nft_transfer_payout`); a fake NFT collection can carry a real-looking
+agent (the app shows the collection); the market pays for listing storage, bounded at 200 listings, 10 per seller.
+Proof on testnet (`docs/results/agent-market-testnet-proof.json`, 6 checks): agent v2-8 with 0.3 USDC sold for
+0.2 NEAR, a purchase under other terms and a direct call to the payout callback refused, the buyer claimed the agent
+with its budget and record, and a listing whose budget was not promised on chain was refunded with nothing moved.

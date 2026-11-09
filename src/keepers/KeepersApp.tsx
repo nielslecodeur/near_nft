@@ -12,7 +12,7 @@ import { QuickStartPage } from "./QuickStart";
 import { seatLabel } from "./seat-key";
 import { shortAccount } from "./KeeperCard";
 import { EXPLORER, KEEPERS_CONTRACT, type Version } from "./chain";
-import { AGENTS, AGENTS_V2 } from "./agents";
+import { AGENTS, AGENTS_V2, AGENT_MARKET } from "./agents";
 import "./keepers.css";
 import "./theme.css";
 
@@ -279,6 +279,10 @@ export function KeepersApp() {
           {", "}
           <a href={`${EXPLORER}/address/${AGENTS}`} target="_blank" rel="noreferrer">
             {AGENTS}
+          </a>
+          {", "}
+          <a href={`${EXPLORER}/address/${AGENT_MARKET}`} target="_blank" rel="noreferrer">
+            {AGENT_MARKET}
           </a>
           {" and "}
           <a

@@ -1158,3 +1158,99 @@ export async function accountExists(account: string) {
     return false;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Agent market: sell an agent with the NFT that carries it (and, if promised,
+// its budget). The market pays the seller only once the NFT has moved and the
+// promised budget is still in the agent; otherwise it refunds the buyer.
+// ---------------------------------------------------------------------------
+
+export const AGENT_MARKET = import.meta.env.VITE_AGENT_MARKET_ID || "agent-market-v1.everkeep-dev-mw0weth5.testnet";
+export type AgentListing = {
+  nft_contract: string;
+  token_id: string;
+  seller: string;
+  approval_id: string;
+  /** yoctoNEAR */
+  price: string;
+  /** The v2 seat id (plain, not a key). */
+  seat_id: string;
+  /** Promised to the buyer, in the seat's asset (base units). */
+  budget: string;
+  listed_at: string;
+};
+export type AgentSale = Omit<AgentListing, "approval_id" | "listed_at"> & { buyer: string; at: string };
+
+export const agentListings = () => viewOn<AgentListing[]>(AGENT_MARKET, "listings", { limit: 100 }).catch(() => [] as AgentListing[]);
+export const agentListing = (nftContract: string, tokenId: string) =>
+  viewOn<AgentListing | null>(AGENT_MARKET, "listing", { nft_contract: nftContract, token_id: tokenId }).catch(() => null);
+export const agentSales = () => viewOn<AgentSale[]>(AGENT_MARKET, "sales", {}).catch(() => [] as AgentSale[]);
+/** The agent a listing sells (v2). */
+export const listedSeat = (l: AgentListing) => getSeat(seatKey("v2", l.seat_id));
+
+/**
+ * Lists a v2 agent in ONE wallet request. With a budget, the agent is paused and
+ * its budget set to follow the NFT first (the market checks both), then the NFT
+ * approves the market with the price and the promised budget.
+ */
+export async function listAgent(seat: Seat, price: bigint, withBudget: boolean) {
+  if (seat.version !== "v2") throw new Error("Only v2 agents can be sold with their record.");
+  const budget = withBudget ? BigInt(seat.balance) : 0n;
+  const txs: RawTx[] = [];
+  const agentCalls = [
+    ...(budget > 0n && !seat.budget_follows ? [fnCall("set_budget_follows", { seat_id: seat.num, follows: true }, 1n, 30n)] : []),
+    ...(budget > 0n && !seat.paused ? [fnCall("pause", { seat_id: seat.num }, 0n, 15n)] : []),
+  ];
+  if (agentCalls.length) txs.push({ receiverId: seat.contract, actions: agentCalls });
+  txs.push({
+    receiverId: seat.nft_contract,
+    actions: [
+      fnCall(
+        "nft_approve",
+        {
+          token_id: seat.token_id,
+          account_id: AGENT_MARKET,
+          msg: JSON.stringify({ price: price.toString(), seat_id: seat.num, budget: budget.toString() }),
+        },
+        10n ** 22n, // 0.01 NEAR for the approval's storage; the rest is refunded
+        100n,
+      ),
+    ],
+  });
+  return sendRaw(txs);
+}
+
+/** Takes the agent off the market and revokes the market's approval on the NFT. */
+export function delistAgent(l: AgentListing) {
+  return sendRaw([
+    { receiverId: AGENT_MARKET, actions: [fnCall("delist", { nft_contract: l.nft_contract, token_id: l.token_id }, 1n, 20n)] },
+    { receiverId: l.nft_contract, actions: [fnCall("nft_revoke", { token_id: l.token_id, account_id: AGENT_MARKET }, 1n, 30n)] },
+  ]);
+}
+
+/**
+ * Buys a listed agent at the price and budget the buyer saw. Then claim it on its page.
+ * Says whether the NFT arrived; if not, the market refunded the price (with its reason when the chain gives it).
+ */
+export async function buyAgent(l: AgentListing, buyer: string): Promise<{ bought: boolean; reason?: string; tx?: string }> {
+  let tx: string | undefined;
+  let reason: string | undefined;
+  try {
+    const r = await sendRaw([
+      {
+        receiverId: AGENT_MARKET,
+        actions: [fnCall("buy", { nft_contract: l.nft_contract, token_id: l.token_id, price: l.price, budget: l.budget }, BigInt(l.price), 150n)],
+      },
+    ]);
+    const o = r.outcomes[0] as unknown as { transaction: { hash: string }; receipts_outcome?: { outcome: { logs?: string[] } }[] };
+    tx = o.transaction.hash;
+    for (const log of o.receipts_outcome?.flatMap((x) => x.outcome.logs ?? []) ?? [])
+      if (log.includes('"event":"sale_refunded"')) reason = /"reason":"([^"]+)"/.exec(log)?.[1];
+  } catch (e) {
+    // A failed NFT transfer fails a receipt, but the market still refunds: the NFT's owner tells what happened.
+    if (!/failed on chain/.test(String(e))) throw e;
+    reason = "the NFT could not be transferred";
+  }
+  const owner = await nftOwner(l.nft_contract, l.token_id).catch(() => null);
+  return owner === buyer && !reason ? { bought: true, tx } : { bought: owner === buyer, reason: reason ?? "the sale did not go through", tx };
+}

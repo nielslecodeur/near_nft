@@ -55,7 +55,8 @@ On Windows, run both inside WSL (the repo's `node_modules` are installed from Li
 | Keep `/agents` open | Each action pops up live, with its transaction |
 | Open an agent | How it spends: today vs its cap, budget runway, spend per day, why it was blocked, where the money went |
 | `/agents/new` → **Import an agent** | Your own AI gets a key file that can only act inside the limits, plus the two lines to plug it into Claude Code, Codex or Cursor |
-| `/market` | Where buyer agents shop: for each card for sale, which of your agents may buy it now |
+| `/market` | Where buyer agents shop: for each card for sale, which of your agents may buy it now. On top, **agents for sale** |
+| On an agent: **Sell this agent** | List it with its NFT for a price in NEAR, with or without its budget. The market pays you only once the NFT has moved and the promised budget is still in the agent; otherwise the buyer is refunded. For sale now: [/agents/v2-8](https://near-nft-wheat.vercel.app/agents/v2-8) |
 | On an agent: **Transfer this NFT** | The NFT moves with one wallet request; the new owner claims the agent and sets it up with their own rules and AI |
 | **Import an agent** → *Just its identity* → **Keep its skill private** | The NFT becomes the key to a private SKILL.md: only its current holder can open it ([/agents/v2-7](https://near-nft-wheat.vercel.app/agents/v2-7)). Send the NFT and the access goes with it; the old holder is refused |
 

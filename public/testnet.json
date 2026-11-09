@@ -54,5 +54,16 @@
     "code_hash": "2UrxHirDiERyi6wHCvVfTAoHPbByMkuLu4TtYb2vqDsL",
     "network": "testnet",
     "usdc": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af"
+  },
+  "agent_market": {
+    "contract": "agent-market-v1.everkeep-dev-mw0weth5.testnet",
+    "code_hash": "6onMtiDey3jz8DfPRJZvqEBi2KYmmEnHizQ2asyxFiJo",
+    "network": "testnet",
+    "agents": "agents-v2.everkeep-dev-mw0weth5.testnet",
+    "keyless": true,
+    "deployed_at": "2026-11-09T21:19:17.067Z",
+    "transactions": [
+      "79EirvXJ6GQBgi3555uanimDV9sDazstMT51yvtxQvwq"
+    ]
   }
 }
