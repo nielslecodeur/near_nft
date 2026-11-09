@@ -349,6 +349,8 @@ export const isSkillSeat = (s: Seat) => s.version === "v2" && !s.policy && s.pro
 
 /** Where a shared agent link points: the hosted app when configured, else this page's origin. */
 export const PUBLIC_URL = (import.meta.env.VITE_PUBLIC_URL as string | undefined) || location.origin;
+/** The public app, named on NFTs and transfers made from a local copy. */
+export const HOSTED_APP = "https://near-nft-wheat.vercel.app";
 export const isLocalUrl = (u: string) => /\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(u);
 export const shareLink = (seat: Seat) => `${PUBLIC_URL}/agents/${seat.seat_id}`;
 export function shareMessage(seat: Seat, name: string) {
@@ -840,7 +842,8 @@ export async function mintExampleNft(account: string, slug?: string) {
             receiver_id: account,
             metadata: {
               title: character.name,
-              description: `${character.collection}: ${character.description}`,
+              // Shown by wallets: tells whoever receives the NFT where its agent lives.
+              description: `${character.collection}: ${character.description} Can carry an AI agent: ${HOSTED_APP.replace("https://", "")}/agents`,
               media: characterMedia(character),
               copies: 1,
             },
@@ -1135,6 +1138,10 @@ export async function setupSeat(seat: Seat, policy: Policy, amount: bigint, publ
   return sendRaw(txs);
 }
 
+/** Written in the NFT's transfer event: what this NFT carries and where to claim it. */
+export const transferMemo = (seat: Seat) =>
+  `AI agent${seat.profile?.name ? ` "${seat.profile.name}"` : ""} on this NFT: claim it at ${isLocalUrl(PUBLIC_URL) ? HOSTED_APP : PUBLIC_URL}/agents/${seat.seat_id}`;
+
 /**
  * Hand the NFT over in ONE wallet request: optionally take the budget back,
  * switch the agent off (clear its key on the seat and delete it from this
@@ -1163,7 +1170,7 @@ export async function transferSeatNft(
   if (seat.agent_key) txs.push({ receiverId: "self", actions: [{ type: "DeleteKey", params: { publicKey: seat.agent_key } }] });
   txs.push({
     receiverId: seat.nft_contract,
-    actions: [fnCall("nft_transfer", { receiver_id: receiver, token_id: seat.token_id, memo: "agent wallet transfer" }, 1n, 50n)],
+    actions: [fnCall("nft_transfer", { receiver_id: receiver, token_id: seat.token_id, memo: transferMemo(seat) }, 1n, 50n)],
   });
   return sendRaw(txs);
 }
@@ -1372,4 +1379,66 @@ async function findPreviousLimits(seat: Seat, log: LogEntry[], claims: LogEntry[
     }
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Inbox: agents on NFTs this account holds but has not claimed yet (sent to it,
+// or bought). Found from chain alone, so the sender has no link to send: the
+// agent is waiting when the receiver opens the Agent Wallet.
+// ---------------------------------------------------------------------------
+
+export type ReceivedAgent = { seat: Seat; nft: OwnedNft };
+/** nft -> what the last check found; an NFT seen for the first time is always checked at once. */
+const inboxChecked = new Map<string, { at: number; seat: Seat | null }>();
+
+/** Every NFT contract the account holds tokens of (FastNEAR index), so any collection is covered. */
+async function nftContractsOf(account: string): Promise<string[]> {
+  try {
+    const r = await fetch(`https://test.api.fastnear.com/v1/account/${encodeURIComponent(account)}/nft`, { signal: AbortSignal.timeout(10_000) });
+    if (!r.ok) return [];
+    const d = (await r.json()) as { tokens?: { contract_id: string }[] };
+    return (d.tokens ?? []).map((t) => t.contract_id);
+  } catch {
+    return [];
+  }
+}
+
+export async function receivedAgents(account: string): Promise<ReceivedAgent[]> {
+  const collections = new Map(COLLECTIONS.map((c) => [c.id, c.label]));
+  for (const id of await nftContractsOf(account)) if (!collections.has(id)) collections.set(id, id.split(".")[0]);
+  const nfts = (await Promise.all([...collections].map(([id, label]) => nftsIn(id, label, account)))).flat().slice(0, 80);
+  const out: ReceivedAgent[] = [];
+  const now = Date.now();
+  // A few at a time: public RPC nodes are rate-limited.
+  for (let i = 0; i < nfts.length; i += 4)
+    await Promise.all(
+      nfts.slice(i, i + 4).map(async (nft) => {
+        const key = `${nft.contract}:${nft.token_id}`;
+        const known = inboxChecked.get(key);
+        let seat = known?.seat ?? null;
+        if (!known || now - known.at > (known.seat ? 15_000 : 90_000)) {
+          seat = await seatForNft(nft.contract, nft.token_id);
+          inboxChecked.set(key, { at: now, seat });
+        }
+        if (seat && seat.owner !== account) out.push({ seat, nft });
+      }),
+    );
+  return out.sort((a, b) => (a.seat.seat_id < b.seat.seat_id ? -1 : 1));
+}
+
+/** Claims several agents in ONE wallet request (one transaction each: a claim proves NFT ownership on chain). */
+export function claimSeats(seats: Seat[]) {
+  for (const s of seats) inboxChecked.delete(`${s.nft_contract}:${s.token_id}`);
+  return sendRaw(seats.map((s) => ({ receiverId: s.contract, actions: [fnCall("claim_seat", { seat_id: s.num }, 1n, 80n)] })));
+}
+
+/** What the receiver gets, in a few words. */
+export function receivedSummary(seat: Seat) {
+  const parts: string[] = [];
+  if (budgetGoesWithNft(seat)) parts.push(`${formatAsset(seat.balance, seat.asset)} of budget`);
+  const link = seat.profile?.manifest;
+  if (parseGatedUrl(link)) parts.push("a private skill only you can open");
+  else if (link) parts.push("its skill");
+  parts.push(`its record (${seat.done} done, ${seat.refused} blocked)`);
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts[0];
 }

@@ -31,6 +31,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { MemoryStore, Runner } from "./agent-runner-core.js";
 import { parseSeatKey, seatKey, seatLabel, type AgentsVersion } from "../src/keepers/seat-key.js";
+import { skillInstall } from "../src/keepers/skills.js";
 // Bundled in, so the one-file build (public/mcp/agent-wallet.mjs) runs anywhere, without the repo.
 import pub from "../public/testnet.json";
 import publicDemoKey from "../demo/agent-key.json";
@@ -64,7 +65,7 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
   node agent-wallet.mjs                     drive the agents of a local runner (npm run agent:runner)
 
 Register it, e.g. in Claude Code:  claude mcp add agent-wallet -- node /path/agent-wallet.mjs --key /path/agent-12-key.json
-Tools: list_agents, agent_status, list_market, pay, buy, pause. The contract enforces every limit.
+Tools: list_agents, agent_status, received_agents, list_market, pay, buy, pause. The contract enforces every limit.
 Env: AGENTS_KEY_FILE, AGENTS_DEMO=1, AGENTS_ACCOUNT, AGENTS_RUNNER, AGENTS_RUNNER_TOKEN, NEAR_TESTNET_RPC.
 Docs: https://github.com/nielslecodeur/near_nft/blob/keepers/AGENTS.md`);
   process.exit(0);
@@ -288,7 +289,48 @@ function describe(s: Seat & { profile?: { name: string; role: string; tool: stri
         }
       : null,
     counts: { done: s.done, blocked: s.refused, failed: s.failed },
+    ...(s.profile?.manifest ? { skill: skillOf(s.profile.manifest, s.seat_id) } : {}),
   };
+}
+
+const APP = "https://near-nft-wheat.vercel.app";
+/** Collections always looked at; the FastNEAR index adds every other one the account holds. */
+const NFT_COLLECTIONS = [pub.keepers.contract, "nft.examples.testnet", "paras-token-v2.testnet"];
+
+/** How to get the agent's skill: a shell command for a public GitHub skill, the page for a private one. */
+function skillOf(manifest: string | null | undefined, seatId: string) {
+  if (!manifest) return null;
+  if (/\/gated\/[^/]+\/[^/]+$/.test(manifest))
+    return { private: true, how: `Only the NFT's holder can open it: ${APP}/agents/${seatId} with the wallet that holds the NFT (one signed message).` };
+  const i = skillInstall(manifest);
+  return i
+    ? { source: manifest, ...(i.commit ? { frozen_at_commit: i.commit } : {}), install_claude_code: i.claudeCode }
+    : { source: manifest, how: "Open the link and follow its instructions." };
+}
+
+/** Agents on NFTs `who` holds but has not claimed. */
+async function received(who: string) {
+  const contracts = new Set(NFT_COLLECTIONS);
+  try {
+    const r = await fetch(`https://test.api.fastnear.com/v1/account/${encodeURIComponent(who)}/nft`, { signal: AbortSignal.timeout(10_000) });
+    if (r.ok) for (const t of ((await r.json()) as { tokens?: { contract_id: string }[] }).tokens ?? []) contracts.add(t.contract_id);
+  } catch {
+    // The known collections are still checked.
+  }
+  type Found = Seat & { profile?: { name: string; manifest: string | null } | null; budget_follows?: boolean; held_for_next_owner?: boolean };
+  const out: Found[] = [];
+  for (const nft of contracts) {
+    const tokens = await view<{ token_id: string }[]>(nft, "nft_tokens_for_owner", { account_id: who, from_index: "0", limit: 50 }).catch(() => []);
+    for (const t of tokens)
+      for (const [v, c] of [["v2", AGENTS_V2], ["v1", AGENTS]] as [AgentsVersion, string | undefined][]) {
+        if (!c) continue;
+        const seat = await view<Found | null>(c, "seat_for_nft", { nft_contract: nft, token_id: t.token_id }).catch(() => null);
+        if (!seat) continue;
+        if (seat.owner !== who) out.push({ ...seat, seat_id: seatKey(v, seat.seat_id) });
+        break;
+      }
+  }
+  return out;
 }
 
 const text = (value: unknown) => ({ content: [{ type: "text" as const, text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }] });
@@ -370,6 +412,38 @@ server.registerTool(
           ...(((e as { times?: number }).times ?? 1) > 1 ? { times: (e as { times?: number }).times } : {}),
           at: new Date(Number(BigInt(e.at) / 1_000_000n)).toISOString(),
         })),
+      });
+    } catch (e) {
+      return fail(e);
+    }
+  },
+);
+
+server.registerTool(
+  "received_agents",
+  {
+    title: "Agents that arrived in a wallet",
+    description:
+      "Agents sitting on NFTs the account holds but has not claimed yet (someone sent the NFT, or it was bought). For each: who it comes from, what comes with it, the page where the user claims it (one wallet signature), and, when its skill is public on GitHub, the shell command that installs it into Claude Code. You can run that command yourself to install the skill; never ask for a seed phrase or full-access key.",
+    inputSchema: { account: z.string().optional().describe("NEAR testnet account that received the NFT; defaults to this server's account") },
+  },
+  async ({ account: given }) => {
+    try {
+      const who = await account(given);
+      const found = await received(who);
+      return text({
+        account: who,
+        received: found.map((s) => ({
+          seat_id: s.seat_id,
+          name: s.profile?.name ?? `Agent ${seatLabel(s.seat_id)}`,
+          from: s.owner,
+          nft: `${s.nft_contract} #${s.token_id}`,
+          budget_for_you: s.balance !== "0" && (s.budget_follows || s.held_for_next_owner) ? fmt(s.balance, s.asset) : null,
+          record: { done: s.done, blocked: s.refused },
+          skill: skillOf(s.profile?.manifest, s.seat_id),
+          claim: `${APP}/agents/${s.seat_id} (connect the wallet, one signature)`,
+        })),
+        ...(found.length ? {} : { note: "Nothing waiting: every agent on this account's NFTs is already claimed." }),
       });
     } catch (e) {
       return fail(e);
