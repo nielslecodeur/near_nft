@@ -2635,6 +2635,133 @@ function TakeOverPanel({
   );
 }
 
+/**
+ * What changes hands with the NFT, in one card: who the agent is, its skill, its record,
+ * its budget and limits, and its price on the agent market. Everything here is read from chain.
+ */
+function AgentPassport({ seat, name, listing }: { seat: Seat; name: string; listing: ag.AgentListing | null }) {
+  const [lastSale, setLastSale] = useState<ag.AgentSale | null>(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (seat.version !== "v2") return;
+    let alive = true;
+    void ag.agentSales().then((sales) => {
+      if (alive) setLastSale(sales.find((s) => s.nft_contract === seat.nft_contract && s.token_id === seat.token_id) ?? null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [seat.version, seat.nft_contract, seat.token_id]);
+  const link = seat.profile?.manifest ?? null;
+  const gh = ag.skillInstall(link ?? "");
+  const skill = ag.parseGatedUrl(link)
+    ? "Private: only the NFT's holder can open it"
+    : gh
+      ? `github.com/${gh.owner}/${gh.repo}${gh.commit ? ` @ ${gh.commit.slice(0, 7)} (frozen)` : ""}`
+      : link
+        ? link.replace(/^https:\/\//, "")
+        : "None linked";
+  const owners = seat.owners ?? 1;
+  const days = ag.ageDays(seat);
+  const since = new Date(Number(BigInt(seat.created_at) / 1_000_000n)).toLocaleDateString();
+  const summary = `${name} (${ag.shareLink(seat)}): ${ag.agentRecord(seat)}${
+    ag.budgetGoesWithNft(seat) ? `; its ${ag.formatAsset(seat.balance, seat.asset)} budget comes with it` : ""
+  }${listing ? `; for sale at ${nearText(listing.price)}` : ""}.`;
+  return (
+    <section className="kp-vault-section ag-passport" aria-labelledby="ag-passport-title">
+      <h2 id="ag-passport-title">What comes with this NFT</h2>
+      <p className="ag-muted">
+        Whoever holds the NFT gets all of this. The record, budget and price are read from the contracts: nobody can edit them.
+      </p>
+      <dl className="ag-passport-grid">
+        <div>
+          <dt>Identity</dt>
+          <dd>
+            <strong>{name}</strong>
+            {seat.profile?.role && <span className="ag-muted"> · {seat.profile.role}</span>}
+            {seat.profile?.tool && <span className="ag-muted"> · runs in {seat.profile.tool}</span>}
+          </dd>
+        </div>
+        <div>
+          <dt>Skill</dt>
+          <dd>{skill}</dd>
+        </div>
+        <div>
+          <dt>Track record</dt>
+          <dd>
+            <strong>{seat.done}</strong> done · <strong>{seat.refused}</strong> blocked by the contract
+            {seat.failed ? ` · ${seat.failed} failed` : ""}
+            <br />
+            <span className="ag-muted">{ag.formatAsset(seat.spent_total, seat.asset)} spent in total</span>
+          </dd>
+        </div>
+        <div>
+          <dt>History</dt>
+          <dd>
+            Since {since} <span className="ag-muted">({days < 1 ? "today" : `${days} day${days > 1 ? "s" : ""}`})</span>
+            <br />
+            {seat.version === "v2" ? (
+              <span className="ag-muted">
+                {owners} owner{owners > 1 ? "s" : ""} so far
+              </span>
+            ) : (
+              <span className="ag-muted">v1 agent: no owner count</span>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Budget</dt>
+          <dd>
+            <strong>{ag.formatAsset(seat.balance, seat.asset)}</strong>
+            <br />
+            <span className="ag-muted">
+              {seat.balance === "0"
+                ? "Nothing in it"
+                : ag.budgetGoesWithNft(seat)
+                  ? "Goes to the next owner (promised on chain)"
+                  : "Stays with its owner on a sale"}
+            </span>
+          </dd>
+        </div>
+        <div>
+          <dt>Limits</dt>
+          <dd>
+            {seat.policy ? (
+              <>
+                {ag.formatAsset(seat.policy.per_tx_max, seat.asset)} per action · {ag.formatAsset(seat.policy.per_day_max, seat.asset)} a day
+                <br />
+                <span className="ag-muted">The next owner sets their own</span>
+              </>
+            ) : (
+              <span className="ag-muted">{ag.isSkillSeat(seat) ? "None: it spends nothing" : "None set: the next owner sets them"}</span>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Market</dt>
+          <dd>
+            {listing ? <strong>For sale: {nearText(listing.price)}</strong> : <span className="ag-muted">Not for sale</span>}
+            {lastSale && (
+              <>
+                <br />
+                <span className="ag-muted">
+                  Last sold {nearText(lastSale.price)} on {new Date(Number(BigInt(lastSale.at) / 1_000_000n)).toLocaleDateString()}
+                </span>
+              </>
+            )}
+          </dd>
+        </div>
+      </dl>
+      <div className="ag-buttons">
+        <Button variant="secondary" onClick={() => void navigator.clipboard.writeText(summary).then(() => setCopied(true))}>
+          {copied ? "Copied" : "Copy its card"}
+        </Button>
+        <span className="ag-muted">One line to paste in a chat or a listing, with its link.</span>
+      </div>
+    </section>
+  );
+}
+
 /** The agent market's live listing for this agent (null when not for sale, or stale). */
 function useListing(seat: Seat | null | undefined, holder: string | null) {
   const [listing, setListing] = useState<ag.AgentListing | null>(null);
@@ -3141,6 +3268,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
           </Button>
         </Notice>
       )}
+      <AgentPassport seat={seat} name={nameFor(seat, job)} listing={listing} />
       {listing && account !== listing.seller && (
         <ForSalePanel seat={seat} listing={listing} account={account} connect={() => void wallet.connect()} onBought={() => (void load(), reloadListing())} />
       )}

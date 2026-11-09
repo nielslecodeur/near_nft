@@ -1523,3 +1523,28 @@
 .ag-for-sale h2 {
   margin-bottom: var(--space-2);
 }
+
+/* What comes with this NFT: the agent's value, read from chain */
+.ag-passport-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(10rem, 100%), 1fr));
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+}
+.ag-passport-grid > div {
+  padding: var(--space-3);
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-chip);
+  background: var(--nx-glass);
+}
+.ag-passport-grid dt {
+  color: var(--nx-muted);
+  font-size: var(--type-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ag-passport-grid dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-sm);
+  overflow-wrap: anywhere;
+}

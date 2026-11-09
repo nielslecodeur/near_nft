@@ -53,6 +53,7 @@ On Windows, run both inside WSL (the repo's `node_modules` are installed from Li
 | Open `/agents?as=nifelst.testnet` (no wallet) | A real Agent Wallet, read live from chain: agents on NFTs, budgets, what they did and what was blocked |
 | Open `/agents/start` and follow the 5 steps | Your first agent pays you back 0.1 USDC a minute, by itself; the 6th payment of the day is blocked by its 0.5 USDC daily cap. Free test NEAR and USDC (Circle faucet) are linked in the steps |
 | Keep `/agents` open | Each action pops up live, with its transaction |
+| Open an agent | **What comes with this NFT**: its identity, skill, record (done, blocked, spent, days on duty, owners), budget and whether it goes to the next owner, limits and price, read from chain, with a one-line card to copy |
 | Open an agent | How it spends: today vs its cap, budget runway, spend per day, why it was blocked, where the money went |
 | `/agents/new` → **Import an agent** | Your own AI gets a key file that can only act inside the limits, plus the two lines to plug it into Claude Code, Codex or Cursor |
 | `/market` | Where buyer agents shop: for each card for sale, which of your agents may buy it now. On top, **agents for sale** |
