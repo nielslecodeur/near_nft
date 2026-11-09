@@ -112,6 +112,16 @@ export const refundOf = (account: string) =>
 export const usdcBalance = async (account: string) =>
   BigInt(await viewOn<string>(USDC, "ft_balance_of", { account_id: account }));
 
+/** Liquid NEAR on an account (yocto), 0 when it does not exist. */
+export async function nearBalance(account: string): Promise<bigint> {
+  try {
+    const r = await rpc("query", { request_type: "view_account", account_id: account, finality: "final" });
+    return BigInt((r as { amount: string }).amount);
+  } catch {
+    return 0n;
+  }
+}
+
 /** Who owns an NFT right now, read from its own contract. */
 export async function nftOwner(contract: string, tokenId: string) {
   const t = await viewOn<{ owner_id: string } | null>(contract, "nft_token", {

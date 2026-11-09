@@ -7,6 +7,7 @@ import { KeeperPage } from "./KeeperPage";
 import { VaultPage } from "./VaultPage";
 import { ProbePage } from "./ProbePage";
 import { AgentPage, AgentsPage, NewAgentPage } from "./AgentsPage";
+import { QuickStartPage } from "./QuickStart";
 import { shortAccount } from "./KeeperCard";
 import { EXPLORER, KEEPERS_CONTRACT, type Version } from "./chain";
 import { AGENTS } from "./agents";
@@ -20,6 +21,7 @@ export type Route =
   | { page: "probe" }
   | { page: "agents" }
   | { page: "agent-new" }
+  | { page: "agent-start" }
   | { page: "agent"; id: string };
 
 /** /keepers and /keepers/:id are v2; /keepers/v1[/:id] keep v1 cards reachable. */
@@ -32,6 +34,7 @@ export function parseRoute(url: string): Route {
   if (/^\/keepers\/probe\/?$/.test(path)) return { page: "probe" };
   if (/^\/agents\/?$/.test(path)) return { page: "agents" };
   if (/^\/agents\/new\/?$/.test(path)) return { page: "agent-new" };
+  if (/^\/agents\/start\/?$/.test(path)) return { page: "agent-start" };
   const agent = path.match(/^\/agents\/(\d+)\/?$/);
   if (agent) return { page: "agent", id: agent[1] };
   if (/^\/keepers\/v1\/?$/.test(path))
@@ -120,6 +123,8 @@ export function KeepersApp() {
             ? `Agent #${route.id} · Agent Wallet`
             : route.page === "agent-new"
               ? "Hire an agent · Agent Wallet"
+              : route.page === "agent-start"
+                ? "Your first agent · Agent Wallet"
               : route.page === "collection"
                 ? "Keepers collection · Agent Wallet"
                 : "Agent Wallet";
@@ -166,7 +171,7 @@ export function KeepersApp() {
         <nav className="kp-nav" aria-label="Agent Wallet">
           {(
             [
-              ["/agents", "Agents", route.page === "agents" || route.page === "agent" || route.page === "agent-new"],
+              ["/agents", "Agents", route.page === "agents" || route.page === "agent" || route.page === "agent-new" || route.page === "agent-start"],
               ["/keepers", "Keepers", route.page === "collection" || route.page === "keeper"],
               ["/vault", "Vault", route.page === "vault"],
             ] as const
@@ -240,6 +245,8 @@ export function KeepersApp() {
           <AgentsPage wallet={api} navigate={navigate} />
         ) : route.page === "agent-new" ? (
           <NewAgentPage wallet={api} navigate={navigate} />
+        ) : route.page === "agent-start" ? (
+          <QuickStartPage wallet={api} navigate={navigate} />
         ) : route.page === "agent" ? (
           <AgentPage key={route.id} id={route.id} wallet={api} navigate={navigate} />
         ) : (

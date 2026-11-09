@@ -19,6 +19,7 @@ const pages = [
   ["/agents", "Give an AI a card, not your wallet."],
   [`/agents?as=${DEMO}`, "Your agents control"],
   ["/agents/new", "Connect your wallet to hire an agent."],
+  ["/agents/start", "Your first agent, step by step"],
   ["/agents/1", "Budget left"],
   ["/agents/5", "Budget left"],
   ["/agents/999999", "No agent #999999."],

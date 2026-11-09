@@ -668,3 +668,246 @@
   margin-top: var(--space-2);
   font-size: var(--type-sm);
 }
+
+/* Quick start (/agents/start): five steps that tick themselves from chain state */
+.ag-empty-title {
+  font-size: var(--type-title);
+  color: var(--nx-text);
+}
+.ag-stage-empty .ag-buttons {
+  justify-content: center;
+}
+.ag-qs {
+  display: grid;
+  gap: var(--space-6);
+}
+.ag-qs-head {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  max-width: 44rem;
+}
+.ag-qs-head h1 {
+  margin: 0;
+  font-size: var(--type-display);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-title);
+}
+.ag-qs-head p {
+  margin: 0;
+}
+.ag-qs-progress {
+  height: 6px;
+  margin-top: var(--space-2);
+  border-radius: 999px;
+  background: var(--nx-s3);
+  overflow: hidden;
+}
+.ag-qs-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--nx-accent);
+  transition: width var(--nx-motion) ease-out;
+}
+.ag-qs-steps {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 44rem;
+}
+.ag-qs-step {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--stroke-border) solid var(--nx-line);
+  border-radius: var(--nx-radius-card);
+  background: var(--nx-glass);
+}
+.ag-qs-step[data-state="now"] {
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 1px var(--nx-accent-soft);
+}
+.ag-qs-step[data-state="todo"] {
+  opacity: 0.55;
+}
+.ag-qs-num {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: var(--stroke-border) solid var(--nx-line-strong);
+  font-family: var(--font-numeric);
+  font-weight: var(--weight-semibold);
+  color: var(--nx-muted);
+}
+.ag-qs-step[data-state="now"] .ag-qs-num {
+  border-color: var(--nx-accent);
+  color: var(--nx-accent);
+}
+.ag-qs-step[data-state="done"] .ag-qs-num {
+  border-color: transparent;
+  color: var(--color-up);
+}
+.ag-qs-num svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.ag-qs-body {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  min-width: 0;
+}
+.ag-qs-body h2 {
+  margin: 0;
+  padding-top: 0.35rem;
+  font-size: var(--type-lead);
+  line-height: var(--line-tight);
+}
+.ag-qs-body p {
+  margin: 0;
+  line-height: var(--line-relaxed);
+}
+.ag-qs-body > .ek-button,
+.ag-qs-body > button {
+  justify-self: start;
+}
+.ag-qs-done {
+  color: var(--nx-muted);
+  font-size: var(--type-sm);
+  overflow-wrap: anywhere;
+}
+.ag-qs-change {
+  margin-left: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--nx-accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.ag-qs-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.ag-qs-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: var(--space-2);
+}
+.ag-nft-pick[aria-checked="true"] {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 1px var(--color-brand);
+}
+.ag-qs-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--nx-accent);
+  font-weight: var(--weight-semibold);
+}
+.ag-qs-link svg {
+  width: 0.9em;
+  height: 0.9em;
+}
+.ag-qs-howto {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-6);
+}
+.ag-qs-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  padding: 2px var(--space-2);
+  border: var(--stroke-border) solid var(--nx-line);
+  border-radius: var(--nx-radius-chip);
+  background: var(--nx-s2);
+  color: var(--nx-text);
+  font: inherit;
+  font-size: var(--type-sm);
+  cursor: pointer;
+}
+.ag-qs-copy code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-qs-copy svg {
+  flex: none;
+  width: 0.9em;
+  height: 0.9em;
+}
+.ag-qs-wait {
+  font-size: var(--type-sm);
+}
+.ag-qs-win {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--nx-radius-chip);
+  background: var(--nx-accent-soft);
+}
+.ag-qs-win > svg {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-up);
+}
+.ag-qs-win div {
+  display: grid;
+  gap: var(--space-2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ag-qs-progress span {
+    transition: none;
+  }
+}
+@media (max-width: 40rem) {
+  .ag-qs-step {
+    grid-template-columns: 1.75rem minmax(0, 1fr);
+    padding: var(--space-3);
+  }
+  .ag-qs-num {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: var(--type-sm);
+  }
+}
+.ag-qs-layout {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 44rem) minmax(0, 17rem);
+  gap: var(--space-8);
+  align-items: start;
+}
+.ag-qs-preview {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + var(--space-20, 5rem));
+  width: min(100%, 15.5rem);
+  justify-self: center;
+}
+.ag-qs-preview .ag-slide {
+  width: 100%;
+}
+@media (max-width: 60rem) {
+  .ag-qs-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* On narrow screens the steps come first; the card would only push them down. */
+  .ag-qs-preview {
+    display: none;
+  }
+}

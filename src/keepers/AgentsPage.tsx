@@ -121,7 +121,7 @@ function useAction(refresh: () => void) {
  * The local runner: online or not, and whether this account signed in to it
  * (it only shows and drives an account's agents after one NEP-413 signature).
  */
-function useRunner(account: string) {
+export function useRunner(account: string) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [up, setUp] = useState<boolean | null>(null);
   const [locked, setLocked] = useState(false);
@@ -177,7 +177,7 @@ function RunnerLockedNotice({ runner }: { runner: ReturnType<typeof useRunner> }
   );
 }
 
-function useImages(items: { key: string; contract: string; token: string }[]) {
+export function useImages(items: { key: string; contract: string; token: string }[]) {
   const [images, setImages] = useState<Record<string, string | null>>({});
   const wanted = items.map((i) => i.key).join("|");
   useEffect(() => {
@@ -223,7 +223,7 @@ function shrinkImage(file: File): Promise<string> {
  * `null` = the NFT has no usable image: a neutral night tile with its name,
  * never a stand-in character.
  */
-function NftArt({ src, label }: { src: string | null | undefined; label: string }) {
+export function NftArt({ src, label }: { src: string | null | undefined; label: string }) {
   const [failed, setFailed] = useState(false);
   if (src && !failed)
     return <img className="ag-art" src={src} alt={label} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
@@ -711,7 +711,10 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
               its own budget, inside limits the contract enforces. Call it any time; sell the NFT and it stops.
             </p>
             <div className="ag-intro-actions">
-              <Button variant="primary" icon={WalletIcon} onClick={() => void wallet.connect()}>
+              <Button variant="primary" icon={Sparkles} onClick={() => navigate("/agents/start")}>
+                Start my first agent
+              </Button>
+              <Button variant="secondary" icon={WalletIcon} onClick={() => void wallet.connect()}>
                 Open my Agent Wallet
               </Button>
               <a
@@ -829,11 +832,21 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
           </div>
         ) : seats.length === 0 ? (
           <div className="ag-stage-empty">
-            <p>{readOnly ? "This wallet has no agent yet." : "No agent yet. Hire one and put it on any NFT you own."}</p>
-            {!readOnly && (
-              <Button variant="primary" icon={Plus} onClick={() => navigate("/agents/new")}>
-                Hire an agent
-              </Button>
+            {readOnly ? (
+              <p>This wallet has no agent yet.</p>
+            ) : (
+              <>
+                <strong className="ag-empty-title">No agent yet. Start with one that pays you back.</strong>
+                <p>Five guided steps, about two minutes, free test tokens only. It ends with your agent acting on its own.</p>
+                <div className="ag-buttons">
+                  <Button variant="primary" icon={Sparkles} onClick={() => navigate("/agents/start")}>
+                    Start my first agent
+                  </Button>
+                  <Button variant="ghost" icon={Plus} onClick={() => navigate("/agents/new")}>
+                    Hire with my own rules
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         ) : (
