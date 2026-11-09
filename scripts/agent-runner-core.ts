@@ -11,6 +11,7 @@
  * Used by scripts/agent-runner.ts (local HTTP service) and by
  * scripts/agents-runner-proof.ts (sandbox proof).
  */
+import { parseSeatKey } from "../src/keepers/seat-key.js";
 import { Account, JsonRpcProvider, KeyPair, KeyPairSigner, actions } from "near-api-js";
 
 export type BuyerMission = {
@@ -106,11 +107,22 @@ export class Runner {
   constructor(
     readonly opts: {
       rpc: string;
+      /** v1 agents contract (job keys like "9"). */
       agents: string;
+      /** v2 agents contract (job keys like "v2-3"). */
+      agentsV2?: string;
       store: Store;
       log?: (line: string) => void;
     },
   ) {}
+
+  /** The contract and in-contract id behind a job's seat key ("9" -> v1 #9, "v2-3" -> v2 #3). */
+  target(job: { seatId: string }) {
+    const k = parseSeatKey(job.seatId);
+    if (!k) throw new Error(`Not a seat key: ${job.seatId}`);
+    if (k.version === "v2" && !this.opts.agentsV2) throw new Error("This runner has no v2 contract configured");
+    return { contract: k.version === "v2" ? this.opts.agentsV2! : this.opts.agents, id: k.num };
+  }
 
   private log(line: string) {
     (this.opts.log ?? console.log)(`[runner] ${line}`);
@@ -169,7 +181,7 @@ export class Runner {
   private async act(job: Job, method: string, args: object, gas: bigint) {
     const account = await this.signer(job.accountId, job.publicKey);
     const r = await account.signAndSendTransaction({
-      receiverId: this.opts.agents,
+      receiverId: this.target(job).contract,
       actions: [actions.functionCall(method, args, gas, 0n)],
       waitUntil: "FINAL",
       throwOnFailure: false,
@@ -192,8 +204,8 @@ export class Runner {
   }
 
   async runJob(job: Job, now = Date.now()): Promise<string> {
-    const seat = await this.view<SeatView | null>(this.opts.agents, "seat", {
-      seat_id: job.seatId,
+    const seat = await this.view<SeatView | null>(this.target(job).contract, "seat", {
+      seat_id: this.target(job).id,
     });
     const why = this.blocked(job, seat);
     let result: string;
@@ -234,7 +246,7 @@ export class Runner {
       job,
       "agent_buy",
       {
-        seat_id: job.seatId,
+        seat_id: this.target(job).id,
         token_id: best.token_id,
         listing_id: best.listing_id,
         price: best.list_price,
@@ -277,7 +289,7 @@ export class Runner {
       const r = await this.act(
         job,
         "agent_pay",
-        { seat_id: job.seatId, payee: p.payee, amount: p.amount, memo: p.memo ?? null },
+        { seat_id: this.target(job).id, payee: p.payee, amount: p.amount, memo: p.memo ?? null },
         PAY_GAS,
       );
       // A refusal is logged on chain; wait for the next period before retrying.
@@ -296,7 +308,7 @@ export class Runner {
     const r = await this.act(
       job,
       "agent_buy",
-      { seat_id: job.seatId, token_id: tokenId, listing_id: listingId, price },
+      { seat_id: this.target(job).id, token_id: tokenId, listing_id: listingId, price },
       BUY_GAS,
     );
     const result = `${r.ok ? "bought" : "refused or failed:"} #${tokenId} for ${price} yocto, on request (tx ${r.hash})`;
@@ -309,7 +321,7 @@ export class Runner {
     const r = await this.act(
       job,
       "agent_pay",
-      { seat_id: job.seatId, payee, amount, memo: memo ?? "on request" },
+      { seat_id: this.target(job).id, payee, amount, memo: memo ?? "on request" },
       PAY_GAS,
     );
     const result = `${r.ok ? "paid" : "refused"} ${amount} to ${payee}, on request (tx ${r.hash})`;
@@ -326,7 +338,7 @@ export class Runner {
 
   /** Kill switch with no wallet: the agent key itself may pause its seat. */
   async pause(job: Job) {
-    const r = await this.act(job, "pause", { seat_id: job.seatId }, 30_000_000_000_000n);
+    const r = await this.act(job, "pause", { seat_id: this.target(job).id }, 30_000_000_000_000n);
     job.lastResult = `paused by the runner (tx ${r.hash})`;
     job.lastRun = Date.now();
     await this.opts.store.saveJob(job);

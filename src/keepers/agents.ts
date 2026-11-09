@@ -19,9 +19,18 @@ import {
 } from "./chain";
 import { rpc } from "../client";
 export { friendlyError } from "./errors";
+import { parseSeatKey, seatKey, seatLabel, type AgentsVersion } from "./seat-key";
+export { parseSeatKey, seatKey, seatLabel, type AgentsVersion };
 
+/** v1: the first agents contract (keyless, still running). */
 export const AGENTS =
   import.meta.env.VITE_AGENTS_ID || "agents-v1.everkeep-dev-mw0weth5.testnet";
+/** v2: profile and track record follow the NFT, flood-proof log, optional budget for the next owner. */
+export const AGENTS_V2 =
+  import.meta.env.VITE_AGENTS_V2_ID || "agents-v2.everkeep-dev-mw0weth5.testnet";
+/** Where new agents are hired. */
+export const NEW_AGENTS = AGENTS_V2;
+export const contractOf = (v: AgentsVersion) => (v === "v2" ? AGENTS_V2 : AGENTS);
 export const USDC =
   "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af";
 export const RUNNER =
@@ -51,8 +60,24 @@ export type Policy = {
   payees: string[];
   market: string | null;
 };
+/** Who the agent is (v2, on chain; it follows the NFT). */
+export type Profile = {
+  name: string;
+  role: string;
+  tool: string | null;
+  avatar: string | null;
+  manifest: string | null;
+};
+/**
+ * A seat as the app sees it. `seat_id` is the seat KEY ("9" on v1, "v2-3" on
+ * v2): routes, runner jobs and saved records use it. `num` is the id inside
+ * its contract, for contract calls only.
+ */
 export type Seat = {
   seat_id: string;
+  num: string;
+  version: AgentsVersion;
+  contract: string;
   nft_contract: string;
   token_id: string;
   kind: Kind;
@@ -70,6 +95,11 @@ export type Seat = {
   refused: number;
   failed: number;
   created_at: string;
+  /** v2 only. */
+  profile?: Profile | null;
+  owners?: number;
+  budget_follows?: boolean;
+  held_for_next_owner?: boolean;
 };
 export type LogEntry = {
   seq: string;
@@ -79,6 +109,8 @@ export type LogEntry = {
   amount: string;
   counterparty: string | null;
   detail: string;
+  /** v2: identical refusals in a row, merged. */
+  times?: number;
 };
 export type OwnedNft = {
   contract: string;
@@ -92,24 +124,60 @@ export type OwnedNft = {
 // Views
 // ---------------------------------------------------------------------------
 
-const viewAgents = <T>(method: string, args: object = {}) =>
-  viewOn<T>(AGENTS, method, args);
+type RawSeat = Omit<Seat, "num" | "version" | "contract">;
+/** Tags a contract's seat with its version and key. */
+const tag = (v: AgentsVersion, s: RawSeat): Seat => ({ ...s, num: s.seat_id, version: v, contract: contractOf(v), seat_id: seatKey(v, s.seat_id) });
+const VERSIONS: AgentsVersion[] = ["v1", "v2"];
 
-export const seatsForOwner = (account: string) =>
-  viewAgents<Seat[]>("seats_for_owner", { account_id: account });
-export const getSeat = (id: string) =>
-  viewAgents<Seat | null>("seat", { seat_id: id });
-export const seatLog = (id: string) =>
-  viewAgents<LogEntry[]>("seat_log", { seat_id: id });
-export const seatForNft = (contract: string, tokenId: string) =>
-  viewAgents<Seat | null>("seat_for_nft", {
-    nft_contract: contract,
-    token_id: tokenId,
-  });
-export const refundOf = (account: string) =>
-  viewAgents<{ near: string; usdc: string }>("refund_of", {
-    account_id: account,
-  });
+/** The account's agents on both contracts (v1 first). A contract that cannot be read yields none. */
+export async function seatsForOwner(account: string): Promise<Seat[]> {
+  const lists = await Promise.all(
+    VERSIONS.map((v) =>
+      viewOn<RawSeat[]>(contractOf(v), "seats_for_owner", { account_id: account }).then(
+        (l) => l.map((s) => tag(v, s)),
+        (e) => (v === "v1" ? Promise.reject(e) : []),
+      ),
+    ),
+  );
+  return lists.flat();
+}
+/** One seat by key ("9", "v2-3"). */
+export async function getSeat(key: string): Promise<Seat | null> {
+  const k = parseSeatKey(key);
+  if (!k) return null;
+  const s = await viewOn<RawSeat | null>(contractOf(k.version), "seat", { seat_id: k.num });
+  return s ? tag(k.version, s) : null;
+}
+export function seatLog(key: string) {
+  const k = parseSeatKey(key);
+  return k ? viewOn<LogEntry[]>(contractOf(k.version), "seat_log", { seat_id: k.num }) : Promise.resolve([] as LogEntry[]);
+}
+/** The seat on an NFT, on either contract. */
+export async function seatForNft(contract: string, tokenId: string): Promise<Seat | null> {
+  for (const v of ["v2", "v1"] as AgentsVersion[]) {
+    const s = await viewOn<RawSeat | null>(contractOf(v), "seat_for_nft", { nft_contract: contract, token_id: tokenId }).catch(() => null);
+    if (s) return tag(v, s);
+  }
+  return null;
+}
+type Refund = { near: string; usdc: string };
+/** Money set aside for the account on each contract (from agents on NFTs it sold). */
+export async function refundsOf(account: string) {
+  const out: { contract: string; near: string; usdc: string }[] = [];
+  for (const v of VERSIONS) {
+    const r = await viewOn<Refund>(contractOf(v), "refund_of", { account_id: account }).catch(() => ({ near: "0", usdc: "0" }));
+    out.push({ contract: contractOf(v), ...r });
+  }
+  return out;
+}
+/** Both contracts' refunds added up. */
+export async function refundOf(account: string): Promise<Refund> {
+  const all = await refundsOf(account);
+  return {
+    near: all.reduce((a, r) => a + BigInt(r.near), 0n).toString(),
+    usdc: all.reduce((a, r) => a + BigInt(r.usdc), 0n).toString(),
+  };
+}
 export const usdcBalance = async (account: string) =>
   BigInt(await viewOn<string>(USDC, "ft_balance_of", { account_id: account }));
 
@@ -207,27 +275,46 @@ export async function keyAllowance(account: string, publicKey: string) {
 // Wallet requests
 // ---------------------------------------------------------------------------
 
-/** Creates a seat. Returns its id, or null when the contract refused (not the NFT owner). */
+/**
+ * Creates a seat on the current contract (v2), with its profile on chain.
+ * Returns its KEY, or null when the contract refused (not the NFT owner).
+ */
 export async function createSeat(
-  contract: string,
+  nftContract: string,
   tokenId: string,
   kind: Kind,
   policy: Policy,
+  profile?: Profile | null,
 ) {
   const { outcomes } = await sendRaw([
     {
-      receiverId: AGENTS,
+      receiverId: NEW_AGENTS,
       actions: [
         fnCall(
           "create_seat",
-          { nft_contract: contract, token_id: tokenId, kind, policy },
+          { nft_contract: nftContract, token_id: tokenId, kind, policy, profile: profile ?? null },
           SEAT_STORAGE,
-          120n,
+          150n,
         ),
       ],
     },
   ]);
-  return returnedValue<string | null>(outcomes[0]);
+  const id = returnedValue<string | null>(outcomes[0]);
+  return id ? seatKey("v2", id) : null;
+}
+
+/** Profile fields the contract accepts: https links only, bounded lengths. Returns null without a name. */
+export function profileFor(p: { name?: string; role: string; tool?: string | null; avatar?: string | null; manifest?: string | null }): Profile | null {
+  const name = (p.name ?? "").trim().slice(0, 32);
+  if (!name) return null;
+  const link = (u?: string | null) => (u && /^https:\/\//.test(u) && u.length <= 160 ? u : null);
+  return {
+    name,
+    role: p.role.slice(0, 24),
+    tool: p.tool ? p.tool.slice(0, 24) : null,
+    avatar: link(p.avatar),
+    manifest: link(p.manifest),
+  };
 }
 
 /**
@@ -246,7 +333,7 @@ export async function fundAndGrant(seat: Seat, amount: bigint, publicKey: string
             publicKey,
             accessKey: {
               permission: {
-                receiverId: AGENTS,
+                receiverId: seat.contract,
                 allowance: KEY_ALLOWANCE.toString(),
                 methodNames: AGENT_METHODS,
               },
@@ -256,12 +343,12 @@ export async function fundAndGrant(seat: Seat, amount: bigint, publicKey: string
       ],
     },
     {
-      receiverId: AGENTS,
+      receiverId: seat.contract,
       actions: [
         ...(seat.kind === "Buyer" && amount > 0n
-          ? [fnCall("fund", { seat_id: seat.seat_id }, amount, 15n)]
+          ? [fnCall("fund", { seat_id: seat.num }, amount, 15n)]
           : []),
-        fnCall("set_agent_key", { seat_id: seat.seat_id, public_key: publicKey }, 1n, 15n),
+        fnCall("set_agent_key", { seat_id: seat.num, public_key: publicKey }, 1n, 15n),
       ],
     },
   ];
@@ -272,9 +359,9 @@ export async function fundAndGrant(seat: Seat, amount: bigint, publicKey: string
         fnCall(
           "ft_transfer_call",
           {
-            receiver_id: AGENTS,
+            receiver_id: seat.contract,
             amount: amount.toString(),
-            msg: JSON.stringify({ seat_id: seat.seat_id }),
+            msg: JSON.stringify({ seat_id: seat.num }),
           },
           1n,
           100n,
@@ -287,16 +374,16 @@ export async function fundAndGrant(seat: Seat, amount: bigint, publicKey: string
 export const fundSeat = (seat: Seat, amount: bigint) =>
   sendRaw([
     seat.kind === "Buyer"
-      ? { receiverId: AGENTS, actions: [fnCall("fund", { seat_id: seat.seat_id }, amount, 15n)] }
+      ? { receiverId: seat.contract, actions: [fnCall("fund", { seat_id: seat.num }, amount, 15n)] }
       : {
           receiverId: USDC,
           actions: [
             fnCall(
               "ft_transfer_call",
               {
-                receiver_id: AGENTS,
+                receiver_id: seat.contract,
                 amount: amount.toString(),
-                msg: JSON.stringify({ seat_id: seat.seat_id }),
+                msg: JSON.stringify({ seat_id: seat.num }),
               },
               1n,
               100n,
@@ -305,31 +392,43 @@ export const fundSeat = (seat: Seat, amount: bigint) =>
         },
   ]);
 
-const ownerCall = (method: string, args: Record<string, unknown>, gas = 30n) =>
-  sendRaw([{ receiverId: AGENTS, actions: [fnCall(method, args, 1n, gas)] }]);
+const ownerCall = (seat: Seat, method: string, args: Record<string, unknown>, gas = 30n) =>
+  sendRaw([{ receiverId: seat.contract, actions: [fnCall(method, args, 1n, gas)] }]);
 
 export const setPolicy = (seat: Seat, policy: Policy) =>
-  ownerCall("set_policy", { seat_id: seat.seat_id, policy });
+  ownerCall(seat, "set_policy", { seat_id: seat.num, policy });
 export const pauseSeat = (seat: Seat) =>
   sendRaw([
-    { receiverId: AGENTS, actions: [fnCall("pause", { seat_id: seat.seat_id }, 0n, 15n)] },
+    { receiverId: seat.contract, actions: [fnCall("pause", { seat_id: seat.num }, 0n, 15n)] },
   ]);
 export const resumeSeat = (seat: Seat) =>
-  ownerCall("resume", { seat_id: seat.seat_id });
+  ownerCall(seat, "resume", { seat_id: seat.num });
+/** v2 with the budget promised to the next owner: the contract first proves NFT ownership (more gas). */
 export const withdrawSeat = (seat: Seat) =>
-  ownerCall("withdraw", { seat_id: seat.seat_id, amount: null }, 50n);
-export const withdrawRefund = () => ownerCall("withdraw_refund", {}, 80n);
+  ownerCall(seat, "withdraw", { seat_id: seat.num, amount: null }, seat.budget_follows ? 150n : 50n);
+/** Withdraws the set-aside money on every contract that holds some, in one wallet request. */
+export async function withdrawRefund(account: string) {
+  const owed = (await refundsOf(account)).filter((r) => r.near !== "0" || r.usdc !== "0");
+  if (!owed.length) throw new Error("Nothing set aside for you.");
+  return sendRaw(owed.map((r) => ({ receiverId: r.contract, actions: [fnCall("withdraw_refund", {}, 1n, 80n)] })));
+}
 export const claimSeat = (seat: Seat) =>
-  ownerCall("claim_seat", { seat_id: seat.seat_id }, 80n);
+  ownerCall(seat, "claim_seat", { seat_id: seat.num }, 80n);
 export const closeSeat = (seat: Seat) =>
-  ownerCall("close_seat", { seat_id: seat.seat_id });
+  ownerCall(seat, "close_seat", { seat_id: seat.num });
+/** v2: who the agent is; it stays with the NFT. */
+export const setProfile = (seat: Seat, profile: Profile | null) =>
+  ownerCall(seat, "set_profile", { seat_id: seat.num, profile }, 30n);
+/** v2: leave the budget to the NFT's next owner (turning it off proves NFT ownership first). */
+export const setBudgetFollows = (seat: Seat, follows: boolean) =>
+  ownerCall(seat, "set_budget_follows", { seat_id: seat.num, follows }, follows ? 30n : 80n);
 
 /** Revokes access in one request: clears the key on the seat and deletes it from the account. */
 export const revokeAccess = (seat: Seat) =>
   sendRaw([
     {
-      receiverId: AGENTS,
-      actions: [fnCall("set_agent_key", { seat_id: seat.seat_id, public_key: null }, 1n, 15n)],
+      receiverId: seat.contract,
+      actions: [fnCall("set_agent_key", { seat_id: seat.num, public_key: null }, 1n, 15n)],
     },
     ...(seat.agent_key
       ? [{ receiverId: "self", actions: [{ type: "DeleteKey", params: { publicKey: seat.agent_key } }] }]
@@ -551,12 +650,12 @@ export const assetOf = (kind: Kind) => (kind === "Buyer" ? "NEAR" : "USDC") as "
 
 /** Pauses several seats in one wallet transaction (no deposit: pause is not payable). */
 export const pauseMany = (seats: Seat[]) =>
-  sendRaw([
-    {
-      receiverId: AGENTS,
-      actions: seats.map((s) => fnCall("pause", { seat_id: s.seat_id }, 0n, 10n)),
-    },
-  ]);
+  sendRaw(
+    [...new Set(seats.map((s) => s.contract))].map((contract) => ({
+      receiverId: contract,
+      actions: seats.filter((s) => s.contract === contract).map((s) => fnCall("pause", { seat_id: s.num }, 0n, 10n)),
+    })),
+  );
 
 /** NEAR's public NFT tutorial contract: anyone can mint, so anyone can try an agent. */
 export const EXAMPLE_NFT = "nft.examples.testnet";
@@ -656,7 +755,7 @@ export function agentKeyFile(seat: Seat, key: { publicKey: string; secretKey: st
     seat_id: seat.seat_id,
     kind: seat.kind,
     name,
-    agents_contract: AGENTS,
+    agents_contract: seat.contract,
     nft: `${seat.nft_contract} #${seat.token_id}`,
     public_key: key.publicKey,
     secret_key: key.secretKey,
@@ -730,7 +829,7 @@ export const mcpName = (name: string | undefined, seatId: string) =>
 // latest transaction at or before the entry's time, within a minute.
 // ---------------------------------------------------------------------------
 
-type IndexedTx = { hash: string; ts: bigint; method: string; ok: boolean };
+type IndexedTx = { hash: string; ts: bigint; method: string; ok: boolean; contract: string };
 const NEARBLOCKS = "https://api-testnet.nearblocks.io/v3";
 const txCache = new Map<string, { at: number; txs: IndexedTx[] }>();
 /** NearBlocks is rate-limited for anonymous use: after a 429, wait a minute. */
@@ -749,7 +848,9 @@ const METHODS: Record<string, string[]> = {
   resume: ["resume"],
   policy: ["set_policy"],
   claim: ["claim_seat"],
-  reset: ["agent_pay", "agent_buy", "claim_seat"],
+  reset: ["agent_pay", "agent_buy", "claim_seat", "withdraw"],
+  budget: ["set_budget_follows", "claim_seat", "withdraw", "agent_pay"],
+  profile: ["set_profile", "create_seat"],
 };
 
 /**
@@ -758,22 +859,24 @@ const METHODS: Record<string, string[]> = {
  * newest entry has no link yet), one request in flight per owner, and no call
  * at all for a minute after the explorer says 429.
  */
-export function ownerTxs(owner: string, oldest: bigint, maxAgeMs = 60_000): Promise<IndexedTx[]> {
-  const hit = txCache.get(owner);
+export function ownerTxs(owner: string, oldest: bigint, maxAgeMs = 60_000, contracts: string[] = [AGENTS]): Promise<IndexedTx[]> {
+  const id = `${owner}|${[...contracts].sort().join(",")}`;
+  const hit = txCache.get(id);
   if (hit && Date.now() - hit.at < maxAgeMs) return Promise.resolve(hit.txs);
   if (Date.now() < explorerBackoffUntil) return Promise.resolve(hit?.txs ?? []);
-  const running = inflight.get(owner);
+  const running = inflight.get(id);
   if (running) return running;
-  const p = fetchOwnerTxs(owner, oldest).finally(() => inflight.delete(owner));
-  inflight.set(owner, p);
+  const p = fetchOwnerTxs(owner, oldest, contracts, id).finally(() => inflight.delete(id));
+  inflight.set(id, p);
   return p;
 }
 
-async function fetchOwnerTxs(owner: string, oldest: bigint): Promise<IndexedTx[]> {
+async function fetchOwnerTxs(owner: string, oldest: bigint, contracts: string[], id: string): Promise<IndexedTx[]> {
   const txs: IndexedTx[] = [];
+  for (const contract of contracts) {
   let next: string | undefined;
   for (let page = 0; page < 2; page++) {
-    const url = `${NEARBLOCKS}/accounts/${AGENTS}/txns?limit=100&signer=${encodeURIComponent(owner)}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+    const url = `${NEARBLOCKS}/accounts/${contract}/txns?limit=100&signer=${encodeURIComponent(owner)}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     if (r.status === 429) {
       explorerBackoffUntil = Date.now() + 60_000;
@@ -790,9 +893,11 @@ async function fetchOwnerTxs(owner: string, oldest: bigint): Promise<IndexedTx[]
         ts: BigInt(t.block_timestamp),
         method: t.actions?.[0]?.method ?? "",
         ok: t.outcomes?.status !== false,
+        contract,
       });
     next = d.meta?.next_page;
     if (!next || (txs.at(-1)?.ts ?? 0n) <= oldest) break;
+  }
   }
   // USDC top-ups are sent to the USDC contract (ft_transfer_call), not to the agents contract.
   try {
@@ -804,22 +909,28 @@ async function fetchOwnerTxs(owner: string, oldest: bigint): Promise<IndexedTx[]
       const d = (await r.json()) as { data?: { transaction_hash: string; block_timestamp: string; actions?: { method?: string }[] }[] };
       for (const t of d.data ?? [])
         if (t.actions?.[0]?.method === "ft_transfer_call")
-          txs.push({ hash: t.transaction_hash, ts: BigInt(t.block_timestamp), method: "ft_transfer_call", ok: true });
-      txs.sort((a, b) => (b.ts > a.ts ? 1 : b.ts < a.ts ? -1 : 0));
+          txs.push({ hash: t.transaction_hash, ts: BigInt(t.block_timestamp), method: "ft_transfer_call", ok: true, contract: USDC });
     }
   } catch {
     // No link for top-ups if the explorer is unreachable; everything else still works.
   }
-  txCache.set(owner, { at: Date.now(), txs });
+  txs.sort((a, b) => (b.ts > a.ts ? 1 : b.ts < a.ts ? -1 : 0));
+  txCache.set(id, { at: Date.now(), txs });
   return txs;
 }
 
 /** Transaction hash for one log entry, or null when it cannot be matched. */
-export function txForEntry(e: { action: string; at: string }, txs: IndexedTx[]) {
+export function txForEntry(e: { action: string; at: string }, txs: IndexedTx[], contract?: string) {
   const methods = METHODS[e.action];
   if (!methods) return null;
   const at = BigInt(e.at);
-  const best = txs.find((t) => t.ts <= at && at - t.ts <= 60_000_000_000n && methods.includes(t.method));
+  const best = txs.find(
+    (t) =>
+      t.ts <= at &&
+      at - t.ts <= 60_000_000_000n &&
+      methods.includes(t.method) &&
+      (!contract || t.contract === contract || t.contract === USDC),
+  );
   return best?.hash ?? null;
 }
 
@@ -829,10 +940,10 @@ export function txForEntry(e: { action: string; at: string }, txs: IndexedTx[]) 
  */
 export async function setupSeat(seat: Seat, policy: Policy, amount: bigint, publicKey: string) {
   const agentCalls = [
-    fnCall("set_policy", { seat_id: seat.seat_id, policy }, 1n, 20n),
-    ...(seat.paused ? [fnCall("resume", { seat_id: seat.seat_id }, 1n, 15n)] : []),
-    ...(seat.kind === "Buyer" && amount > 0n ? [fnCall("fund", { seat_id: seat.seat_id }, amount, 15n)] : []),
-    fnCall("set_agent_key", { seat_id: seat.seat_id, public_key: publicKey }, 1n, 15n),
+    fnCall("set_policy", { seat_id: seat.num, policy }, 1n, 20n),
+    ...(seat.paused ? [fnCall("resume", { seat_id: seat.num }, 1n, 15n)] : []),
+    ...(seat.kind === "Buyer" && amount > 0n ? [fnCall("fund", { seat_id: seat.num }, amount, 15n)] : []),
+    fnCall("set_agent_key", { seat_id: seat.num, public_key: publicKey }, 1n, 15n),
   ];
   const txs: RawTx[] = [
     {
@@ -842,12 +953,12 @@ export async function setupSeat(seat: Seat, policy: Policy, amount: bigint, publ
           type: "AddKey",
           params: {
             publicKey,
-            accessKey: { permission: { receiverId: AGENTS, allowance: KEY_ALLOWANCE.toString(), methodNames: AGENT_METHODS } },
+            accessKey: { permission: { receiverId: seat.contract, allowance: KEY_ALLOWANCE.toString(), methodNames: AGENT_METHODS } },
           },
         },
       ],
     },
-    { receiverId: AGENTS, actions: agentCalls },
+    { receiverId: seat.contract, actions: agentCalls },
   ];
   if (seat.kind === "Payer" && amount > 0n)
     txs.push({
@@ -855,7 +966,7 @@ export async function setupSeat(seat: Seat, policy: Policy, amount: bigint, publ
       actions: [
         fnCall(
           "ft_transfer_call",
-          { receiver_id: AGENTS, amount: amount.toString(), msg: JSON.stringify({ seat_id: seat.seat_id }) },
+          { receiver_id: seat.contract, amount: amount.toString(), msg: JSON.stringify({ seat_id: seat.num }) },
           1n,
           100n,
         ),
@@ -869,13 +980,17 @@ export async function setupSeat(seat: Seat, policy: Policy, amount: bigint, publ
  * switch the agent off (clear its key on the seat and delete it from this
  * account), then nft_transfer to the new owner.
  */
-export async function transferSeatNft(seat: Seat, receiver: string, withdrawBudget: boolean) {
+export async function transferSeatNft(seat: Seat, receiver: string, budget: "withdraw" | "set-aside" | "follow") {
   const txs: RawTx[] = [];
   const agentCalls = [
-    ...(withdrawBudget && seat.balance !== "0" ? [fnCall("withdraw", { seat_id: seat.seat_id, amount: null }, 1n, 50n)] : []),
-    ...(seat.agent_key ? [fnCall("set_agent_key", { seat_id: seat.seat_id, public_key: null }, 1n, 15n)] : []),
+    ...(budget === "withdraw" && seat.balance !== "0" ? [fnCall("withdraw", { seat_id: seat.num, amount: null }, 1n, 50n)] : []),
+    // v2 only: the budget stays on the NFT for whoever claims it.
+    ...(budget === "follow" && seat.version === "v2" && !seat.budget_follows
+      ? [fnCall("set_budget_follows", { seat_id: seat.num, follows: true }, 1n, 30n)]
+      : []),
+    ...(seat.agent_key ? [fnCall("set_agent_key", { seat_id: seat.num, public_key: null }, 1n, 15n)] : []),
   ];
-  if (agentCalls.length) txs.push({ receiverId: AGENTS, actions: agentCalls });
+  if (agentCalls.length) txs.push({ receiverId: seat.contract, actions: agentCalls });
   if (seat.agent_key) txs.push({ receiverId: "self", actions: [{ type: "DeleteKey", params: { publicKey: seat.agent_key } }] });
   txs.push({
     receiverId: seat.nft_contract,

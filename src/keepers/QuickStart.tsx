@@ -145,8 +145,8 @@ export function QuickStartPage({ wallet, navigate }: { wallet: Wallet; navigate:
       const move = log.find((e) => e.action === "pay" && (e.status === "done" || e.status === "refused"));
       if (move && alive) {
         setFirst(move);
-        const txs = await ag.ownerTxs(account, BigInt(move.at) - 120_000_000_000n).catch(() => []);
-        const h = ag.txForEntry(move, txs);
+        const txs = await ag.ownerTxs(account, BigInt(move.at) - 120_000_000_000n, 20_000, [seat.contract]).catch(() => []);
+        const h = ag.txForEntry(move, txs, seat.contract);
         if (h && alive) setFirstTx(h);
       }
     };
@@ -188,12 +188,13 @@ export function QuickStartPage({ wallet, navigate }: { wallet: Wallet; navigate:
       let s = seat;
       if (!s) {
         setSub("create");
-        const id = await ag.createSeat(pick!.contract, pick!.token_id, "Payer", {
-          per_tx_max: PAY.toString(),
-          per_day_max: PER_DAY.toString(),
-          payees: [account],
-          market: null,
-        });
+        const id = await ag.createSeat(
+          pick!.contract,
+          pick!.token_id,
+          "Payer",
+          { per_tx_max: PAY.toString(), per_day_max: PER_DAY.toString(), payees: [account], market: null },
+          ag.profileFor({ name: "My first agent", role: "allowance", tool: "runner" }),
+        );
         if (!id) throw new Error("The contract could not confirm you own this NFT. Your 0.1 NEAR was returned.");
         saveSeat(account, id);
         s = await ag.getSeat(id);

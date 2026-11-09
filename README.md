@@ -72,6 +72,11 @@ AI ──MCP──► agent key (function-call key on your account: agent_pay / 
   leaked agent key can never withdraw, change its limits or move your NFT.
 - Each action re-reads the NFT's owner from its own contract. When the NFT changes hands the seat resets,
   the old owner keeps their budget (`withdraw_refund`) and the new owner can `claim_seat`.
+- **On v2 the agent itself travels with the NFT**: its on-chain profile (name, role, the tool that runs it,
+  a link to how it thinks) and its track record (actions done, blocked, money spent, owners so far). The
+  seller can also leave the budget to the buyer: it is held on chain until they claim the agent, and the
+  seller cannot pull it back after the sale. Repeated refusals merge into one log line, so spamming the
+  agent cannot erase its history.
 - The optional **runner** holds the keys of the built-in roles (Collector, Subscriptions, Allowance, Bill
   splitter, Payroll) and acts on a schedule. A browser signs in to it once with a NEP-413 signature (no
   transaction) and then drives only its own agents.
@@ -83,7 +88,8 @@ argument and refusal reason: [`AGENTS.md`](AGENTS.md).
 
 | What | Where |
 |---|---|
-| Agents contract, no admin key | [`agents-v1.everkeep-dev-mw0weth5.testnet`](https://testnet.nearblocks.io/address/agents-v1.everkeep-dev-mw0weth5.testnet), code hash `9U2S5GhWuR68DSQQ7kPdYXxWe4emkL8cVzfUP4Yr76rY` |
+| Agents contract v2 (new agents), no admin key | [`agents-v2.everkeep-dev-mw0weth5.testnet`](https://testnet.nearblocks.io/address/agents-v2.everkeep-dev-mw0weth5.testnet), code hash `2UrxHirDiERyi6wHCvVfTAoHPbByMkuLu4TtYb2vqDsL` |
+| Agents contract v1 (earlier agents, still running), no admin key | [`agents-v1.everkeep-dev-mw0weth5.testnet`](https://testnet.nearblocks.io/address/agents-v1.everkeep-dev-mw0weth5.testnet), code hash `9U2S5GhWuR68DSQQ7kPdYXxWe4emkL8cVzfUP4Yr76rY` |
 | USDC (Circle, testnet) | `3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af` |
 | Market for buyer agents (Keepers) | [`keepers-v2.everkeep-dev-mw0weth5.testnet`](https://testnet.nearblocks.io/address/keepers-v2.everkeep-dev-mw0weth5.testnet) |
 | NFTs used by the demos | `nft.examples.testnet`, NEAR's public example collection (not ours) |
@@ -92,7 +98,10 @@ argument and refusal reason: [`AGENTS.md`](AGENTS.md).
 Done live on testnet: payments and blocks by the runner (seat 1), a buyer agent buying a card under its price
 and skipping a dearer one (seat 2), an agent on a third-party collection (seat 5), your own AI paying and
 being blocked over MCP (seat 10), an NFT transferred and its agent taken over by the new owner (seat 11),
-the guided first agent paying 5 times then stopped by its daily cap (seat 12).
+the guided first agent paying 5 times then stopped by its daily cap (seat 12). On v2: an agent created
+with its profile, sold with its budget left to the buyer, the seller's withdrawal refused after the sale,
+the buyer claiming it with its profile and 2 owners on record, and withdrawing the budget (v2 seat 3,
+`docs/results/agents-v2-testnet-proof.json`).
 
 ## For AI agents and developers
 
@@ -106,7 +115,9 @@ the guided first agent paying 5 times then stopped by its daily cap (seat 12).
 
 | Command | What it proves |
 |---|---|
-| `cargo test -p agents` | Contract unit tests (16) |
+| `cargo test -p agents-v2` | v2 contract unit tests (28) |
+| `cargo test -p agents` | v1 contract unit tests (16) |
+| `npx tsx scripts/agents-v2-testnet-proof.ts` | v2 on testnet with real accounts: profile, merged refusals, budget left to the buyer (6 checks) |
 | `npm run test:agents` | The deployed wasm in a local NEAR sandbox: caps, payees, budget, pause, NFT sale, claim, take-over (17 checks) |
 | `npm run test:agents:runner` | The runner against the sandbox (9 checks) |
 | `npm run test:runner:auth` | Runner sign-in with real testnet signatures: no token, foreign sites, replayed or forged signatures, agent keys and other accounts are all refused (24 checks) |

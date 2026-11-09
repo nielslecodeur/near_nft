@@ -50,7 +50,16 @@ await writeFile(
 const child = spawn("npx", ["--no-install", "tsx", "scripts/agent-runner.ts"], {
   env: { ...process.env, AGENTS_RUNNER_PORT: String(PORT), AGENTS_RUNNER_DIR: dir, AGENTS_RUNNER_TOKEN_FILE: tokenFile, AGENTS_RUNNER_TICK: "3600" },
   stdio: ["ignore", "pipe", "inherit"],
+  // Its own process group, so the whole npx -> tsx -> node chain stops at the end.
+  detached: true,
 });
+const stopRunner = () => {
+  try {
+    process.kill(-child.pid!, "SIGTERM");
+  } catch {
+    child.kill();
+  }
+};
 await new Promise<void>((ok, fail) => {
   const t = setTimeout(() => fail(new Error("runner did not start")), 60_000);
   child.stdout!.on("data", (d) => String(d).includes("Agent runner on") && (clearTimeout(t), ok()));
@@ -143,7 +152,7 @@ try {
   await http("POST", "/auth/logout", { token });
   check("logged-out session refused", (await http("GET", "/jobs", { token })).status === 401);
 } finally {
-  child.kill();
+  stopRunner();
 }
 console.log(`\n${passed} passed, ${failed.length} failed${failed.length ? ": " + failed.join("; ") : ""}`);
 process.exit(failed.length ? 1 : 0);

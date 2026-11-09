@@ -30,6 +30,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { MemoryStore, Runner } from "./agent-runner-core.js";
+import { parseSeatKey, seatKey, seatLabel, type AgentsVersion } from "../src/keepers/seat-key.js";
 // Bundled in, so the one-file build (public/mcp/agent-wallet.mjs) runs anywhere, without the repo.
 import pub from "../public/testnet.json";
 import publicDemoKey from "../demo/agent-key.json";
@@ -38,6 +39,14 @@ const RPC = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 const RUNNER = process.env.AGENTS_RUNNER || "http://127.0.0.1:8788";
 const EXPLORER = "https://testnet.nearblocks.io";
 const AGENTS: string = process.env.AGENTS_CONTRACT || pub.agents.contract;
+const AGENTS_V2: string | undefined = process.env.AGENTS_V2_CONTRACT || (pub as { agents_v2?: { contract: string } }).agents_v2?.contract;
+/** A seat key ("9" on v1, "v2-3" on v2) -> its contract and in-contract id. */
+function locate(key: string) {
+  const k = parseSeatKey(key);
+  if (!k) throw new Error(`Not a seat id: ${key}. Use "9" (v1) or "v2-3" (v2).`);
+  if (k.version === "v2" && !AGENTS_V2) throw new Error("No v2 agents contract configured.");
+  return { contract: k.version === "v2" ? AGENTS_V2! : AGENTS, num: k.num, version: k.version };
+}
 const MARKET: string = pub.keepers.contract;
 const log = (...a: unknown[]) => console.error("[agent-mcp]", ...a);
 
@@ -75,7 +84,7 @@ const demoRunner = demoKey
   ? await (async () => {
       const store = new MemoryStore();
       await store.saveKey({ accountId: demoKey.account_id, publicKey: demoKey.public_key, secretKey: demoKey.secret_key, createdAt: "" });
-      return { store, core: new Runner({ rpc: RPC, agents: AGENTS, store, log: (l) => log(l) }) };
+      return { store, core: new Runner({ rpc: RPC, agents: AGENTS, agentsV2: AGENTS_V2, store, log: (l) => log(l) }) };
     })()
   : null;
 const demoJob = demoKey
@@ -257,11 +266,13 @@ const ROLE_NAMES: Record<string, string> = {
 const roleName = (s: Seat, job?: Job) =>
   ROLE_NAMES[job?.role ?? ""] ?? (s.kind === "Buyer" ? "Buyer" : "Payer");
 
-function describe(s: Seat, job?: Job) {
+function describe(s: Seat & { profile?: { name: string; role: string; tool: string | null; manifest: string | null } | null; owners?: number }, job?: Job) {
   const p = s.policy;
   return {
     seat_id: s.seat_id,
-    name: job?.name || `${ROLE_NAMES[job?.role ?? ""] ?? "Agent"} #${s.seat_id}`,
+    name: job?.name || s.profile?.name || `${ROLE_NAMES[job?.role ?? ""] ?? "Agent"} ${seatLabel(s.seat_id)}`,
+    contract: parseSeatKey(s.seat_id)?.version === "v2" ? "v2" : "v1",
+    ...(s.profile !== undefined ? { profile: s.profile, owners_so_far: s.owners } : {}),
     role: roleName(s, job),
     kind: s.kind,
     nft: `${s.nft_contract} #${s.token_id}`,
@@ -283,15 +294,19 @@ function describe(s: Seat, job?: Job) {
 const text = (value: unknown) => ({ content: [{ type: "text" as const, text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }] });
 const fail = (e: unknown) => ({ ...text(`Error: ${(e as Error).message}`), isError: true });
 
+/** One seat by key, with seat_id set to its key. */
 async function seatOrThrow(id: string) {
-  const s = await view<Seat | null>(AGENTS, "seat", { seat_id: id });
+  const at = locate(id);
+  const raw = await view<Seat | null>(at.contract, "seat", { seat_id: at.num });
+  const s = raw ? { ...raw, seat_id: id } : null;
   if (!s) throw new Error(`No agent #${id}.`);
   return s;
 }
 
 /** After an action: what the contract wrote in the agent's log (the source of truth). */
 async function outcome(seatId: string, r: { ok: boolean; tx: string }) {
-  const latest = (await view<LogEntry[]>(AGENTS, "seat_log", { seat_id: seatId })).find((e) => e.status !== "pending");
+  const at = locate(seatId);
+  const latest = (await view<LogEntry[]>(at.contract, "seat_log", { seat_id: at.num })).find((e) => e.status !== "pending");
   return {
     result: r.ok ? "done" : "blocked or failed by the contract",
     contract_log: latest ? `${latest.action}: ${latest.status}${latest.detail ? ` (${latest.detail})` : ""}` : null,
@@ -313,7 +328,14 @@ server.registerTool(
     try {
       const who = await account(given);
       const [seats, jobs] = await Promise.all([
-        view<Seat[]>(AGENTS, "seats_for_owner", { account_id: who }),
+        Promise.all(
+          ([["v1", AGENTS], ...(AGENTS_V2 ? [["v2", AGENTS_V2]] : [])] as [AgentsVersion, string][]).map(([v, c]) =>
+            view<Seat[]>(c, "seats_for_owner", { account_id: who }).then(
+              (l) => l.map((x) => ({ ...x, seat_id: seatKey(v, x.seat_id) })),
+              () => [] as Seat[],
+            ),
+          ),
+        ).then((l) => l.flat()),
         jobsFor(who).catch(() => [] as Job[]),
       ]);
       return text({ account: who, agents: seats.map((s) => describe(s, jobOf(s, jobs))) });
@@ -328,13 +350,14 @@ server.registerTool(
   {
     title: "Agent status and recent activity",
     description: "One agent's limits, budget and its last on-chain log entries (done, blocked with the reason, failed).",
-    inputSchema: { seat_id: z.string().describe("The agent's seat id, e.g. \"1\"") },
+    inputSchema: { seat_id: z.string().describe("The agent's seat id: \"9\" on the v1 contract, \"v2-3\" on v2 (as list_agents shows)") },
   },
   async ({ seat_id }) => {
     try {
       const s = await seatOrThrow(seat_id);
       const job = jobOf(s, await jobsFor().catch(() => [] as Job[]));
-      const entries = (await view<LogEntry[]>(AGENTS, "seat_log", { seat_id })).filter((e) => e.status !== "pending").slice(0, 10);
+      const at = locate(seat_id);
+      const entries = (await view<LogEntry[]>(at.contract, "seat_log", { seat_id: at.num })).filter((e) => e.status !== "pending").slice(0, 10);
       return text({
         ...describe(s, job),
         last_runner_result: job?.lastResult ?? null,
@@ -344,6 +367,7 @@ server.registerTool(
           amount: e.amount !== "0" ? fmt(e.amount, s.asset) : null,
           with: e.counterparty,
           detail: e.detail,
+          ...(((e as { times?: number }).times ?? 1) > 1 ? { times: (e as { times?: number }).times } : {}),
           at: new Date(Number(BigInt(e.at) / 1_000_000n)).toISOString(),
         })),
       });
@@ -469,5 +493,5 @@ log(
     ? `ready · your agent #${demoKey!.seat_id} of ${demoKey!.account_id} (key file)`
     : DEMO_MODE
       ? `ready · DEMO agent #${demoKey!.seat_id} of ${demoKey!.account_id}`
-      : `ready · contract ${AGENTS} · runner ${RUNNER}`,
+      : `ready · contracts ${AGENTS}${AGENTS_V2 ? ` + ${AGENTS_V2}` : ""} · runner ${RUNNER}`,
 );
