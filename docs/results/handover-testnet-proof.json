@@ -1,0 +1,19 @@
+{
+  "at": "2026-11-09T19:15:18.390Z",
+  "contract": "agents-v2.everkeep-dev-mw0weth5.testnet",
+  "seat_key": "v2-4",
+  "repo": "janestreet/agent_skills",
+  "commit": "7c6715c29548a3b39d4a9545c698ee4fd17a7213",
+  "frozen": "https://github.com/janestreet/agent_skills/tree/7c6715c29548a3b39d4a9545c698ee4fd17a7213",
+  "install": "d=$(mktemp -d) && git clone -q --filter=blob:none https://github.com/janestreet/agent_skills \"$d\" && git -C \"$d\" checkout -q 7c6715c29548a3b39d4a9545c698ee4fd17a7213 && mkdir -p ~/.claude/skills && for s in \"$d\"/*/; do [ -f \"$s/SKILL.md\" ] && cp -r \"$s\" ~/.claude/skills/; done",
+  "checks": [
+    "janestreet/agent_skills is at 7c6715c now: the handover freezes https://github.com/janestreet/agent_skills/tree/7c6715c29548a3b39d4a9545c698ee4fd17a7213",
+    "skill link frozen on chain, NFT sent to everkeep-dev-mw0weth5.testnet",
+    "the teammate holds it: same name \"Socratic tutor\", owners 2 -> 3, skill frozen at 7c6715c"
+  ],
+  "transactions": {
+    "freeze": "ByVuTpoib5cUC5pcVMhajWqVd9eRYm2mVz5gsVdujHj",
+    "nft_transfer": "7YoJrw8NP1jNBAHRPiwDEs5emG6qPuJLnDEPULnKHHXx",
+    "claim": "3ecpYtkHGkyrbbq8KpWSgGvt5qLHMFQRYYNyDR9jyKnw"
+  }
+}

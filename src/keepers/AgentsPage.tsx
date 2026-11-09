@@ -1239,16 +1239,25 @@ function SkillInstall({ seat }: { seat: Seat }) {
   const [copied, setCopied] = useState(false);
   if (!link) return null;
   const install = ag.skillInstall(link);
+  const pinned = install?.commit ?? null;
   return (
     <section className="kp-vault-section ag-skill" aria-labelledby="ag-skill-title">
       <h2 id="ag-skill-title">Its skill</h2>
       <p className="ag-muted">
         This agent is defined by{" "}
         <a href={link} target="_blank" rel="noreferrer">
-          {link.replace(/^https:\/\//, "")} ↗
+          {install ? `github.com/${install.owner}/${install.repo}${install.path ? `/${install.path}` : ""}${pinned ? ` @ ${pinned.slice(0, 7)}` : ""}` : link.replace(/^https:\/\//, "")} ↗
         </a>
         . The NFT carries the agent's name, its link and its record; the skill itself is installed in your own AI.
       </p>
+      {pinned && (
+        <p>
+          <strong>Frozen at commit {pinned.slice(0, 7)}</strong>{" "}
+          <span className="ag-muted">
+            : the state it was handed over in. The install below gets exactly that version, whatever changed in the repo since.
+          </span>
+        </p>
+      )}
       {install ? (
         <>
           <p>
@@ -2370,6 +2379,21 @@ function TransferPanel({ seat, name, navigate }: { seat: Seat; name: string; nav
   const [sent, setSent] = useState("");
   const [to, setTo] = useState("");
   const [budget, setBudget] = useState<"withdraw" | "set-aside" | "follow">(seat.budget_follows ? "follow" : "withdraw");
+  // v2 agents whose skill link points to GitHub: freeze it on the commit of the handover.
+  const skillLink = seat.version === "v2" ? seat.profile?.manifest ?? null : null;
+  const github = ag.parseGitHub(skillLink);
+  const [head, setHead] = useState<string | null>(null);
+  const [freeze, setFreeze] = useState(true);
+  useEffect(() => {
+    if (!skillLink || !github) return;
+    let alive = true;
+    void ag.latestCommit(skillLink).then((sha) => alive && setHead(sha));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skillLink]);
+  const frozen = freeze && head && skillLink ? ag.pinnedLink(skillLink, head) : null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const slow = useSlow(busy);
@@ -2381,7 +2405,7 @@ function TransferPanel({ seat, name, navigate }: { seat: Seat; name: string; nav
     setError("");
     try {
       if (!(await ag.accountExists(receiver))) throw new Error(`${receiver} does not exist on testnet. Check the spelling.`);
-      await ag.transferSeatNft(seat, receiver, seat.balance === "0" ? "set-aside" : budget);
+      await ag.transferSeatNft(seat, receiver, seat.balance === "0" ? "set-aside" : budget, frozen);
       setSent(receiver);
     } catch (e) {
       setError(ag.friendlyError(e));
@@ -2413,6 +2437,20 @@ function TransferPanel({ seat, name, navigate }: { seat: Seat; name: string; nav
         </li>
         <li>Your agent's key is switched off and deleted from your account in the same request.</li>
       </ul>
+      {github && (
+        <label className="ag-check">
+          <input type="checkbox" checked={freeze && !!head} disabled={!head} onChange={(e) => setFreeze(e.target.checked)} /> Hand it over as
+          it is now: freeze its skill on{" "}
+          {head ? (
+            <>
+              commit <code>{head.slice(0, 7)}</code> of {github.owner}/{github.repo}
+            </>
+          ) : (
+            "the latest commit (reading GitHub…)"
+          )}
+          <span className="ag-muted"> (written on chain with the transfer; your later changes do not reach the new owner)</span>
+        </label>
+      )}
       {seat.balance !== "0" && (
         <fieldset className="ag-budget-choice">
           <legend>Its budget of {ag.formatAsset(seat.balance, seat.asset)}</legend>
