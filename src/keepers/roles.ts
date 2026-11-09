@@ -5,7 +5,7 @@
  * contract only ever sees the seat kind and its policy.
  */
 import type { LucideIcon } from "lucide-react";
-import { BrainCircuit, CalendarClock, Gem, HandCoins, PiggyBank, Plug, ReceiptText, Send, ShoppingBag, Tag } from "lucide-react";
+import { BookOpen, BrainCircuit, CalendarClock, Gem, HandCoins, PiggyBank, Plug, ReceiptText, Send, ShoppingBag, Tag } from "lucide-react";
 import type { Kind } from "./agents";
 
 export type RoleId =
@@ -17,6 +17,7 @@ export type RoleId =
   | "payroll"
   | "byo-payer"
   | "byo-buyer"
+  | "byo-skill"
   | "payer"
   | "buyer";
 
@@ -39,6 +40,8 @@ export type Role = {
    * browser and handed to the user, whose own agent drives the seat over MCP.
    */
   byo?: boolean;
+  /** No money at all: the NFT carries the agent's identity and a link to its skill. */
+  skillOnly?: boolean;
   /** How many payees the role expects. */
   payees: "none" | "one" | "many";
   payeeLabel?: string;
@@ -137,6 +140,18 @@ export const BYO_ROLES: Role[] = [
     byo: true,
     payees: "none",
     defaults: { perTx: "0.5", perDay: "1", budget: "1" },
+  },
+  {
+    // Kind is only a slot in the contract: with no policy and no budget, nothing can be spent.
+    id: "byo-skill",
+    kind: "Payer",
+    name: "Import an agent",
+    tagline: "Put an AI agent or skill you found (a GitHub link) on an NFT, to keep, show or give away. No money involved.",
+    icon: BookOpen,
+    byo: true,
+    skillOnly: true,
+    payees: "none",
+    defaults: { perTx: "0", perDay: "0", budget: "0" },
   },
 ];
 

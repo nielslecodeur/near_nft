@@ -1409,3 +1409,15 @@
   align-items: baseline;
   font-size: var(--type-sm);
 }
+
+/* Skill agents: install steps; sharing an agent with a friend */
+.ag-skill .ag-code,
+.ag-share .ag-code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ag-share {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}

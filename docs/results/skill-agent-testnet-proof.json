@@ -1,0 +1,18 @@
+{
+  "at": "2026-11-09T16:14:08.471Z",
+  "contract": "agents-v2.everkeep-dev-mw0weth5.testnet",
+  "seat_key": "v2-4",
+  "nft": "nft.examples.testnet #character-socratic-tutor-1794240830020",
+  "skill": "https://github.com/janestreet/agent_skills",
+  "checks": [
+    "v2 seat #4: \"Socratic tutor\" on nft.examples.testnet #character-socratic-tutor-1794240830020, skill link on chain, no policy, no budget",
+    "no key and no budget: the agent can move no money",
+    "my friend claims it: same name and skill link, owners = 2 → open /agents/v2-4"
+  ],
+  "transactions": {
+    "mint": "8E5pvsehqhgetq9cJJ5CfxpVYtwFL2LswtNuwXEUZrZZ",
+    "create_seat": "2HLz6gdUd9kCY5vVhFEucE9FUFKgpB4EhiubM6gXHjWU",
+    "nft_transfer": "5tiFctWywZsbxMdwm4mpyeriLycqDVBahd7P97SGyRuv",
+    "claim_seat": "33Y4W5CN4kgiQFVbaoYcaDGEJ7hApTjbfup6ktaYmMKY"
+  }
+}

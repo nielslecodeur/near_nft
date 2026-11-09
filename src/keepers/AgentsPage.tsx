@@ -66,6 +66,7 @@ export const roleFor = (seat: Seat, job?: Job): Role =>
   roleOf(job?.role) ??
   roleOf(ag.byoAgents()[seat.seat_id]?.role) ??
   roleOf(seat.profile?.role) ??
+  (seat.profile?.role === ag.SKILL_ROLE ? roleOf("byo-skill") : undefined) ??
   defaultRole(seat.kind);
 export const nameFor = (seat: Seat, job?: Job) => {
   const role = roleFor(seat, job);
@@ -82,6 +83,8 @@ type Status = { label: string; tone: "up" | "down" | "neutral" | "brand"; note: 
 function statusOf(seat: Seat, job: Job | undefined, nftOwner: string | null, runnerUp: boolean, runnerLocked = false): Status {
   if (nftOwner && nftOwner !== seat.owner)
     return { label: "NFT sold", tone: "down", note: "The NFT changed hands: the agent is stopped.", live: false };
+  if (ag.isSkillSeat(seat))
+    return { label: "Skill", tone: "brand", note: "Carries an AI skill on the NFT: no budget, nothing to spend.", live: false };
   if (!seat.policy) return { label: "Reset", tone: "down", note: "No limits set.", live: false };
   if (seat.paused) return { label: "Paused", tone: "neutral", note: "Resume to let it act again.", live: false };
   if (!seat.agent_key) return { label: "No access", tone: "neutral", note: "Give the agent its key.", live: false };
@@ -299,7 +302,9 @@ function seatModel(
   return {
     id: s.seat_id,
     name: nameFor(s, job),
-    description: imported?.source
+    description: s.profile?.manifest
+      ? s.profile.manifest.replace(/^https:\/\//, "")
+      : imported?.source
       ? imported.source.replace(/^https?:\/\//, "")
       : imported
         ? `Your own AI, ${s.kind === "Payer" ? "pays in USDC" : "buys Keepers"} inside these limits`
@@ -1184,6 +1189,72 @@ function AgentIdentity({ seat, mine, onSaved }: { seat: Seat; mine: boolean; onS
   );
 }
 
+/** "github.com/x/y" -> "https://github.com/x/y" (the contract only takes https links). */
+const httpsLink = (u: string) => (/^https?:\/\//.test(u.trim()) ? u.trim().replace(/^http:/, "https:") : u.trim() ? `https://${u.trim()}` : "");
+
+/** The agent's skill: where it comes from, and how to install it (Claude Code, or any chatbot). */
+function SkillInstall({ seat }: { seat: Seat }) {
+  const link = seat.profile?.manifest || (ag.byoAgents()[seat.seat_id]?.source ? httpsLink(ag.byoAgents()[seat.seat_id]!.source!) : "");
+  const [copied, setCopied] = useState(false);
+  if (!link) return null;
+  const install = ag.skillInstall(link);
+  return (
+    <section className="kp-vault-section ag-skill" aria-labelledby="ag-skill-title">
+      <h2 id="ag-skill-title">Its skill</h2>
+      <p className="ag-muted">
+        This agent is defined by{" "}
+        <a href={link} target="_blank" rel="noreferrer">
+          {link.replace(/^https:\/\//, "")} ↗
+        </a>
+        . The NFT carries the agent's name, its link and its record; the skill itself is installed in your own AI.
+      </p>
+      {install ? (
+        <>
+          <p>
+            <strong>Claude Code</strong> <span className="ag-muted">(installs {install.what} into ~/.claude/skills; macOS, Linux, WSL or Git Bash)</span>
+          </p>
+          <pre className="ag-code">{install.claudeCode}</pre>
+          <div className="ag-buttons">
+            <Button variant="secondary" onClick={() => void navigator.clipboard.writeText(install.claudeCode).then(() => setCopied(true))}>
+              {copied ? "Copied" : "Copy the command"}
+            </Button>
+          </div>
+          <p className="ag-muted">
+            Then ask Claude Code to use it. Any other AI or chatbot: open the skill's <code>SKILL.md</code> on GitHub and paste it as
+            the instructions.
+          </p>
+        </>
+      ) : (
+        <p className="ag-muted">Open the link and follow its instructions to run it in your own AI.</p>
+      )}
+    </section>
+  );
+}
+
+/** A ready-to-send message: the link to the agent, and what the friend does with it. */
+function SharePanel({ seat, name }: { seat: Seat; name: string }) {
+  const [copied, setCopied] = useState(false);
+  const message = ag.shareMessage(seat, name);
+  const local = ag.isLocalUrl(ag.PUBLIC_URL);
+  return (
+    <div className="ag-share">
+      <strong>Tell your friend</strong>
+      <pre className="ag-code">{message}</pre>
+      <div className="ag-buttons">
+        <Button variant="primary" onClick={() => void navigator.clipboard.writeText(message).then(() => setCopied(true))}>
+          {copied ? "Copied" : "Copy the message"}
+        </Button>
+      </div>
+      {local && (
+        <p className="ag-muted">
+          This link points at this computer ({ag.PUBLIC_URL}). It works for your friend once the app is hosted (set VITE_PUBLIC_URL), or on
+          their own copy of the app.
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** One feed entry's identity across reads: its seat and its sequence number in that seat's log. */
 const feedKey = (e: { seat: Seat; seq: string }) => `${e.seat.seat_id}-${e.seq}`;
 
@@ -1501,7 +1572,15 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usdc, role.id]);
 
-  const problems = [
+  const skillLink = ident.source.trim();
+  const problems = role.skillOnly
+    ? [
+        !pick ? "Pick the NFT that will carry the agent." : "",
+        pick && taken[`${pick.contract}:${pick.token_id}`] ? "This NFT already has an agent." : "",
+        !d.name.trim() ? "Give it a name." : "",
+        !skillLink ? "Paste the link to the agent or skill (GitHub)." : "",
+      ].filter(Boolean)
+    : [
     !pick ? "Pick the NFT that will carry the agent." : "",
     pick && taken[`${pick.contract}:${pick.token_id}`] ? "This NFT already has an agent." : "",
     !perTx || perTx <= 0n ? "Set the cap per action." : "",
@@ -1518,7 +1597,9 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
     !role.byo && role.kind === "Buyer" && !maxPrice ? "Set the highest price per card." : "",
   ].filter(Boolean);
 
-  const summary = role.byo
+  const summary = role.skillOnly
+    ? `${d.name.trim() || "Your agent"} goes on the NFT with a link to its skill${ag.parseGitHub(httpsLink(skillLink)) ? " on GitHub" : ""}, written on chain. No budget, no key, nothing to spend: whoever owns the NFT owns this agent card, and anyone you send it to gets the install steps.`
+    : role.byo
     ? `Your own AI agent will ${role.kind === "Buyer" ? "buy Keepers in NEAR" : `pay in USDC, only to ${payees.length ? payees.map(shortAccount).join(", ") : "?"}`}, never more than ${d.perTx} ${asset} at once or ${d.perDay} ${asset} a day, from a ${d.budget} ${asset} budget. You get its key as a file; the contract enforces the limits whatever the AI decides.`
     : role.kind === "Buyer"
       ? `${d.name || role.name} will buy Keepers${Number(d.minTier) > 0 ? ` (${TIERS[Number(d.minTier)]} or better)` : ""} listed under ${d.maxPrice || "?"} NEAR, at most ${d.perTx} NEAR per card and ${d.perDay} NEAR a day, from a ${d.budget} NEAR budget.`
@@ -1539,15 +1620,21 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
         const source = ident.source.trim();
         const profile = ag.profileFor({
           name: d.name.trim() || role.name,
-          role: role.id,
+          role: role.skillOnly ? ag.SKILL_ROLE : role.id,
           tool: role.byo ? ident.tool : "runner",
           avatar: role.byo ? ident.avatar : null,
-          manifest: role.byo && source ? (/^https?:\/\//.test(source) ? source.replace(/^http:/, "https:") : `https://${source}`) : null,
+          manifest: role.byo && source ? httpsLink(source) : null,
         });
-        const id = await ag.createSeat(pick!.contract, pick!.token_id, role.kind, policy, profile);
+        // An identity-only agent has no policy: the contract lets it spend nothing.
+        const id = await ag.createSeat(pick!.contract, pick!.token_id, role.kind, role.skillOnly ? null : policy, profile);
         if (!id) throw new Error("The contract could not confirm you own this NFT. Your 0.1 NEAR was returned.");
         s = await ag.getSeat(id);
         setSeat(s);
+        if (role.skillOnly) {
+          setPhase("done");
+          navigate(`/agents/${id}`);
+          return;
+        }
       }
       setPhase("funding");
       if (role.byo) {
@@ -1733,11 +1820,15 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
               </Select>
               <Input label="Its name" placeholder="My trading bot" value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />
               <Input
-                label="Source (optional)"
-                placeholder="github.com/you/your-agent"
+                label={role.skillOnly ? "Link to the agent or skill" : "Source (optional)"}
+                placeholder={role.skillOnly ? "github.com/janestreet/agent_skills" : "github.com/you/your-agent"}
                 value={ident.source}
                 onChange={(e) => setIdent({ ...ident, source: e.target.value })}
-                hint="Shown on its card as a link. We never run its code."
+                hint={
+                  role.skillOnly
+                    ? "Written on chain with the agent; a GitHub link also gets one-command install steps. We never run its code."
+                    : "Shown on its card as a link. We never run its code."
+                }
               />
               <div className="ag-avatar-field">
                 <span className="ag-avatar-preview" aria-hidden="true">
@@ -1779,8 +1870,14 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
                     }}
                   >
                     <Icon aria-hidden="true" />
-                    <strong>{r.kind === "Payer" ? "Pay in USDC" : "Buy Keepers in NEAR"}</strong>
-                    <span>{r.kind === "Payer" ? "Only to the accounts you list." : "Only on the Keepers market."}</span>
+                    <strong>{r.skillOnly ? "Just its identity" : r.kind === "Payer" ? "Pay in USDC" : "Buy Keepers in NEAR"}</strong>
+                    <span>
+                      {r.skillOnly
+                        ? "No money: its name and a link to its skill, on the NFT."
+                        : r.kind === "Payer"
+                          ? "Only to the accounts you list."
+                          : "Only on the Keepers market."}
+                    </span>
                   </button>
                 );
               })}
@@ -1788,6 +1885,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
           </section>
         )}
 
+        {!role.skillOnly && (
         <section className="ag-panel" aria-labelledby="ag-limits">
           <h2 id="ag-limits">
             <RoleIcon aria-hidden="true" className="ag-inline-icon" /> {role.byo ? "Its limits" : `${role.name}: rules`}
@@ -1854,6 +1952,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
             />
           </div>
         </section>
+        )}
       </div>
 
       <aside className="ag-hire-side">
@@ -1880,6 +1979,15 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       </div>
       <section className="ag-confirm" aria-label="Confirm">
         <p className="ag-summary">{summary}</p>
+        {role.skillOnly ? (
+          <ol className="ag-sign-steps">
+            <li data-state={phase === "creating" ? "now" : "todo"}>
+              One signature: put it on {pick ? `${pick.label} #${pick.token_id}` : "your NFT"} with its name and link on chain (0.1 NEAR
+              storage, refunded if you close it).
+            </li>
+            <li data-state="todo">Then send the NFT to anyone: they claim the agent and get the steps to install its skill.</li>
+          </ol>
+        ) : (
         <ol className="ag-sign-steps">
           <li data-state={seat ? "done" : phase === "creating" ? "now" : "todo"}>Signature 1: create the agent on {pick ? `${pick.label} #${pick.token_id}` : "your NFT"}, with its limits on chain (0.1 NEAR storage, refunded on close).</li>
           <li data-state={phase === "done" ? "done" : phase === "funding" ? "now" : "todo"}>
@@ -1887,8 +1995,9 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
           </li>
           <li data-state={phase === "done" ? "done" : "todo"}>Then nothing: it works on its own. Call it any time from the Ask bar.</li>
         </ol>
+        )}
         <Button variant="primary" icon={KeyRound} busy={busy} disabled={problems.length > 0 || busy} onClick={() => void hire()}>
-          {seat ? "Fund and start it" : `Hire the ${role.name}`}
+          {role.skillOnly ? "Put it on the NFT" : seat ? "Fund and start it" : `Hire the ${role.name}`}
         </Button>
         {problems.length > 0 && !busy && (
           <p className="ag-problems" role="status">
@@ -2216,7 +2325,8 @@ function TakeOverPanel({
  * Hand the NFT to someone else. One wallet request: take the budget back
  * (optional), switch this agent off and delete its key, then transfer the NFT.
  */
-function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
+function TransferPanel({ seat, name, navigate }: { seat: Seat; name: string; navigate: Nav }) {
+  const [sent, setSent] = useState("");
   const [to, setTo] = useState("");
   const [budget, setBudget] = useState<"withdraw" | "set-aside" | "follow">(seat.budget_follows ? "follow" : "withdraw");
   const [busy, setBusy] = useState(false);
@@ -2231,13 +2341,26 @@ function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
     try {
       if (!(await ag.accountExists(receiver))) throw new Error(`${receiver} does not exist on testnet. Check the spelling.`);
       await ag.transferSeatNft(seat, receiver, seat.balance === "0" ? "set-aside" : budget);
-      navigate("/agents");
+      setSent(receiver);
     } catch (e) {
       setError(ag.friendlyError(e));
     } finally {
       setBusy(false);
     }
   }
+
+  if (sent)
+    return (
+      <div className="ag-transfer">
+        <Notice tone="success" title={`Sent to ${shortAccount(sent)}`}>
+          The NFT is theirs. They claim the agent from its page with one signature.{" "}
+          <button type="button" className="ag-qs-change" onClick={() => navigate("/agents")}>
+            Back to my agents
+          </button>
+        </Notice>
+        <SharePanel seat={seat} name={name} />
+      </div>
+    );
 
   return (
     <details className="ag-transfer">
@@ -2414,7 +2537,8 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         </div>
         <div className="ag-detail-info">
           <p className="ag-detail-role">
-            <RoleIcon aria-hidden="true" className="ag-inline-icon" /> {role.name}, {seat.kind === "Buyer" ? "spends NEAR" : "pays USDC"}
+            <RoleIcon aria-hidden="true" className="ag-inline-icon" />{" "}
+            {ag.isSkillSeat(seat) ? "Agent skill on an NFT, no money" : `${role.name}, ${seat.kind === "Buyer" ? "spends NEAR" : "pays USDC"}`}
           </p>
           <h1>
             {nameFor(seat, job)} <Badge tone={st.tone}>{st.label}</Badge>
@@ -2426,6 +2550,12 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
             </a>
             , owned by {shortAccount(seat.owner)}. {st.note}
           </p>
+          {ag.isSkillSeat(seat) ? (
+            <p className="ag-muted">
+              Whoever owns this NFT owns the agent card: its name, its skill link and its record. Send the NFT and it changes hands.
+            </p>
+          ) : (
+          <>
           <div className="ag-detail-money">
             <span className="ag-muted">Budget left</span>
             <strong className="kp-num">{ag.formatAsset(seat.balance, seat.asset)}</strong>
@@ -2440,6 +2570,8 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
               sub={seat.agent_key ? `${seat.agent_key.slice(0, 16)}…` : undefined}
             />
           </div>
+          </>
+          )}
         </div>
       </section>
       {notice}
@@ -2468,7 +2600,17 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         </Notice>
       )}
       {mine && <RunnerLockedNotice runner={runner} />}
-      {mine && nftOwner === account && !seat.policy && (
+      {!account && (
+        <Notice tone="info" title="Was this NFT sent to you?">
+          Connect your NEAR testnet wallet: if you own it now, you can claim this agent{seat.profile ? ` (${seat.profile.name})` : ""} with one
+          signature.{" "}
+          <Button variant="primary" icon={WalletIcon} onClick={() => void wallet.connect()}>
+            Connect my wallet
+          </Button>
+        </Notice>
+      )}
+      <SkillInstall seat={seat} />
+      {mine && nftOwner === account && !seat.policy && !ag.isSkillSeat(seat) && (
         <TakeOverPanel seat={seat} account={account} navigate={navigate} onDone={() => void load()} />
       )}
 
@@ -2478,6 +2620,8 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         <section className="kp-vault-section">
           <h2>Rules and mission</h2>
           <AgentIdentity seat={seat} mine={mine && nftOwner === account} onSaved={() => void load()} />
+          {ag.isSkillSeat(seat) && <p className="ag-muted">No budget and no limits: this agent carries its identity and its skill only.</p>}
+          {!ag.isSkillSeat(seat) && (
           <dl className="ag-dl">
             <dt>Cap per action</dt>
             <dd>{seat.policy ? ag.formatAsset(seat.policy.per_tx_max, seat.asset) : "—"}</dd>
@@ -2553,6 +2697,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
               )}
             </dd>
           </dl>
+          )}
           {mine && job && (
             <form
               className="kp-action-row"
@@ -2666,7 +2811,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
               </label>
             )}
             <p className="kp-hint">These need your wallet. The agent's key can do none of them.</p>
-            {nftOwner === account && <TransferPanel seat={seat} navigate={navigate} />}
+            {nftOwner === account && <TransferPanel seat={seat} name={nameFor(seat, job)} navigate={navigate} />}
           </section>
         )}
       </div>
