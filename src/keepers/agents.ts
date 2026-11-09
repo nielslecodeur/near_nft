@@ -598,8 +598,39 @@ async function runnerFetch<T>(path: string, init?: RequestInit, interactive = tr
   }
 }
 
+/**
+ * A hosted page only looks for a runner on the visitor's own computer once they
+ * say they run one: probing 127.0.0.1 from a website otherwise just fills the
+ * console with blocked requests. Local pages and a configured runner always look.
+ */
+const RUNNER_OPT_IN = "agentwallet.runner.local";
+export function runnerWanted() {
+  if (import.meta.env.VITE_AGENTS_RUNNER) return true;
+  if (/\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(location.origin)) return true;
+  try {
+    return localStorage.getItem(RUNNER_OPT_IN) === "1";
+  } catch {
+    return false;
+  }
+}
+export function setLocalRunner(on: boolean) {
+  try {
+    if (on) localStorage.setItem(RUNNER_OPT_IN, "1");
+    else localStorage.removeItem(RUNNER_OPT_IN);
+  } catch {
+    /* private mode: nothing to remember */
+  }
+}
+/** The command that starts a runner this page may reach. */
+export const runnerCommand = () =>
+  /\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(location.origin)
+    ? "npm run agent:runner"
+    : `AGENTS_RUNNER_ORIGINS="${location.origin}" npm run agent:runner`;
+
 export const runnerHealth = () =>
-  runnerRequest<{ agents: string; tick_seconds: number }>("/health");
+  runnerWanted()
+    ? runnerRequest<{ agents: string; tick_seconds: number }>("/health")
+    : Promise.reject(new Error("No runner on this computer (not enabled on this site)."));
 export const runnerNewKey = (accountId: string) =>
   runnerFetch<{ publicKey: string }>(
     "/keys",

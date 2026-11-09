@@ -814,9 +814,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
         </Notice>
       )}
       {!readOnly && runner.checked && !runner.up && (
-        <Notice tone="info" title="The agent runner is offline">
-          Agents only act while it runs: <code>npm run agent:runner</code>. Budgets and limits stay safe on chain.
-        </Notice>
+        <RunnerOffline />
       )}
       {!readOnly && <RunnerLockedNotice runner={runner} />}
       {notice}
@@ -1186,6 +1184,32 @@ function AgentIdentity({ seat, mine, onSaved }: { seat: Seat; mine: boolean; onS
         </div>
       )}
     </div>
+  );
+}
+
+/** No runner reachable: what still works, and how to plug one in (on a hosted site, only after an opt-in). */
+export function RunnerOffline() {
+  if (!ag.runnerWanted())
+    return (
+      <Notice tone="info" title="Built-in roles need a runner">
+        Collector, Subscriptions, Allowance and the guided first agent act through a small program on your own computer. Everything
+        else here works without it: your agents, the Market, importing your own AI, transfers and claims.{" "}
+        <button
+          type="button"
+          className="ag-qs-change"
+          onClick={() => {
+            ag.setLocalRunner(true);
+            location.reload();
+          }}
+        >
+          I run one on this computer
+        </button>
+      </Notice>
+    );
+  return (
+    <Notice tone="info" title="The agent runner is offline">
+      Agents only act while it runs: <code>{ag.runnerCommand()}</code>. Budgets and limits stay safe on chain.
+    </Notice>
   );
 }
 
