@@ -1826,9 +1826,9 @@ function ConnectYourAi({
       </header>
       <ol className="ag-connect-steps">
         <li>
-          <strong>Put the key file at the root of this repo.</strong> It can only call <code>agent_pay</code>,{" "}
-          <code>agent_buy</code> and <code>pause</code>, with no deposit: it cannot withdraw or move your NFT. Never commit
-          it (it is gitignored).
+          <strong>Keep the key file in a folder of your own</strong> (not a synced or shared one). It can only call{" "}
+          <code>agent_pay</code>, <code>agent_buy</code> and <code>pause</code>, with no deposit: it cannot withdraw or move
+          your NFT. Never commit or share it.
           <div className="ag-buttons">
             <Button icon={Download} onClick={() => ag.downloadJson(keyName, file)}>
               Download again
@@ -1978,7 +1978,7 @@ function TakeOverPanel({
         <div className="ag-room" aria-hidden="true" />
         <h2 id="ag-takeover-title">Your agent is set up: connect your AI</h2>
         <p className="ag-muted">
-          The key file <code>{connect.file}</code> was downloaded. Put it at the root of this repo. {connect.where}:
+          The key file <code>{connect.file}</code> was downloaded. Keep it in a folder of your own. {connect.where}:
         </p>
         <pre className="ag-code">{connect.snippet}</pre>
         <div className="ag-buttons">

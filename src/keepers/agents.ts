@@ -672,36 +672,50 @@ export function downloadJson(filename: string, data: unknown) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** What to run so an MCP agent drives this seat. */
-export const mcpCommand = (file: string) => `node scripts/agent-mcp-launch.mjs --key ./${file}`;
+/**
+ * The MCP server as ONE file that plain `node` (18+) runs: no clone, no npm
+ * install. Built by `npm run build:mcp` into public/mcp/ and committed, so the
+ * raw GitHub URL works even before the site is hosted.
+ */
+export const MCP_BUNDLE_URL =
+  import.meta.env.VITE_MCP_BUNDLE_URL ||
+  "https://raw.githubusercontent.com/nielslecodeur/near_nft/keepers/public/mcp/agent-wallet.mjs";
+
+/** Downloads the bundle next to the key file; works in bash, zsh, PowerShell and cmd (node only). */
+export const mcpDownload = `node -e "fetch('${MCP_BUNDLE_URL}').then(r=>r.text()).then(t=>require('fs').writeFileSync('agent-wallet.mjs',t))"`;
+
+/** What to run so an MCP agent drives this seat (from the folder holding both files). */
+export const mcpCommand = (file: string) => `node agent-wallet.mjs --key ${file}`;
 
 /**
- * How to register the seat's MCP server in each tool, from a clone of this repo
- * with the key file at its root. Returns where it goes and what to paste.
+ * How to register the seat's MCP server in each tool: download the one-file
+ * server next to the key file, then point the tool at both with full paths.
+ * Returns where it goes and what to paste.
  */
 export function mcpSetup(tool: AgentTool, name: string, file: string) {
-  // The launcher starts the one-file bundle (npm run build:mcp) in under a
-  // second, or falls back to tsx from source when there is no bundle.
-  const args = ["scripts/agent-mcp-launch.mjs", "--key", `./${file}`];
+  const dir = "<folder with the key file>";
+  const args = [`${dir}/agent-wallet.mjs`, "--key", `${dir}/${file}`];
   const json = JSON.stringify({ mcpServers: { [name]: { command: "node", args } } }, null, 2);
   switch (tool) {
     case "claude-code":
       return {
-        where: "In a terminal, at the root of this repo (or add the JSON to .mcp.json)",
-        snippet: `claude mcp add ${name} -- node ${args.join(" ")}`,
+        where: "In a terminal, in the folder where you saved the key file",
+        snippet: `${mcpDownload}
+claude mcp add ${name} -- node "$PWD/agent-wallet.mjs" --key "$PWD/${file}"`,
       };
     case "codex":
       return {
-        where: "In ~/.codex/config.toml",
-        snippet: `[mcp_servers.${name}]
+        where: "Download the server next to the key file, then add this to ~/.codex/config.toml",
+        snippet: `${mcpDownload}
+
+[mcp_servers.${name}]
 command = "node"
-args = [${args.map((a) => `"${a}"`).join(", ")}]
-cwd = "<path to this repo>"`,
+args = [${args.map((a) => `"${a}"`).join(", ")}]`,
       };
     case "cursor":
-      return { where: "In .cursor/mcp.json at the root of this repo", snippet: json };
+      return { where: "Download the server next to the key file, then add this to .cursor/mcp.json", snippet: `${mcpDownload}\n\n${json}` };
     default:
-      return { where: "In your agent's MCP settings (stdio server, run from this repo)", snippet: json };
+      return { where: "Download the server next to the key file, then add this stdio server to your agent's MCP settings", snippet: `${mcpDownload}\n\n${json}` };
   }
 }
 

@@ -30,11 +30,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { MemoryStore, Runner } from "./agent-runner-core.js";
+// Bundled in, so the one-file build (public/mcp/agent-wallet.mjs) runs anywhere, without the repo.
+import pub from "../public/testnet.json";
+import publicDemoKey from "../demo/agent-key.json";
 
 const RPC = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 const RUNNER = process.env.AGENTS_RUNNER || "http://127.0.0.1:8788";
 const EXPLORER = "https://testnet.nearblocks.io";
-const pub = JSON.parse(await readFile(new URL("../public/testnet.json", import.meta.url), "utf8"));
 const AGENTS: string = process.env.AGENTS_CONTRACT || pub.agents.contract;
 const MARKET: string = pub.keepers.contract;
 const log = (...a: unknown[]) => console.error("[agent-mcp]", ...a);
@@ -45,6 +47,19 @@ const log = (...a: unknown[]) => console.error("[agent-mcp]", ...a);
  *                 hired "Your AI agent"); everything that key may do
  *   --demo        the public demo agent (demo/agent-key.json), agent_pay only
  */
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  console.error(`Agent Wallet MCP server (stdio). NEAR testnet, agents contract ${AGENTS}.
+
+  node agent-wallet.mjs --demo              drive the public demo agent (no wallet, no setup)
+  node agent-wallet.mjs --key <file>        drive YOUR agent with the key file the Agent Wallet gave you
+  node agent-wallet.mjs                     drive the agents of a local runner (npm run agent:runner)
+
+Register it, e.g. in Claude Code:  claude mcp add agent-wallet -- node /path/agent-wallet.mjs --key /path/agent-12-key.json
+Tools: list_agents, agent_status, list_market, pay, buy, pause. The contract enforces every limit.
+Env: AGENTS_KEY_FILE, AGENTS_DEMO=1, AGENTS_ACCOUNT, AGENTS_RUNNER, AGENTS_RUNNER_TOKEN, NEAR_TESTNET_RPC.
+Docs: https://github.com/nielslecodeur/near_nft/blob/keepers/AGENTS.md`);
+  process.exit(0);
+}
 const keyArg = process.argv.indexOf("--key");
 const KEY_FILE =
   keyArg > 0 ? process.argv[keyArg + 1] : process.env.AGENTS_KEY_FILE || null;
@@ -53,7 +68,7 @@ type DemoKey = { account_id: string; seat_id: string; public_key: string; secret
 const demoKey: DemoKey | null = KEY_FILE
   ? JSON.parse(await readFile(KEY_FILE, "utf8"))
   : DEMO_MODE
-    ? JSON.parse(await readFile(new URL("../demo/agent-key.json", import.meta.url), "utf8"))
+    ? (publicDemoKey as DemoKey)
     : null;
 /** In demo mode the server signs itself with the public key (no runner needed). */
 const demoRunner = demoKey

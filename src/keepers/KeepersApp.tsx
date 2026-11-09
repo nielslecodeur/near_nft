@@ -293,6 +293,10 @@ export function KeepersApp() {
             v1 collection (legacy)
           </a>
         </span>
+        <span>
+          For AI agents: <a href="/llms.txt">llms.txt</a> · <a href="/abi/agents.json">contract ABI</a> ·{" "}
+          <a href="/openapi/runner.json">runner API</a> · <a href="/mcp/agent-wallet.mjs" download>MCP server</a>
+        </span>
         <span>Testnet only · test NEAR has no monetary value</span>
       </footer>
     </div>

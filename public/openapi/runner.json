@@ -1,0 +1,156 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Agent Wallet runner",
+    "version": "1.0.0",
+    "summary": "Local service that holds agent keys and acts for agents on NEAR testnet.",
+    "description": "The runner (scripts/agent-runner.ts, `npm run agent:runner`) listens on 127.0.0.1 only. It holds function-call keys that can call only agent_pay, agent_buy and pause on the agents contract, with no deposit; the contract enforces every limit (cap per action, daily cap, allowed payees, market, budget) and logs every refusal. Every route except /health and /auth/* needs `Authorization: Bearer <token>`: a 12-hour session token obtained by signing a NEP-413 challenge with a FullAccess key of the account (scoped to that account's agents), or the admin token the runner writes to .local/runner-token at each start (for local tools such as the MCP server). Requests must use Host 127.0.0.1 or localhost; browser requests from origins other than the Agent Wallet get 403.",
+    "license": { "name": "MIT", "identifier": "MIT" }
+  },
+  "servers": [{ "url": "http://127.0.0.1:8788", "description": "Local runner (default port; AGENTS_RUNNER_PORT)" }],
+  "security": [{ "bearer": [] }],
+  "tags": [
+    { "name": "auth", "description": "NEP-413 sign-in" },
+    { "name": "jobs", "description": "Agent missions run by the runner" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Is the runner up, and on which contract",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Up",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "agents": { "type": "string", "example": "agents-v1.everkeep-dev-mw0weth5.testnet" }, "tick_seconds": { "type": "integer", "example": 20 }, "auth": { "const": "nep413" } } } } }
+          }
+        }
+      }
+    },
+    "/auth/challenge": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Get a single-use challenge to sign (valid 5 minutes)",
+        "security": [],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["accountId"], "properties": { "accountId": { "$ref": "#/components/schemas/AccountId" } } } } } },
+        "responses": {
+          "200": {
+            "description": "Sign `message` with recipient `recipient` and the 32-byte `nonce` (base64) as a NEP-413 message",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "nonce": { "type": "string", "description": "32 bytes, base64" }, "message": { "type": "string" }, "recipient": { "const": "agent-wallet-runner" } } } } }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/auth/session": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Trade a signed challenge for a session token",
+        "description": "The runner checks the ed25519 signature over the NEP-413 payload and that `publicKey` is a FullAccess key of `accountId` on chain. A function-call key (such as an agent key) is refused.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["nonce", "accountId", "publicKey", "signature"], "properties": { "nonce": { "type": "string" }, "accountId": { "$ref": "#/components/schemas/AccountId" }, "publicKey": { "type": "string", "example": "ed25519:..." }, "signature": { "type": "string", "description": "base64 (or ed25519:<base58>)" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Session", "content": { "application/json": { "schema": { "type": "object", "properties": { "token": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "accountId": { "type": "string" }, "expiresAt": { "type": "integer", "description": "ms since epoch" } } } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": { "tags": ["auth"], "summary": "Who this token is", "responses": { "200": { "description": "Principal", "content": { "application/json": { "schema": { "oneOf": [{ "type": "object", "properties": { "admin": { "const": true } } }, { "type": "object", "properties": { "admin": { "const": false }, "accountId": { "type": "string" } } }] } } } }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/auth/logout": {
+      "post": { "tags": ["auth"], "summary": "Revoke this session token", "responses": { "200": { "description": "Done" } } }
+    },
+    "/keys": {
+      "post": {
+        "tags": ["jobs"],
+        "summary": "Create an agent key for an account (the secret never leaves the runner)",
+        "description": "Returns the public key. The owner then adds it to their account as a function-call key (agents contract, agent_pay / agent_buy / pause) and registers it on the seat with set_agent_key, in one wallet request.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["accountId"], "properties": { "accountId": { "$ref": "#/components/schemas/AccountId" } } } } } },
+        "responses": { "200": { "description": "Key", "content": { "application/json": { "schema": { "type": "object", "properties": { "publicKey": { "type": "string" } } } } } }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "$ref": "#/components/responses/Forbidden" } }
+      }
+    },
+    "/jobs": {
+      "get": {
+        "tags": ["jobs"],
+        "summary": "List missions (a session sees only its own account's)",
+        "parameters": [{ "name": "accountId", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Admin token only; ignored for sessions" }],
+        "responses": { "200": { "description": "Jobs", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Job" } } } } }, "401": { "$ref": "#/components/responses/Unauthorized" } }
+      }
+    },
+    "/jobs/{seatId}": {
+      "parameters": [{ "$ref": "#/components/parameters/SeatId" }],
+      "put": {
+        "tags": ["jobs"],
+        "summary": "Create or replace the mission of a seat",
+        "description": "`publicKey` must be a key this runner created for `accountId`. Replacing another account's job is allowed only to the seat's current owner on chain (after an NFT transfer and claim_seat).",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobInput" } } } },
+        "responses": { "200": { "description": "Saved", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } } }, "400": { "$ref": "#/components/responses/Error" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "$ref": "#/components/responses/Forbidden" } }
+      },
+      "delete": {
+        "tags": ["jobs"],
+        "summary": "Delete the mission (the key and the seat stay)",
+        "responses": { "200": { "description": "Deleted", "content": { "application/json": { "schema": { "type": "object", "properties": { "deleted": { "type": "string" } } } } } }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "$ref": "#/components/responses/Forbidden" } }
+      }
+    },
+    "/jobs/{seatId}/run": {
+      "parameters": [{ "$ref": "#/components/parameters/SeatId" }],
+      "post": { "tags": ["jobs"], "summary": "Run the mission once now", "responses": { "200": { "description": "What happened", "content": { "application/json": { "schema": { "type": "object", "properties": { "result": { "type": "string" } } } } } }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "$ref": "#/components/responses/Forbidden" }, "404": { "$ref": "#/components/responses/Error" } } }
+    },
+    "/jobs/{seatId}/pause": {
+      "parameters": [{ "$ref": "#/components/parameters/SeatId" }],
+      "post": { "tags": ["jobs"], "summary": "Pause the seat on chain with the agent's own key (no wallet)", "responses": { "200": { "description": "Paused", "content": { "application/json": { "schema": { "type": "object", "properties": { "tx": { "type": "string" } } } } } }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "$ref": "#/components/responses/Forbidden" } } }
+    },
+    "/jobs/{seatId}/act": {
+      "parameters": [{ "$ref": "#/components/parameters/SeatId" }],
+      "post": {
+        "tags": ["jobs"],
+        "summary": "One action now: pay (Payer) or buy (Buyer)",
+        "description": "Signed with the agent key. The contract decides: `ok` is false when it refused (the reason is in the seat's log, e.g. 'over the daily cap').",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "oneOf": [
+            { "type": "object", "required": ["action", "payee", "amount"], "properties": { "action": { "const": "pay" }, "payee": { "$ref": "#/components/schemas/AccountId" }, "amount": { "type": "string", "description": "USDC units, 6 decimals (\"1000000\" = 1 USDC)" }, "memo": { "type": "string" } } },
+            { "type": "object", "required": ["action", "token_id", "listing_id", "price"], "properties": { "action": { "const": "buy" }, "token_id": { "type": "string" }, "listing_id": { "type": "string" }, "price": { "type": "string", "description": "yoctoNEAR, the listing's exact price" } } }
+          ] } } }
+        },
+        "responses": { "200": { "description": "Outcome", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" }, "tx": { "type": "string" }, "result": { "type": "string" } } } } } }, "400": { "$ref": "#/components/responses/Error" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "$ref": "#/components/responses/Forbidden" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "bearer": { "type": "http", "scheme": "bearer", "description": "Session token from /auth/session, or the admin token in .local/runner-token" } },
+    "parameters": { "SeatId": { "name": "seatId", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[0-9]+$" } } },
+    "responses": {
+      "Error": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Unauthorized": { "description": "Sign in first (code: auth)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Forbidden": { "description": "Another account's agent, unknown Host, or a foreign browser origin", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    },
+    "schemas": {
+      "AccountId": { "type": "string", "pattern": "^[a-z0-9._-]{2,64}$", "example": "alice.testnet" },
+      "Error": { "type": "object", "properties": { "error": { "type": "string" }, "code": { "type": "string" } } },
+      "Payment": { "type": "object", "required": ["payee", "amount", "everySeconds"], "properties": { "payee": { "$ref": "#/components/schemas/AccountId" }, "amount": { "type": "string", "description": "USDC units, 6 decimals" }, "everySeconds": { "type": "integer", "minimum": 60 }, "memo": { "type": "string" } } },
+      "JobInput": {
+        "type": "object",
+        "required": ["accountId", "publicKey", "kind"],
+        "properties": {
+          "accountId": { "$ref": "#/components/schemas/AccountId" },
+          "publicKey": { "type": "string" },
+          "kind": { "enum": ["Buyer", "Payer"] },
+          "role": { "type": "string", "description": "Display only (collector, allowance, ...)" },
+          "name": { "type": "string", "description": "Display only" },
+          "buyer": { "type": "object", "properties": { "maxPrice": { "type": "string", "description": "yoctoNEAR" }, "minTier": { "type": "integer", "minimum": 0, "maximum": 3 } } },
+          "payer": { "type": "object", "properties": { "payments": { "type": "array", "items": { "$ref": "#/components/schemas/Payment" } } } }
+        }
+      },
+      "Job": {
+        "allOf": [
+          { "$ref": "#/components/schemas/JobInput" },
+          { "type": "object", "properties": { "seatId": { "type": "string" }, "lastPaid": { "type": "object", "additionalProperties": { "type": "integer" } }, "lastRun": { "type": "integer" }, "lastResult": { "type": "string" } } }
+        ]
+      }
+    }
+  }
+}
