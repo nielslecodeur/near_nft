@@ -4,6 +4,7 @@
  * stands in for a third-party NFT collection) and a real NEP-141 as USDC.
  * The agent signs with a real function-call key on the owner's account.
  * Run: npm run test:agents  (WSL/Linux; needs ~/.near/sandbox/near-sandbox)
+ * AGENTS_WASM=artifacts/agents_v2.wasm replays every check against v2.
  */
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
@@ -16,6 +17,8 @@ const USDC = 1_000_000n; // 6 decimals
 const GAS = 300_000_000_000_000n;
 const MINT_COST = N + N / 50n;
 const SEAT_STORAGE = N / 10n;
+const WASM = process.env.AGENTS_WASM || "artifacts/agents.wasm";
+const OUT = WASM.includes("v2") ? "docs/results/agents-v2-replay-sandbox.json" : "docs/results/agents-sandbox.json";
 const checks: string[] = [];
 const gas: Record<string, string> = {};
 const pass = (name: string) => {
@@ -75,7 +78,7 @@ try {
       tokens: [usdc.accountId],
     });
   }
-  assert.ok((await agents.deploy("artifacts/agents.wasm")).succeeded);
+  assert.ok((await agents.deploy(WASM)).succeeded);
   await agents.call(agents, "new", { usdc: usdc.accountId });
   pass("deploy: agents + two NEP-171 collections + USDC (NEP-141)");
 
@@ -417,18 +420,13 @@ try {
 
   const result = {
     at: new Date().toISOString(),
-    wasm: "artifacts/agents.wasm",
+    wasm: WASM,
     checks,
     gas_burnt: gas,
     final_stats: await agents.view("stats"),
   };
-  await writeFile(
-    "docs/results/agents-sandbox.json",
-    JSON.stringify(result, null, 2) + "\n",
-  );
-  console.log(
-    `\n${checks.length} sandbox checks passed → docs/results/agents-sandbox.json`,
-  );
+  await writeFile(OUT, JSON.stringify(result, null, 2) + "\n");
+  console.log(`\n${checks.length} sandbox checks passed (${WASM}) → ${OUT}`);
 } finally {
   await chain.tearDown();
 }

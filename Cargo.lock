@@ -16,6 +16,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "agents-v2"
+version = "2.0.0"
+dependencies = [
+ "near-sdk",
+]
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
