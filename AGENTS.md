@@ -117,8 +117,9 @@ A refused action does not panic: it returns `false` and writes a `refused` log e
 detail`; status is `done`, `refused`, `failed`, `info` or `pending`), `refund_of({account_id})`,
 `stats()`, `config()`.
 
-Events: NEP-297 `EVENT_JSON` logs with `standard: "agents"`: `seat_reset`, `seat_claimed`,
-`claim_refused`, `seat_closed`, `refund_credited`.
+Events: NEP-297 `EVENT_JSON` logs with `standard: "agents"`: `agent_log` (every log entry, refusals
+included: `seat_id, seq, action, status, amount, counterparty, detail`), `seat_reset`, `seat_claimed`,
+`claim_refused`, `seat_closed`, `refund_credited`. An indexer can rebuild a seat's full history from them.
 
 ### Call it without MCP (near-api-js v7)
 
