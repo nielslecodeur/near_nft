@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 const root = createRoot(document.getElementById("root")!);
 // The hackathon app is the Agent Wallet: the bare domain opens it.
 if (location.pathname === "/") history.replaceState(null, "", "/agents" + location.search);
-if (/^\/(keepers|vault|agents)(\/|$)/.test(location.pathname)) {
+if (/^\/(keepers|vault|agents|market)(\/|$)/.test(location.pathname)) {
   void import("./keepers/KeepersApp").then(({ KeepersApp }) =>
     root.render(<KeepersApp />),
   );

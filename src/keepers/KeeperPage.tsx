@@ -99,7 +99,7 @@ export function KeeperPage({
   const [done, setDone] = useState<Done | null>(null);
   const [busy, setBusy] = useState("");
   const [revision, setRevision] = useState(0);
-  const home = version === "v1" ? "/keepers/v1" : "/keepers";
+  const home = version === "v1" ? "/keepers/v1" : "/market";
 
   const load = useCallback(async () => {
     try {
@@ -158,7 +158,7 @@ export function KeeperPage({
           <p>Keeper #{id} does not exist yet.</p>
         )}
         <Button icon={ArrowLeft} onClick={() => navigate(home)}>
-          Back to the collection
+          {version === "v1" ? "Back to the v1 collection" : "Back to the market"}
         </Button>
       </div>
     );
@@ -179,7 +179,7 @@ export function KeeperPage({
         }}
       >
         <ArrowLeft aria-hidden="true" />{" "}
-        {version === "v1" ? "v1 collection" : "Collection"}
+        {version === "v1" ? "v1 collection" : "Market"}
       </a>
       {version === "v1" && (
         <div className="kp-legacy">

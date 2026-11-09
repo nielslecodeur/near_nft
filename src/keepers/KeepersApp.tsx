@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { WalletCards, KeyRound, LogOut, Wallet } from "lucide-react";
+import { WalletCards, KeyRound, LogOut, Store, Wallet } from "lucide-react";
 import { connect, disconnect, walletSelector } from "../client";
 import { Button, Notice } from "../terminal/primitives";
 import { CollectionPage } from "./CollectionPage";
+import { MarketPage } from "./MarketPage";
 import { KeeperPage } from "./KeeperPage";
 import { VaultPage } from "./VaultPage";
 import { ProbePage } from "./ProbePage";
@@ -24,7 +25,10 @@ export type Route =
   | { page: "agent-start" }
   | { page: "agent"; id: string };
 
-/** /keepers and /keepers/:id are v2; /keepers/v1[/:id] keep v1 cards reachable. */
+/**
+ * /market is the Keepers market (v2), where buyer agents shop; /keepers is kept
+ * as an alias. /keepers/:id are v2 cards; /keepers/v1[/:id] keep v1 reachable.
+ */
 export function parseRoute(url: string): Route {
   const path = url.split(/[?#]/)[0];
   const keeper = path.match(/^\/keepers\/(?:(v1)\/)?(\d+)\/?$/);
@@ -37,6 +41,7 @@ export function parseRoute(url: string): Route {
   if (/^\/agents\/start\/?$/.test(path)) return { page: "agent-start" };
   const agent = path.match(/^\/agents\/(\d+)\/?$/);
   if (agent) return { page: "agent", id: agent[1] };
+  if (/^\/market\/?$/.test(path)) return { page: "collection", version: "v2" };
   if (/^\/keepers\/v1\/?$/.test(path))
     return { page: "collection", version: "v1" };
   return { page: "collection", version: "v2" };
@@ -126,7 +131,9 @@ export function KeepersApp() {
               : route.page === "agent-start"
                 ? "Your first agent · Agent Wallet"
               : route.page === "collection"
-                ? "Keepers collection · Agent Wallet"
+                ? route.version === "v1"
+                  ? "Keepers v1 · Agent Wallet"
+                  : "Market · Agent Wallet"
                 : "Agent Wallet";
     document.documentElement.lang = "en";
   }, [route]);
@@ -172,7 +179,7 @@ export function KeepersApp() {
           {(
             [
               ["/agents", "Agents", route.page === "agents" || route.page === "agent" || route.page === "agent-new" || route.page === "agent-start"],
-              ["/keepers", "Keepers", route.page === "collection" || route.page === "keeper"],
+              ["/market", "Market", route.page === "collection" || route.page === "keeper"],
               ["/vault", "Vault", route.page === "vault"],
             ] as const
           ).map(([to, label, current]) => (
@@ -187,6 +194,7 @@ export function KeepersApp() {
             >
               {label === "Vault" && <KeyRound aria-hidden="true" />}
               {label === "Agents" && <WalletCards aria-hidden="true" />}
+              {label === "Market" && <Store aria-hidden="true" />}
               {label}
             </a>
           ))}
@@ -249,6 +257,8 @@ export function KeepersApp() {
           <QuickStartPage wallet={api} navigate={navigate} />
         ) : route.page === "agent" ? (
           <AgentPage key={route.id} id={route.id} wallet={api} navigate={navigate} />
+        ) : route.version === "v2" ? (
+          <MarketPage wallet={api} navigate={navigate} />
         ) : (
           <CollectionPage
             key={route.version}

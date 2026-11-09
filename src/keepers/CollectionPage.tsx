@@ -103,10 +103,10 @@ export function CollectionPage({
             NEAR, earn royalties, evolve and open the Vault, but they have no
             token basket. New cards are minted on{" "}
             <a
-              href="/keepers"
+              href="/market"
               onClick={(e) => {
                 e.preventDefault();
-                navigate("/keepers");
+                navigate("/market");
               }}
             >
               v2

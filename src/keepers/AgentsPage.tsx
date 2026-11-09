@@ -62,9 +62,9 @@ const ago = (ns: string | number) => {
 const txIn = (text?: string) => text?.match(/tx ([1-9A-HJ-NP-Za-km-z]{43,44})/)?.[1];
 const min = (...v: bigint[]) => v.reduce((a, b) => (a < b ? a : b));
 
-const roleFor = (seat: Seat, job?: Job): Role =>
+export const roleFor = (seat: Seat, job?: Job): Role =>
   roleOf(job?.role) ?? roleOf(ag.byoAgents()[seat.seat_id]?.role) ?? defaultRole(seat.kind);
-const nameFor = (seat: Seat, job?: Job) => {
+export const nameFor = (seat: Seat, job?: Job) => {
   const role = roleFor(seat, job);
   return job?.name || ag.byoAgents()[seat.seat_id]?.name || `${isGeneric(role) ? "Agent" : role.name} #${seat.seat_id}`;
 };
