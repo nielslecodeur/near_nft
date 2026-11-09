@@ -1349,3 +1349,31 @@
 .ag-dash-table table {
   margin-top: var(--space-3);
 }
+
+/* "Working on it" while a request may sit in the wallet's window */
+.ag-waiting {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--nx-muted);
+  font-size: var(--type-sm);
+}
+.ag-waiting-dot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--nx-accent);
+  animation: ag-waiting 1.2s ease-in-out infinite;
+}
+@keyframes ag-waiting {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ag-waiting-dot {
+    animation: none;
+  }
+}

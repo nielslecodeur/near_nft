@@ -25,7 +25,7 @@ import type { Job, LogEntry, OwnedNft, Policy, Seat } from "./agents";
 import { EXAMPLES, parseAsk, type Intent } from "./ask";
 import { CHARACTERS, characterFromMedia } from "./nft-art";
 import { NFTCard, NFTCardEmpty, NFTCardSkeleton, type NftCardModel } from "./NFTCard";
-import { ALL_ROLES, BYO_ROLES, PICKER_ROLES, UNIT_SECONDS, defaultRole, roleOf, type Role, type RoleId, type Unit } from "./roles";
+import { ALL_ROLES, BYO_ROLES, PICKER_ROLES, UNIT_SECONDS, defaultRole, isGeneric, roleOf, type Role, type RoleId, type Unit } from "./roles";
 import { generateAgentKey } from "./agentKey";
 import { AgentDashboard } from "./AgentDashboard";
 import { LiveDot, ToastStack, useFresh, useLivePoll, useTitleBadge, useToasts, type Toast } from "./live";
@@ -64,8 +64,10 @@ const min = (...v: bigint[]) => v.reduce((a, b) => (a < b ? a : b));
 
 const roleFor = (seat: Seat, job?: Job): Role =>
   roleOf(job?.role) ?? roleOf(ag.byoAgents()[seat.seat_id]?.role) ?? defaultRole(seat.kind);
-const nameFor = (seat: Seat, job?: Job) =>
-  job?.name || ag.byoAgents()[seat.seat_id]?.name || `${roleFor(seat, job).name} #${seat.seat_id}`;
+const nameFor = (seat: Seat, job?: Job) => {
+  const role = roleFor(seat, job);
+  return job?.name || ag.byoAgents()[seat.seat_id]?.name || `${isGeneric(role) ? "Agent" : role.name} #${seat.seat_id}`;
+};
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 type Status = { label: string; tone: "up" | "down" | "neutral" | "brand"; note: string; live: boolean };
@@ -85,9 +87,31 @@ function statusOf(seat: Seat, job: Job | undefined, nftOwner: string | null, run
   return { label: "Active", tone: "up", note: "Acts on its own, within its limits.", live: true };
 }
 
+/** True once `on` has stayed true for `ms`: hints that only make sense after a short wait. */
+export function useSlow(on: boolean, ms = 1200) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!on) return setSlow(false);
+    const t = setTimeout(() => setSlow(true), ms);
+    return () => clearTimeout(t);
+  }, [on, ms]);
+  return slow;
+}
+
+/** Shown while a request may be waiting in the wallet's window. */
+export function WalletWait() {
+  return (
+    <p className="ag-waiting" role="status">
+      <span className="ag-waiting-dot" aria-hidden="true" />
+      Working on it. If your wallet opened, approve or cancel the request there.
+    </p>
+  );
+}
+
 /** Runs one wallet or runner action with busy/error/success state. */
 function useAction(refresh: () => void) {
   const [busy, setBusy] = useState("");
+  const waiting = useSlow(busy !== "");
   const [msg, setMsg] = useState<{ tone: "success" | "error"; text: string; href?: string } | null>(null);
   const run = useCallback(
     async (label: string, ok: string, fn: () => Promise<unknown>) => {
@@ -99,14 +123,17 @@ function useAction(refresh: () => void) {
         setMsg({ tone: "success", text: ok, href: hash ? ag.txLink(hash) : undefined });
         refresh();
       } catch (e) {
-        setMsg({ tone: "error", text: (e as Error).message });
+        setMsg({ tone: "error", text: ag.friendlyError(e) });
       } finally {
         setBusy("");
       }
     },
     [refresh],
   );
-  const notice = msg && (
+  const notice = waiting ? (
+    <WalletWait />
+  ) : (
+    msg && (
     <Notice tone={msg.tone} title={msg.tone === "error" ? "Not done" : "Done"}>
       {msg.text}{" "}
       {msg.href && (
@@ -115,6 +142,7 @@ function useAction(refresh: () => void) {
         </a>
       )}
     </Notice>
+  )
   );
   return { busy, run, notice };
 }
@@ -155,7 +183,7 @@ export function useRunner(account: string) {
       await ag.runnerSignIn(account);
       await load();
     } catch (e) {
-      setUnlockError((e as Error).message);
+      setUnlockError(ag.friendlyError(e));
     } finally {
       setUnlocking(false);
     }
@@ -175,6 +203,7 @@ function RunnerLockedNotice({ runner }: { runner: ReturnType<typeof useRunner> }
         Unlock
       </Button>
       {runner.unlockError && <span className="ag-problems"> {runner.unlockError}</span>}
+      {runner.unlocking && <WalletWait />}
     </Notice>
   );
 }
@@ -473,7 +502,7 @@ function AskBar({
     try {
       setPlan(await planFor(parseAsk(sentence), { account, seats, jobs, runnerUp, pauseAll }));
     } catch (e) {
-      setPlan({ title: "Could not prepare this", checks: [{ ok: false, text: (e as Error).message }] });
+      setPlan({ title: "Could not prepare this", checks: [{ ok: false, text: ag.friendlyError(e) }] });
     } finally {
       setBusy(false);
     }
@@ -486,7 +515,7 @@ function AskBar({
       setPlan(null);
       onDone();
     } catch (e) {
-      setResult({ ok: false, text: (e as Error).message });
+      setResult({ ok: false, text: ag.friendlyError(e) });
     } finally {
       setBusy(false);
     }
@@ -678,7 +707,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
           .catch(() => {});
       setError("");
     } catch (e) {
-      setError((e as Error).message);
+      setError(ag.friendlyError(e));
     }
     void runner.reload();
   }, [account, runner.reload, fresh.take, push, navigate]);
@@ -1016,6 +1045,22 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
   );
 }
 
+/** The contract's log actions, as people say them. */
+const ACTION_LABELS: Record<string, string> = {
+  pay: "Payment",
+  buy: "Purchase",
+  deliver: "Delivery",
+  fund: "Top-up",
+  withdraw: "Withdrawal",
+  create: "Hired",
+  key: "Key",
+  pause: "Paused",
+  resume: "Resumed",
+  policy: "New limits",
+  reset: "Reset",
+  claim: "New owner",
+};
+
 /** One feed entry's identity across reads: its seat and its sequence number in that seat's log. */
 const feedKey = (e: { seat: Seat; seq: string }) => `${e.seat.seat_id}-${e.seq}`;
 
@@ -1261,6 +1306,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
   });
 
   const [minting, setMinting] = useState(false);
+  const slowHire = useSlow(phase === "creating" || phase === "funding" || minting);
 
   /** Loads the user's NFTs; `prefer` selects a token right after it was minted. */
   const loadNfts = useCallback(
@@ -1292,7 +1338,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       const token = await ag.mintExampleNft(account);
       await loadNfts({ contract: ag.EXAMPLE_NFT, token });
     } catch (e) {
-      setError((e as Error).message);
+      setError(ag.friendlyError(e));
     } finally {
       setMinting(false);
     }
@@ -1420,7 +1466,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
       setPhase("done");
       navigate(`/agents/${s!.seat_id}`);
     } catch (e) {
-      setError((e as Error).message);
+      setError(ag.friendlyError(e));
       setPhase("form");
     }
   }
@@ -1718,6 +1764,7 @@ export function NewAgentPage({ wallet, navigate }: { wallet: Wallet; navigate: N
             <CircleX aria-hidden="true" className="ag-inline-icon" /> {problems[0]}
           </p>
         )}
+        {slowHire && <WalletWait />}
       </section>
       </aside>
       </div>
@@ -1860,6 +1907,7 @@ function TakeOverPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [connect, setConnect] = useState<{ snippet: string; where: string; file: string } | null>(null);
+  const slow = useSlow(busy);
   const asset = seat.asset;
   const perTx = ag.parseAsset(d.perTx, asset);
   const perDay = ag.parseAsset(d.perDay, asset);
@@ -1918,7 +1966,7 @@ function TakeOverPanel({
       }
       onDone();
     } catch (e) {
-      setError((e as Error).message);
+      setError(ag.friendlyError(e));
     } finally {
       setBusy(false);
     }
@@ -2028,6 +2076,7 @@ function TakeOverPanel({
           <CircleX aria-hidden="true" className="ag-inline-icon" /> {problem}
         </p>
       )}
+      {slow && <WalletWait />}
     </section>
   );
 }
@@ -2041,6 +2090,7 @@ function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
   const [withdraw, setWithdraw] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const slow = useSlow(busy);
   const receiver = to.trim().toLowerCase();
   const valid = /^[a-z0-9._-]{2,64}$/.test(receiver) && receiver !== seat.owner;
 
@@ -2052,7 +2102,7 @@ function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
       await ag.transferSeatNft(seat, receiver, withdraw);
       navigate("/agents");
     } catch (e) {
-      setError((e as Error).message);
+      setError(ag.friendlyError(e));
     } finally {
       setBusy(false);
     }
@@ -2086,6 +2136,7 @@ function TransferPanel({ seat, navigate }: { seat: Seat; navigate: Nav }) {
           first
         </label>
       )}
+      {slow && <WalletWait />}
     </details>
   );
 }
@@ -2474,7 +2525,7 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
                     {e.count > 1 && <span className="ag-muted"> → {ago(e.firstAt)}</span>}
                   </td>
                   <td>
-                    {e.action}
+                    {ACTION_LABELS[e.action] ?? e.action}
                     {e.count > 1 && <span className="ag-times">×{e.count}</span>}
                   </td>
                   <td>

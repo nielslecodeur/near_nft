@@ -240,13 +240,13 @@ const ROLE_NAMES: Record<string, string> = {
   byo: "Imported agent",
 };
 const roleName = (s: Seat, job?: Job) =>
-  ROLE_NAMES[job?.role ?? ""] ?? (s.kind === "Buyer" ? "Collector" : "Subscriptions");
+  ROLE_NAMES[job?.role ?? ""] ?? (s.kind === "Buyer" ? "Buyer" : "Payer");
 
 function describe(s: Seat, job?: Job) {
   const p = s.policy;
   return {
     seat_id: s.seat_id,
-    name: job?.name || `${roleName(s, job)} #${s.seat_id}`,
+    name: job?.name || `${ROLE_NAMES[job?.role ?? ""] ?? "Agent"} #${s.seat_id}`,
     role: roleName(s, job),
     kind: s.kind,
     nft: `${s.nft_contract} #${s.token_id}`,

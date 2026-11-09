@@ -12,7 +12,7 @@ import { CircleCheck, Copy, ExternalLink, KeyRound, PiggyBank, Sparkles, Wallet 
 import { Button, Notice, Skeleton } from "../terminal/primitives";
 import * as ag from "./agents";
 import type { LogEntry, OwnedNft, Seat } from "./agents";
-import { NftArt, useImages } from "./AgentsPage";
+import { NftArt, WalletWait, useImages, useSlow } from "./AgentsPage";
 import { characterFromMedia } from "./nft-art";
 import { NFTCard } from "./NFTCard";
 import type { Wallet } from "./KeepersApp";
@@ -68,6 +68,7 @@ export function QuickStartPage({ wallet, navigate }: { wallet: Wallet; navigate:
   const [copied, setCopied] = useState(false);
   const [waitingSince, setWaitingSince] = useState<number | null>(null);
   const [, tick] = useState(0);
+  const slow = useSlow(sub !== "" || minting);
 
   /** The seat this quick start created: remembered here, or found on chain among the user's seats. */
   const loadSeat = useCallback(async () => {
@@ -169,7 +170,7 @@ export function QuickStartPage({ wallet, navigate }: { wallet: Wallet; navigate:
       await Promise.all([loadNfts({ contract: ag.EXAMPLE_NFT, token }), refreshBalances()]);
       setCardOk(true);
     } catch (e) {
-      setError((e as Error).message);
+      setError(ag.friendlyError(e));
     } finally {
       setMinting(false);
     }
@@ -217,7 +218,7 @@ export function QuickStartPage({ wallet, navigate }: { wallet: Wallet; navigate:
       setHasJob(true);
       await Promise.all([loadSeat(), refreshBalances()]);
     } catch (e) {
-      setError((e as Error).message);
+      setError(ag.friendlyError(e));
       await loadSeat();
     } finally {
       setSub("");
@@ -272,6 +273,7 @@ export function QuickStartPage({ wallet, navigate }: { wallet: Wallet; navigate:
             {error}
           </Notice>
         )}
+        {slow && <WalletWait />}
 
         <div className="ag-qs-layout">
         <ol className="ag-qs-steps">

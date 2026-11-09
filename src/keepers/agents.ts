@@ -18,6 +18,7 @@ import {
   type RawTx,
 } from "./chain";
 import { rpc } from "../client";
+export { friendlyError } from "./errors";
 
 export const AGENTS =
   import.meta.env.VITE_AGENTS_ID || "agents-v1.everkeep-dev-mw0weth5.testnet";
