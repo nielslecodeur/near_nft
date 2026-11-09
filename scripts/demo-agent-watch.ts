@@ -13,6 +13,7 @@
  *
  *   npx tsx scripts/demo-agent-watch.ts             # report only
  *   npx tsx scripts/demo-agent-watch.ts --execute   # report and repair
+ *   ... --execute --refresh-key                      # also re-add the agent key with a fresh allowance now
  *
  * Credentials: the demo account's full-access key from ~/.near-credentials/testnet
  * (or DEMO_ACCOUNT_KEY=ed25519:... for a scheduler); the deployer's is optional.
@@ -94,7 +95,7 @@ const problems: string[] = [];
 const budget = BigInt(h.seat.balance);
 if (budget < MIN_BUDGET) problems.push("budget");
 if (h.allowance === -1n) problems.push("key-missing");
-else if (h.allowance !== null && h.allowance < MIN_ALLOWANCE) problems.push("allowance");
+else if ((h.allowance !== null && h.allowance < MIN_ALLOWANCE) || process.argv.includes("--refresh-key")) problems.push("allowance");
 if (h.demoNear < MIN_DEMO_NEAR) problems.push("demo-near");
 if (h.seat.paused) problems.push("paused");
 if (h.seat.agent_key !== demoKeyFile.public_key) problems.push("key-not-on-seat");
