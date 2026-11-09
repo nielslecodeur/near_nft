@@ -1425,3 +1425,63 @@
 .ag-identity dd {
   overflow-wrap: anywhere;
 }
+
+/* Private skills: the NFT is the key */
+.ag-check {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: var(--type-sm);
+  cursor: pointer;
+}
+.ag-private-skill {
+  display: grid;
+  gap: var(--space-2);
+}
+.ag-private-skill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  font-size: var(--type-sm);
+}
+.ag-field-label {
+  font-size: var(--type-sm);
+  color: var(--nx-text);
+}
+.ag-textarea {
+  width: 100%;
+  min-height: 10rem;
+  padding: var(--space-3);
+  border: 1px solid var(--nx-line-strong);
+  border-radius: var(--nx-radius-chip);
+  background: var(--nx-bg);
+  color: var(--nx-text);
+  font-family: var(--font-numeric);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.ag-textarea:focus {
+  outline: none;
+  border-color: var(--nx-accent);
+}
+.ag-skill .ag-code--long {
+  max-height: 16rem;
+  overflow: auto;
+}
+.ag-gated-card {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+.ag-gated-card dt {
+  color: var(--nx-muted);
+  font-size: var(--type-xs);
+}
+.ag-gated-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

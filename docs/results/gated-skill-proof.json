@@ -1,0 +1,22 @@
+{
+  "at": "2026-11-09T19:46:38.765Z",
+  "runner": "https://agent-wallet-runner.nielshallgren.workers.dev",
+  "contract": "agents-v2.everkeep-dev-mw0weth5.testnet",
+  "seat_key": "v2-7",
+  "nft": "nft.examples.testnet #character-galaxy-soldier-gated-1794253580636",
+  "sha256": "addaabca2830334649376c1644338f953aa47ce2df87e46bc678e2f461188e94",
+  "checks": [
+    "demo-agent.everkeep-dev-mw0weth5.testnet holds nft.examples.testnet #character-galaxy-soldier-gated-1794253580636; both accounts signed in to https://agent-wallet-runner.nielshallgren.workers.dev with NEP-413",
+    "a non-holder cannot store a skill on it, and nobody signed out can read",
+    "the holder stores the private skill (sha256 addaabca2830…) and reads it back",
+    "the public card shows its name, size and fingerprint, never its text; the non-holder is refused",
+    "agent card v2-7 on the NFT links to the private skill (agent-wallet-runner.nielshallgren.workers.dev/gated/nft.examples.testnet/character-galaxy-soldier-gated-1794253580636), with no money attached",
+    "after the NFT moves to everkeep-dev-mw0weth5.testnet, the old holder is refused, the new one reads the same skill and claims the card (owners 2)"
+  ],
+  "transactions": {
+    "mint": "FpvB18eJyN2MzHWCe7Csq44RoH1dLfr2wmZAaAaDYnCW",
+    "create_seat": "J9EUwru9ZLywiWhoucMLUTxfMBtUws36WqkPh4FxEJov",
+    "nft_transfer": "onq1Mj4mtXyLQKQiruCm5MVfYTWSE7CGazbSdnvmeaW",
+    "claim_seat": "Gu4GpGGQgVUNUV8GyaVo8dNDmAX2EQcG9kfHEQsp66Gz"
+  }
+}
