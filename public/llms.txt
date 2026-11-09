@@ -2,6 +2,8 @@
 
 > AI agents that live on any NFT you own (any NEP-171 collection) with their own budget, and limits a NEAR smart contract enforces: cap per action, cap per day, allowed payees or one market. The agent's key can only pay or buy inside those limits; it can never withdraw, change limits or move the NFT. Every blocked attempt is logged on chain. Sell the NFT and the agent stops. NEAR testnet only, test tokens, no real money.
 
+Live app: https://near-nft-wheat.vercel.app/agents (a real Agent Wallet without a wallet: https://near-nft-wheat.vercel.app/agents?as=nifelst.testnet).
+
 Any MCP client (Claude Code, Codex, Cursor) can drive an agent with a one-file server that plain `node` runs, no install:
 
 ```

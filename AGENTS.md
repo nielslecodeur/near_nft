@@ -6,7 +6,7 @@ allowlisted accounts in USDC or buy on one market in NEAR, never more than its c
 a smart contract on NEAR testnet, so they hold whatever the AI decides. Every attempt the contract
 blocks is written on chain. Sell the NFT and the agent stops.
 
-Everything here is **NEAR testnet**: test tokens only, no real money.
+Everything here is **NEAR testnet**: test tokens only, no real money. Live app: https://near-nft-wheat.vercel.app/agents.
 
 > **Reading this repo?** The hackathon project is the **Agent Wallet**: `contracts/agents`,
 > `src/keepers/*`, `scripts/agent-*`, `scripts/runner-*`. Folders such as `src/*.tsx` (Everkeep series,
