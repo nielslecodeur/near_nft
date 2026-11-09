@@ -149,6 +149,7 @@ tools use the admin token in `.local/runner-token`. API: [`public/openapi/runner
 | `npm run dev` | The app on http://127.0.0.1:5173 (`/agents`, `/agents/start`, `/market`) |
 | `npm run agent:runner` | The runner |
 | `npm run build:mcp` | Rebuild the one-file MCP server (`dist-mcp/` and `public/mcp/`) |
+| `npm run demo:watch [-- --execute]` | Health of the public demo agent (budget, key allowance, pause); `--execute` repairs it. Also runs every 6 h as a GitHub Action |
 | `npm run test:agents` | Contract proof in a local sandbox (17 checks) |
 | `npm run test:runner:auth` | Runner auth proof, real testnet signatures (24 checks) |
 | `npm test` | Unit tests |
