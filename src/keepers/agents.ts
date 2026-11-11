@@ -1304,20 +1304,94 @@ export type PastLimits = {
 type NbAction = { method?: string; args?: { args_json?: Record<string, unknown> | null; args_base64?: string | null } };
 type NbTx = { transaction_hash: string; block_timestamp: string; actions?: NbAction[]; outcomes?: { status?: boolean } };
 
-const argsOf = (a: NbAction): Record<string, unknown> | null => {
-  if (a.args?.args_json) return a.args.args_json;
+const jsonFromBase64 = (b64?: string | null): Record<string, unknown> | null => {
   try {
-    return a.args?.args_base64 ? JSON.parse(atob(a.args.args_base64)) : null;
+    return b64 ? JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)))) : null;
   } catch {
     return null;
   }
 };
 
+/** A call that set limits: its transaction, when, and the limits if it is about this agent. */
+type LimitsHit = { tx: string; setAt: bigint; policy: Policy };
+/** Tells whether a create_seat / set_policy call set limits on this agent. */
+type LimitsMatch = (method: string | undefined, args: Record<string, unknown> | null) => Policy | null;
+
+const FASTNEAR_TX = "https://tx.test.fastnear.com";
 /**
- * The limits the agent had before its last change(s) of hands, or null if the chain does not say.
- * A claim's answer never changes, so it is kept in this browser (NearBlocks is rate-limited).
+ * The previous owner's last call that set this agent's limits, from FastNEAR's transaction index
+ * (no key, CORS open). undefined = it could not answer; null = no such call in what it returned.
  */
-export async function previousLimits(seat: Seat, log: LogEntry[]): Promise<PastLimits | null> {
+async function limitsFromFastnear(contract: string, owner: string, until: bigint, match: LimitsMatch): Promise<LimitsHit | null | undefined> {
+  try {
+    const post = async <T>(path: string, body: object): Promise<T> => {
+      const r = await fetch(FASTNEAR_TX + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(15_000) });
+      if (!r.ok) throw new Error(`tx index ${r.status}`);
+      return r.json();
+    };
+    const list = await post<{ account_txs?: { transaction_hash: string; tx_block_timestamp: string; is_signer?: boolean; is_success?: boolean }[] }>(
+      "/v0/account",
+      { account_id: owner },
+    );
+    // Every successful transaction the owner signed up to the claim; which ones called the agents contract shows in the details.
+    const when = new Map<string, bigint>();
+    for (const t of list.account_txs ?? [])
+      if (t.is_signer && t.is_success !== false && BigInt(t.tx_block_timestamp) <= until) when.set(t.transaction_hash, BigInt(t.tx_block_timestamp));
+    const hashes = [...when.keys()].sort((a, b) => (when.get(b)! > when.get(a)! ? 1 : -1)).slice(0, 60);
+    for (let i = 0; i < hashes.length; i += 20) {
+      const d = await post<{ transactions?: { transaction: { hash: string; receiver_id: string; actions?: Record<string, { method_name?: string; args?: string } | undefined>[] } }[] }>(
+        "/v0/transactions",
+        { tx_hashes: hashes.slice(i, i + 20) },
+      );
+      const txs = (d.transactions ?? []).filter((t) => t.transaction.receiver_id === contract && when.has(t.transaction.hash));
+      txs.sort((a, b) => (when.get(b.transaction.hash)! > when.get(a.transaction.hash)! ? 1 : -1));
+      for (const t of txs)
+        for (const a of [...(t.transaction.actions ?? [])].reverse()) {
+          const call = a.FunctionCall;
+          const policy = call && match(call.method_name, jsonFromBase64(call.args));
+          if (policy) return { tx: t.transaction.hash, setAt: when.get(t.transaction.hash)!, policy };
+        }
+    }
+    return null;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The same answer from NearBlocks (rate-limited for anonymous use), as a second source. */
+async function limitsFromNearblocks(contract: string, owner: string, until: bigint, match: LimitsMatch): Promise<LimitsHit | null | undefined> {
+  if (Date.now() < explorerBackoffUntil) return undefined;
+  try {
+    const get = async (url: string) => {
+      const r = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+      if (r.status === 429) explorerBackoffUntil = Date.now() + 60_000;
+      if (!r.ok) throw new Error(`explorer ${r.status}`);
+      return r.json();
+    };
+    const d = (await get(`${NEARBLOCKS}/accounts/${contract}/txns?limit=100&signer=${encodeURIComponent(owner)}`)) as { txns?: NbTx[]; data?: NbTx[] };
+    const candidates = (d.txns ?? d.data ?? [])
+      .filter((t) => t.outcomes?.status !== false && BigInt(t.block_timestamp) <= until)
+      .filter((t) => t.actions?.some((a) => a.method === "set_policy" || a.method === "create_seat"))
+      .slice(0, 4);
+    for (const c of candidates) {
+      const tx = ((await get(`${NEARBLOCKS}/txns/${c.transaction_hash}`)) as { data?: NbTx }).data;
+      for (const a of [...(tx?.actions ?? [])].reverse()) {
+        const policy = match(a.method, a.args?.args_json ?? jsonFromBase64(a.args?.args_base64));
+        if (policy) return { tx: c.transaction_hash, setAt: BigInt(c.block_timestamp), policy };
+      }
+    }
+    return null;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The limits the agent had before its last change(s) of hands. null: the chain shows none.
+ * undefined: no transaction index could answer just now (ask again later).
+ * A claim's answer never changes, so it is kept in this browser.
+ */
+export async function previousLimits(seat: Seat, log: LogEntry[]): Promise<PastLimits | null | undefined> {
   const claims = log.filter((e) => e.action === "claim" && e.counterparty).sort((a, b) => (BigInt(b.seq) > BigInt(a.seq) ? 1 : -1));
   if (!claims.length) return null;
   const cacheKey = `agentwallet.proven:${seat.contract}:${seat.num}:${claims[0].seq}`;
@@ -1328,9 +1402,8 @@ export async function previousLimits(seat: Seat, log: LogEntry[]): Promise<PastL
       return p && { ...p, setAt: BigInt(p.setAt), until: BigInt(p.until) };
     }
   } catch {
-    /* no storage: ask the explorer */
+    /* no storage: ask the index */
   }
-  if (Date.now() < explorerBackoffUntil) return null;
   const found = await findPreviousLimits(seat, log, claims);
   if (found !== undefined)
     try {
@@ -1338,47 +1411,36 @@ export async function previousLimits(seat: Seat, log: LogEntry[]): Promise<PastL
     } catch {
       /* private mode */
     }
-  return found ?? null;
+  return found;
 }
 
-/** undefined when the explorer could not answer (try again later), null when there are none. */
 async function findPreviousLimits(seat: Seat, log: LogEntry[], claims: LogEntry[]): Promise<PastLimits | null | undefined> {
+  const match: LimitsMatch = (method, args) => {
+    const policy = args?.policy as Policy | null | undefined;
+    if (!policy || typeof policy.per_tx_max !== "string" || typeof policy.per_day_max !== "string" || !Array.isArray(policy.payees)) return null;
+    const mine =
+      method === "set_policy"
+        ? String(args!.seat_id) === seat.num
+        : method === "create_seat" && args!.nft_contract === seat.nft_contract && args!.token_id === seat.token_id;
+    return mine ? policy : null;
+  };
+  let unanswered = false;
   for (const claim of claims.slice(0, 2)) {
     const owner = claim.counterparty!;
     const until = BigInt(claim.at);
-    const r = await fetch(`${NEARBLOCKS}/accounts/${seat.contract}/txns?limit=100&signer=${encodeURIComponent(owner)}`, { signal: AbortSignal.timeout(15_000) });
-    if (r.status === 429) explorerBackoffUntil = Date.now() + 60_000;
-    if (!r.ok) return undefined;
-    const d = (await r.json()) as { txns?: NbTx[]; data?: NbTx[] };
-    const candidates = (d.txns ?? d.data ?? [])
-      .filter((t) => t.outcomes?.status !== false && BigInt(t.block_timestamp) <= until)
-      .filter((t) => t.actions?.some((a) => a.method === "set_policy" || a.method === "create_seat"))
-      .slice(0, 4);
-    for (const c of candidates) {
-      const detail = await fetch(`${NEARBLOCKS}/txns/${c.transaction_hash}`, { signal: AbortSignal.timeout(15_000) });
-      if (detail.status === 429) {
-        explorerBackoffUntil = Date.now() + 60_000;
-        return undefined;
-      }
-      if (!detail.ok) continue;
-      const tx = ((await detail.json()) as { data?: NbTx }).data ?? null;
-      for (const a of [...(tx?.actions ?? [])].reverse()) {
-        const args = argsOf(a);
-        const policy = args?.policy as Policy | null | undefined;
-        if (!policy) continue;
-        const mine =
-          a.method === "set_policy"
-            ? String(args!.seat_id) === seat.num
-            : a.method === "create_seat" && args!.nft_contract === seat.nft_contract && args!.token_id === seat.token_id;
-        if (!mine) continue;
-        const setAt = BigInt(c.block_timestamp);
-        const under = log.filter((e) => BigInt(e.at) >= setAt && BigInt(e.at) <= until && (e.action === "pay" || e.action === "buy"));
-        const count = (status: string) => under.filter((e) => e.status === status).reduce((n, e) => n + (e.times ?? 1), 0);
-        return { policy, owner, tx: c.transaction_hash, setAt, until, done: count("done"), blocked: count("refused") };
-      }
+    // Two independent public indexes: the second is asked only when the first cannot answer.
+    let hit = await limitsFromFastnear(seat.contract, owner, until, match);
+    if (hit === undefined) hit = await limitsFromNearblocks(seat.contract, owner, until, match);
+    if (hit === undefined) {
+      unanswered = true;
+      continue;
     }
+    if (!hit) continue;
+    const under = log.filter((e) => BigInt(e.at) >= hit.setAt && BigInt(e.at) <= until && (e.action === "pay" || e.action === "buy"));
+    const count = (status: string) => under.filter((e) => e.status === status).reduce((n, e) => n + (e.times ?? 1), 0);
+    return { policy: hit.policy, owner, tx: hit.tx, setAt: hit.setAt, until, done: count("done"), blocked: count("refused") };
   }
-  return null;
+  return unanswered ? undefined : null;
 }
 
 // ---------------------------------------------------------------------------

@@ -217,6 +217,7 @@ Example: v2 seat 7. Proof: `npx tsx scripts/gated-skill-proof.ts` (6 checks, rea
 | `cargo test -p agents-v2` | v2 contract unit tests (28) |
 | `cargo test -p agent-market` | Agent market unit tests (21) |
 | `npm run test:runner:auth` | Runner auth proof, real testnet signatures (24 checks) |
+| `node scripts/browser-e2e-flows.mjs` | The app's real screens, end to end, with a test wallet signing real testnet transactions (7 flows). Start `npm run dev` and `E2E_WALLET_TOKEN=<t> npx tsx scripts/e2e-wallet-bridge.ts` first, and pass the same token |
 | `npm test` | Unit tests |
 | `cargo test -p agents` | Contract unit tests |
 | `cd contracts/agents && cargo near abi` | Regenerate the ABI (`target/near/agents/agents_abi.json`) |

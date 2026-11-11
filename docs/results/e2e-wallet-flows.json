@@ -1,0 +1,144 @@
+{
+  "at": "2026-11-11T13:20:19.233Z",
+  "app": "http://127.0.0.1:5173",
+  "wallet": "test wallet signing real testnet transactions (scripts/e2e-wallet-bridge.ts)",
+  "accounts": {
+    "A": "demo-agent.everkeep-dev-mw0weth5.testnet",
+    "B": "everkeep-dev-mw0weth5.testnet"
+  },
+  "agent": "v2-17",
+  "checks": [
+    "1. A hires an agent with a private skill on a freshly minted NFT, and opens the skill",
+    "2. A transfers the NFT to B from the agent's page: nothing else to send",
+    "3. B opens /agents: the agent is waiting at the top; B claims what arrived",
+    "4. B, now the holder, opens the private skill; A is locked out",
+    "5. B puts it on sale; A buys it: bought and claimed in one click, and the result stays on screen",
+    "6. With a budget: delist, list with the budget, a broken promise is refunded with its reason, then bought with the budget",
+    "7. B takes over an agent that had limits: its proven limits fill the setup form"
+  ],
+  "notes": [
+    "3: 1 agent was waiting; claimed in one wallet request"
+  ],
+  "transactions": [
+    {
+      "by": "demo-agent.everkeep-dev-mw0weth5.testnet",
+      "to": "nft.examples.testnet",
+      "actions": [
+        "nft_mint"
+      ],
+      "hash": "EdbGrcHPZku7NPHw3ipViww6qVr56AtivmDr4NdVN317"
+    },
+    {
+      "by": "demo-agent.everkeep-dev-mw0weth5.testnet",
+      "to": "agents-v2.everkeep-dev-mw0weth5.testnet",
+      "actions": [
+        "create_seat"
+      ],
+      "hash": "BXAvRrdN1mjQT4LKyB4tAvQRWwSkUsQm9ZTd28xxp6Er"
+    },
+    {
+      "by": "demo-agent.everkeep-dev-mw0weth5.testnet",
+      "to": "nft.examples.testnet",
+      "actions": [
+        "nft_transfer"
+      ],
+      "hash": "GNPKLsfkZRSDCYi4L1FrUxTMDVCk6vyfb25yXG9wQDsg"
+    },
+    {
+      "by": "everkeep-dev-mw0weth5.testnet",
+      "to": "agents-v2.everkeep-dev-mw0weth5.testnet",
+      "actions": [
+        "claim_seat"
+      ],
+      "hash": "5t6t2iHbyEfkNRN2zMpWkrj28iEnFdxw71fS24awAyeG"
+    },
+    {
+      "by": "everkeep-dev-mw0weth5.testnet",
+      "to": "nft.examples.testnet",
+      "actions": [
+        "nft_approve"
+      ],
+      "hash": "2aQJWTx1CPZ3dzQnMowo1365gr3hYUxPeBGAw5MxL8X4"
+    },
+    {
+      "by": "demo-agent.everkeep-dev-mw0weth5.testnet",
+      "to": "agent-market-v1.everkeep-dev-mw0weth5.testnet",
+      "actions": [
+        "buy"
+      ],
+      "hash": "DB2GST8NCdnSweLS1CDZNJrZBtJWkbxRcb7LAEB2Z7P1"
+    },
+    {
+      "by": "demo-agent.everkeep-dev-mw0weth5.testnet",
+      "to": "agents-v2.everkeep-dev-mw0weth5.testnet",
+      "actions": [
+        "claim_seat"
+      ],
+      "hash": "9KAwnksZV94etmvJ48UxTSPmTY9msAFhYbeyKPgeyr3v"
+    },
+    {
+      "by": "everkeep-dev-mw0weth5.testnet",
+      "to": "agents-v2.everkeep-dev-mw0weth5.testnet",
+      "actions": [
+        "set_budget_follows"
+      ],
+      "hash": "Bf2JcECJh1hFbsPtL5XK5QHpzDjxmKmYEhdkfQuHZSXR"
+    },
+    {
+      "by": "everkeep-dev-mw0weth5.testnet",
+      "to": "nft.examples.testnet",
+      "actions": [
+        "nft_approve"
+      ],
+      "hash": "nc1Xf9wb51H7SgfcQssJ48VJvoFFLLXvg7ZuzKFLz8t"
+    },
+    {
+      "by": "everkeep-dev-mw0weth5.testnet",
+      "to": "agents-v2.everkeep-dev-mw0weth5.testnet",
+      "actions": [
+        "set_budget_follows(false), outside the app"
+      ],
+      "hash": "Hf3Hb7xUwodqfTjTMPHvCxH7twV82nX4j7kjy89DHmqA"
+    },
+    {
+      "by": "demo-agent.everkeep-dev-mw0weth5.testnet",
+      "to": "agent-market-v1.everkeep-dev-mw0weth5.testnet",
+      "actions": [
+        "buy"
+      ],
+      "hash": "3g9c7Q9s3rkNTP8RMvcxHvSMN1wJnnpsnMQzhPLzuWhQ"
+    },
+    {
+      "by": "everkeep-dev-mw0weth5.testnet",
+      "to": "agents-v2.everkeep-dev-mw0weth5.testnet",
+      "actions": [
+        "set_budget_follows"
+      ],
+      "hash": "GwK1nX7L6VfS25KtozHPD6fyU8xr9NaciP8j37jonsFo"
+    },
+    {
+      "by": "everkeep-dev-mw0weth5.testnet",
+      "to": "nft.examples.testnet",
+      "actions": [
+        "nft_approve"
+      ],
+      "hash": "4vveFQJV2yeL79hEFBebK64aQarxpbSZBeK99YttSzTi"
+    },
+    {
+      "by": "demo-agent.everkeep-dev-mw0weth5.testnet",
+      "to": "agent-market-v1.everkeep-dev-mw0weth5.testnet",
+      "actions": [
+        "buy"
+      ],
+      "hash": "AjUDvvxXdKky5n8zmdiWHR31DAjtzvAGNJ8DPSPGK7m8"
+    },
+    {
+      "by": "demo-agent.everkeep-dev-mw0weth5.testnet",
+      "to": "agents-v2.everkeep-dev-mw0weth5.testnet",
+      "actions": [
+        "claim_seat"
+      ],
+      "hash": "BBCvgwVuVkFpicT2CHDAdW82j1wnpoUV3EsApPRk8krx"
+    }
+  ]
+}

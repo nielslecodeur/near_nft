@@ -2581,18 +2581,26 @@ function ProvenLimits({ seat, log, onUse }: { seat: Seat; log: LogEntry[]; onUse
   const [used, setUsed] = useState(false);
   // Only a new claim changes the answer: do not refetch on every live refresh.
   const claims = log.filter((e) => e.action === "claim").map((e) => e.seq).join(",");
+  // When no transaction index can answer (rate limits), ask again a few times before giving up.
+  const [tries, setTries] = useState(0);
   useEffect(() => {
     if (!claims) return setPast(null);
     let alive = true;
+    let again: ReturnType<typeof setTimeout> | undefined;
     void ag.previousLimits(seat, log).then(
-      (p) => alive && setPast(p),
+      (p) => {
+        if (!alive) return;
+        if (p === undefined && tries < 4) again = setTimeout(() => setTries((t) => t + 1), 30_000);
+        else setPast(p ?? null);
+      },
       () => alive && setPast(null),
     );
     return () => {
       alive = false;
+      clearTimeout(again);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seat.seat_id, claims]);
+  }, [seat.seat_id, claims, tries]);
   if (past === undefined) return claims ? <Skeleton label="Looking for its previous limits on chain" /> : null;
   if (!past) return null;
   const { policy } = past;
@@ -3072,12 +3080,15 @@ function ForSalePanel({
   listing,
   account,
   connect,
+  onStart,
   onBought,
 }: {
   seat: Seat;
   listing: ag.AgentListing;
   account: string;
   connect: () => void;
+  /** The purchase begins: the page keeps this panel (and its result) even once the market drops the listing. */
+  onStart: () => void;
   onBought: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -3089,6 +3100,7 @@ function ForSalePanel({
     setBusy(true);
     setError("");
     setStep("buy");
+    onStart();
     try {
       const r = await ag.buyAgent(listing, account);
       let claimed = false;
@@ -3339,6 +3351,14 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
   const { busy, run, notice } = useAction(load);
   const images = useImages(seat ? [{ key: "art", contract: seat.nft_contract, token: seat.token_id }] : []);
   const [listing, reloadListing] = useListing(seat, nftOwner);
+  // The listing a purchase started on. The market removes a listing as soon as a purchase begins (even one it
+  // refunds), so without this the "For sale" panel would vanish with the outcome the buyer is waiting to read.
+  const [buying, setBuying] = useState<ag.AgentListing | null>(null);
+  useEffect(() => setBuying(null), [id]);
+  // Listed again after a refunded purchase: show the new offer, not the old outcome.
+  useEffect(() => {
+    if (buying && listing && listing.listed_at !== buying.listed_at) setBuying(null);
+  }, [buying, listing]);
 
   if (seat === undefined) return <Skeleton label="Loading the agent" />;
   if (seat === null)
@@ -3494,8 +3514,16 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         </Notice>
       )}
       <AgentPassport seat={seat} name={nameFor(seat, job)} listing={listing} />
-      {listing && account !== listing.seller && (
-        <ForSalePanel seat={seat} listing={listing} account={account} connect={() => void wallet.connect()} onBought={() => (void load(), reloadListing())} />
+      {(buying || (listing && account !== listing.seller)) && (
+        <ForSalePanel
+          key={(buying ?? listing)!.listed_at}
+          seat={seat}
+          listing={(buying ?? listing)!}
+          account={account}
+          connect={() => void wallet.connect()}
+          onStart={() => setBuying(listing)}
+          onBought={() => (void load(), reloadListing())}
+        />
       )}
       <SkillInstall seat={seat} account={account} holder={nftOwner} connect={() => void wallet.connect()} />
       {mine && nftOwner === account && !seat.policy && !ag.isSkillSeat(seat) && (

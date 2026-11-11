@@ -131,6 +131,7 @@ the buyer claiming it with its profile and 2 owners on record, and withdrawing t
 | `npm run test:agents:runner` | The runner against the sandbox (9 checks) |
 | `npm run test:runner:auth` | Runner sign-in with real testnet signatures: no token, foreign sites, replayed or forged signatures, agent keys and other accounts are all refused (24 checks) |
 | `npm test` | Unit tests (Ask bar parser, NEP-413, error messages, ...) |
+| `node scripts/browser-e2e-flows.mjs` | The real screens clicked end to end with a test wallet that signs real testnet transactions: private skill, transfer, arrival and claim, sale, refunded sale, sale with budget, proven limits (7 flows; needs `npm run dev` and `scripts/e2e-wallet-bridge.ts`) |
 | `node scripts/browser-agents-check.mjs` | Every page in headless Chrome, desktop and mobile, no console error (needs `npm run dev`) |
 | `node scripts/browser-live-check.mjs` | Live activity: toasts, highlighted rows, tab badge |
 
