@@ -172,7 +172,7 @@ Not covered (written in the README):
 
 ## Public demo agent and MCP (2026-11-08)
 
-- `scripts/agent-mcp.ts` is an MCP server (tools: list_agents, agent_status, list_market, pay, buy, pause). The AI never holds a key; the contract decides.
+- `scripts/agent-mcp.ts` is an MCP server (tools: list_agents, agent_status, received_agents, list_market, pay, buy, pause). The AI never holds a key; the contract decides.
 - The public demo agent is **#9** on `demo-agent.everkeep-dev-mw0weth5.testnet`, carried by a Characters NFT on `nft.examples.testnet`.
   - Its key is in `demo/agent-key.json`: `agent_pay` only, no deposit, 0.5 NEAR of gas.
   - Its only allowed payee is itself; limits are 1 USDC per payment and 2 USDC per day.

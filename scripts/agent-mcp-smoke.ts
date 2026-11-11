@@ -15,7 +15,7 @@ const text = (r: Awaited<ReturnType<typeof client.callTool>>) =>
   (r.content as { type: string; text: string }[]).map((c) => c.text).join("\n");
 
 const tools = (await client.listTools()).tools.map((t) => t.name).sort();
-assert.deepEqual(tools, ["agent_status", "buy", "list_agents", "list_market", "pause", "pay"]);
+assert.deepEqual(tools, ["agent_status", "buy", "list_agents", "list_market", "pause", "pay", "received_agents"]);
 console.log("✓ tools:", tools.join(", "));
 
 const agents = await client.callTool({ name: "list_agents", arguments: {} });

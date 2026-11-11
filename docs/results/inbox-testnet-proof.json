@@ -1,0 +1,22 @@
+{
+  "at": "2026-11-09T22:14:15.262Z",
+  "contract": "agents-v2.everkeep-dev-mw0weth5.testnet",
+  "seat_key": "v2-11",
+  "nft": "nft.examples.testnet #character-angel-inbox-1794262433460",
+  "from": "demo-agent.everkeep-dev-mw0weth5.testnet",
+  "to": "everkeep-dev-mw0weth5.testnet",
+  "memo": "AI agent \"Study buddy\" on this NFT: claim it at https://near-nft-wheat.vercel.app/agents/v2-11",
+  "checks": [
+    "demo-agent.everkeep-dev-mw0weth5.testnet has agent v2-11 \"Study buddy\" (skill: janestreet/agent_skills) on nft.examples.testnet #character-angel-inbox-1794262433460",
+    "the NFT is in everkeep-dev-mw0weth5.testnet's wallet; its on-chain transfer event carries \"AI agent \"Study buddy\" on this NFT: claim it at https://near-nft-wheat.vercel.app/agents/v2-11\"",
+    "received_agents(everkeep-dev-mw0weth5.testnet) finds \"Study buddy\" from demo-agent.everkeep-dev-mw0weth5.testnet, with no link or message",
+    "the AI runs the install command it was given: ~/.claude/skills/socratic-tutor/SKILL.md is there",
+    "the receiver claims it (one signature): the inbox no longer lists it"
+  ],
+  "transactions": {
+    "mint": "Xrabu4A51rUFbYmSb3SWND7HFtfD2foCxqoqsEeZUZ5",
+    "create_seat": "F6FyVXidGCuVDeM6uGiFzq9BXpeuXZrKQGeiva7hAy4X",
+    "nft_transfer": "7sCEN6t5NAMwu4vLRhTdKm9UbtTxqpHXoMt43cY1k9oA",
+    "claim": "CLLEvwRi1RFDPvcWnVbmUXH4Th586auR9By5rdPaZdSK"
+  }
+}

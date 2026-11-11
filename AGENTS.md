@@ -37,6 +37,7 @@ To drive **your own** agent: in the app, hire one with "Import an agent", keep t
 |---|---|
 | `list_agents` | The agents of an account: budget, spent today, limits, done/blocked counts |
 | `agent_status` | One agent: limits, budget and its last on-chain log entries with reasons |
+| `received_agents` | Agents waiting on NFTs an account holds but has not claimed (sent or bought), with the command that installs a public skill |
 | `list_market` | Keepers for sale on the market, cheapest first |
 | `pay` | Payer agent: pay USDC to an allowed account |
 | `buy` | Buyer agent: buy a listed Keeper under its price |
@@ -158,6 +159,17 @@ await agent.signAndSendTransaction({
 });
 ```
 
+## Sending an agent: it arrives by itself
+
+Transferring the NFT is all the sender does: no link or message is needed. The receiver's side finds it from chain
+alone: every NFT the account holds (known collections plus the FastNEAR index `test.api.fastnear.com/v1/account/<id>/nft`)
+is checked with `seat_for_nft`; a seat whose `owner` is someone else is an agent waiting to be claimed. The app shows
+it at the top of `/agents` ("arrived in your wallet", claim one or all in one wallet request, also in `?as=<account>`),
+and the MCP tool `received_agents` gives an AI the same list with the install command of a public skill, so it can
+install the skill itself. The `nft_transfer` memo also names the agent and its page. What stays manual, by design:
+one signature from the receiver to claim (`claim_seat` proves NFT ownership), and one signed message to open a
+private skill. Proof: `npx tsx scripts/inbox-testnet-proof.ts` (5 checks; the install command is run for real).
+
 ## Sell an agent: the agent market
 
 `agent-market-v1.everkeep-dev-mw0weth5.testnet` (`contracts/agent-market`) sells a v2 agent with the NFT that carries it, and optionally its budget.
@@ -205,6 +217,7 @@ Example: v2 seat 7. Proof: `npx tsx scripts/gated-skill-proof.ts` (6 checks, rea
 | `cargo test -p agents-v2` | v2 contract unit tests (28) |
 | `cargo test -p agent-market` | Agent market unit tests (21) |
 | `npm run test:runner:auth` | Runner auth proof, real testnet signatures (24 checks) |
+| `node scripts/browser-e2e-flows.mjs` | The app's real screens, end to end, with a test wallet signing real testnet transactions (7 flows). Start `npm run dev` and `E2E_WALLET_TOKEN=<t> npx tsx scripts/e2e-wallet-bridge.ts` first, and pass the same token |
 | `npm test` | Unit tests |
 | `cargo test -p agents` | Contract unit tests |
 | `cd contracts/agents && cargo near abi` | Regenerate the ABI (`target/near/agents/agents_abi.json`) |

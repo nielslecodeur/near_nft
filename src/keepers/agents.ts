@@ -349,6 +349,8 @@ export const isSkillSeat = (s: Seat) => s.version === "v2" && !s.policy && s.pro
 
 /** Where a shared agent link points: the hosted app when configured, else this page's origin. */
 export const PUBLIC_URL = (import.meta.env.VITE_PUBLIC_URL as string | undefined) || location.origin;
+/** The public app, named on NFTs and transfers made from a local copy. */
+export const HOSTED_APP = "https://near-nft-wheat.vercel.app";
 export const isLocalUrl = (u: string) => /\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(u);
 export const shareLink = (seat: Seat) => `${PUBLIC_URL}/agents/${seat.seat_id}`;
 export function shareMessage(seat: Seat, name: string) {
@@ -840,7 +842,8 @@ export async function mintExampleNft(account: string, slug?: string) {
             receiver_id: account,
             metadata: {
               title: character.name,
-              description: `${character.collection}: ${character.description}`,
+              // Shown by wallets: tells whoever receives the NFT where its agent lives.
+              description: `${character.collection}: ${character.description} Can carry an AI agent: ${HOSTED_APP.replace("https://", "")}/agents`,
               media: characterMedia(character),
               copies: 1,
             },
@@ -1135,6 +1138,10 @@ export async function setupSeat(seat: Seat, policy: Policy, amount: bigint, publ
   return sendRaw(txs);
 }
 
+/** Written in the NFT's transfer event: what this NFT carries and where to claim it. */
+export const transferMemo = (seat: Seat) =>
+  `AI agent${seat.profile?.name ? ` "${seat.profile.name}"` : ""} on this NFT: claim it at ${isLocalUrl(PUBLIC_URL) ? HOSTED_APP : PUBLIC_URL}/agents/${seat.seat_id}`;
+
 /**
  * Hand the NFT over in ONE wallet request: optionally take the budget back,
  * switch the agent off (clear its key on the seat and delete it from this
@@ -1163,7 +1170,7 @@ export async function transferSeatNft(
   if (seat.agent_key) txs.push({ receiverId: "self", actions: [{ type: "DeleteKey", params: { publicKey: seat.agent_key } }] });
   txs.push({
     receiverId: seat.nft_contract,
-    actions: [fnCall("nft_transfer", { receiver_id: receiver, token_id: seat.token_id, memo: "agent wallet transfer" }, 1n, 50n)],
+    actions: [fnCall("nft_transfer", { receiver_id: receiver, token_id: seat.token_id, memo: transferMemo(seat) }, 1n, 50n)],
   });
   return sendRaw(txs);
 }
@@ -1272,4 +1279,228 @@ export async function buyAgent(l: AgentListing, buyer: string): Promise<{ bought
   }
   const owner = await nftOwner(l.nft_contract, l.token_id).catch(() => null);
   return owner === buyer && !reason ? { bought: true, tx } : { bought: owner === buyer, reason: reason ?? "the sale did not go through", tx };
+}
+
+// ---------------------------------------------------------------------------
+// Proven limits: on a change of hands the contract clears the agent's limits
+// (the new owner sets their own). They are still on chain, in the previous
+// owner's create_seat / set_policy transaction; its log tells how the agent did
+// under them. The new owner can take them back in one click.
+// ---------------------------------------------------------------------------
+
+export type PastLimits = {
+  policy: Policy;
+  /** Who set them. */
+  owner: string;
+  tx: string;
+  /** Block time (ns) they were set, and the claim that ended them. */
+  setAt: bigint;
+  until: bigint;
+  /** What the agent did under them, from its log (the last 50 entries). */
+  done: number;
+  blocked: number;
+};
+
+type NbAction = { method?: string; args?: { args_json?: Record<string, unknown> | null; args_base64?: string | null } };
+type NbTx = { transaction_hash: string; block_timestamp: string; actions?: NbAction[]; outcomes?: { status?: boolean } };
+
+const jsonFromBase64 = (b64?: string | null): Record<string, unknown> | null => {
+  try {
+    return b64 ? JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)))) : null;
+  } catch {
+    return null;
+  }
+};
+
+/** A call that set limits: its transaction, when, and the limits if it is about this agent. */
+type LimitsHit = { tx: string; setAt: bigint; policy: Policy };
+/** Tells whether a create_seat / set_policy call set limits on this agent. */
+type LimitsMatch = (method: string | undefined, args: Record<string, unknown> | null) => Policy | null;
+
+const FASTNEAR_TX = "https://tx.test.fastnear.com";
+/**
+ * The previous owner's last call that set this agent's limits, from FastNEAR's transaction index
+ * (no key, CORS open). undefined = it could not answer; null = no such call in what it returned.
+ */
+async function limitsFromFastnear(contract: string, owner: string, until: bigint, match: LimitsMatch): Promise<LimitsHit | null | undefined> {
+  try {
+    const post = async <T>(path: string, body: object): Promise<T> => {
+      const r = await fetch(FASTNEAR_TX + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(15_000) });
+      if (!r.ok) throw new Error(`tx index ${r.status}`);
+      return r.json();
+    };
+    const list = await post<{ account_txs?: { transaction_hash: string; tx_block_timestamp: string; is_signer?: boolean; is_success?: boolean }[] }>(
+      "/v0/account",
+      { account_id: owner },
+    );
+    // Every successful transaction the owner signed up to the claim; which ones called the agents contract shows in the details.
+    const when = new Map<string, bigint>();
+    for (const t of list.account_txs ?? [])
+      if (t.is_signer && t.is_success !== false && BigInt(t.tx_block_timestamp) <= until) when.set(t.transaction_hash, BigInt(t.tx_block_timestamp));
+    const hashes = [...when.keys()].sort((a, b) => (when.get(b)! > when.get(a)! ? 1 : -1)).slice(0, 60);
+    for (let i = 0; i < hashes.length; i += 20) {
+      const d = await post<{ transactions?: { transaction: { hash: string; receiver_id: string; actions?: Record<string, { method_name?: string; args?: string } | undefined>[] } }[] }>(
+        "/v0/transactions",
+        { tx_hashes: hashes.slice(i, i + 20) },
+      );
+      const txs = (d.transactions ?? []).filter((t) => t.transaction.receiver_id === contract && when.has(t.transaction.hash));
+      txs.sort((a, b) => (when.get(b.transaction.hash)! > when.get(a.transaction.hash)! ? 1 : -1));
+      for (const t of txs)
+        for (const a of [...(t.transaction.actions ?? [])].reverse()) {
+          const call = a.FunctionCall;
+          const policy = call && match(call.method_name, jsonFromBase64(call.args));
+          if (policy) return { tx: t.transaction.hash, setAt: when.get(t.transaction.hash)!, policy };
+        }
+    }
+    return null;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The same answer from NearBlocks (rate-limited for anonymous use), as a second source. */
+async function limitsFromNearblocks(contract: string, owner: string, until: bigint, match: LimitsMatch): Promise<LimitsHit | null | undefined> {
+  if (Date.now() < explorerBackoffUntil) return undefined;
+  try {
+    const get = async (url: string) => {
+      const r = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+      if (r.status === 429) explorerBackoffUntil = Date.now() + 60_000;
+      if (!r.ok) throw new Error(`explorer ${r.status}`);
+      return r.json();
+    };
+    const d = (await get(`${NEARBLOCKS}/accounts/${contract}/txns?limit=100&signer=${encodeURIComponent(owner)}`)) as { txns?: NbTx[]; data?: NbTx[] };
+    const candidates = (d.txns ?? d.data ?? [])
+      .filter((t) => t.outcomes?.status !== false && BigInt(t.block_timestamp) <= until)
+      .filter((t) => t.actions?.some((a) => a.method === "set_policy" || a.method === "create_seat"))
+      .slice(0, 4);
+    for (const c of candidates) {
+      const tx = ((await get(`${NEARBLOCKS}/txns/${c.transaction_hash}`)) as { data?: NbTx }).data;
+      for (const a of [...(tx?.actions ?? [])].reverse()) {
+        const policy = match(a.method, a.args?.args_json ?? jsonFromBase64(a.args?.args_base64));
+        if (policy) return { tx: c.transaction_hash, setAt: BigInt(c.block_timestamp), policy };
+      }
+    }
+    return null;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The limits the agent had before its last change(s) of hands. null: the chain shows none.
+ * undefined: no transaction index could answer just now (ask again later).
+ * A claim's answer never changes, so it is kept in this browser.
+ */
+export async function previousLimits(seat: Seat, log: LogEntry[]): Promise<PastLimits | null | undefined> {
+  const claims = log.filter((e) => e.action === "claim" && e.counterparty).sort((a, b) => (BigInt(b.seq) > BigInt(a.seq) ? 1 : -1));
+  if (!claims.length) return null;
+  const cacheKey = `agentwallet.proven:${seat.contract}:${seat.num}:${claims[0].seq}`;
+  try {
+    const hit = localStorage.getItem(cacheKey);
+    if (hit) {
+      const p = JSON.parse(hit) as (Omit<PastLimits, "setAt" | "until"> & { setAt: string; until: string }) | null;
+      return p && { ...p, setAt: BigInt(p.setAt), until: BigInt(p.until) };
+    }
+  } catch {
+    /* no storage: ask the index */
+  }
+  const found = await findPreviousLimits(seat, log, claims);
+  if (found !== undefined)
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(found && { ...found, setAt: String(found.setAt), until: String(found.until) }));
+    } catch {
+      /* private mode */
+    }
+  return found;
+}
+
+async function findPreviousLimits(seat: Seat, log: LogEntry[], claims: LogEntry[]): Promise<PastLimits | null | undefined> {
+  const match: LimitsMatch = (method, args) => {
+    const policy = args?.policy as Policy | null | undefined;
+    if (!policy || typeof policy.per_tx_max !== "string" || typeof policy.per_day_max !== "string" || !Array.isArray(policy.payees)) return null;
+    const mine =
+      method === "set_policy"
+        ? String(args!.seat_id) === seat.num
+        : method === "create_seat" && args!.nft_contract === seat.nft_contract && args!.token_id === seat.token_id;
+    return mine ? policy : null;
+  };
+  let unanswered = false;
+  for (const claim of claims.slice(0, 2)) {
+    const owner = claim.counterparty!;
+    const until = BigInt(claim.at);
+    // Two independent public indexes: the second is asked only when the first cannot answer.
+    let hit = await limitsFromFastnear(seat.contract, owner, until, match);
+    if (hit === undefined) hit = await limitsFromNearblocks(seat.contract, owner, until, match);
+    if (hit === undefined) {
+      unanswered = true;
+      continue;
+    }
+    if (!hit) continue;
+    const under = log.filter((e) => BigInt(e.at) >= hit.setAt && BigInt(e.at) <= until && (e.action === "pay" || e.action === "buy"));
+    const count = (status: string) => under.filter((e) => e.status === status).reduce((n, e) => n + (e.times ?? 1), 0);
+    return { policy: hit.policy, owner, tx: hit.tx, setAt: hit.setAt, until, done: count("done"), blocked: count("refused") };
+  }
+  return unanswered ? undefined : null;
+}
+
+// ---------------------------------------------------------------------------
+// Inbox: agents on NFTs this account holds but has not claimed yet (sent to it,
+// or bought). Found from chain alone, so the sender has no link to send: the
+// agent is waiting when the receiver opens the Agent Wallet.
+// ---------------------------------------------------------------------------
+
+export type ReceivedAgent = { seat: Seat; nft: OwnedNft };
+/** nft -> what the last check found; an NFT seen for the first time is always checked at once. */
+const inboxChecked = new Map<string, { at: number; seat: Seat | null }>();
+
+/** Every NFT contract the account holds tokens of (FastNEAR index), so any collection is covered. */
+async function nftContractsOf(account: string): Promise<string[]> {
+  try {
+    const r = await fetch(`https://test.api.fastnear.com/v1/account/${encodeURIComponent(account)}/nft`, { signal: AbortSignal.timeout(10_000) });
+    if (!r.ok) return [];
+    const d = (await r.json()) as { tokens?: { contract_id: string }[] };
+    return (d.tokens ?? []).map((t) => t.contract_id);
+  } catch {
+    return [];
+  }
+}
+
+export async function receivedAgents(account: string): Promise<ReceivedAgent[]> {
+  const collections = new Map(COLLECTIONS.map((c) => [c.id, c.label]));
+  for (const id of await nftContractsOf(account)) if (!collections.has(id)) collections.set(id, id.split(".")[0]);
+  const nfts = (await Promise.all([...collections].map(([id, label]) => nftsIn(id, label, account)))).flat().slice(0, 80);
+  const out: ReceivedAgent[] = [];
+  const now = Date.now();
+  // A few at a time: public RPC nodes are rate-limited.
+  for (let i = 0; i < nfts.length; i += 4)
+    await Promise.all(
+      nfts.slice(i, i + 4).map(async (nft) => {
+        const key = `${nft.contract}:${nft.token_id}`;
+        const known = inboxChecked.get(key);
+        let seat = known?.seat ?? null;
+        if (!known || now - known.at > (known.seat ? 15_000 : 90_000)) {
+          seat = await seatForNft(nft.contract, nft.token_id);
+          inboxChecked.set(key, { at: now, seat });
+        }
+        if (seat && seat.owner !== account) out.push({ seat, nft });
+      }),
+    );
+  return out.sort((a, b) => (a.seat.seat_id < b.seat.seat_id ? -1 : 1));
+}
+
+/** Claims several agents in ONE wallet request (one transaction each: a claim proves NFT ownership on chain). */
+export function claimSeats(seats: Seat[]) {
+  for (const s of seats) inboxChecked.delete(`${s.nft_contract}:${s.token_id}`);
+  return sendRaw(seats.map((s) => ({ receiverId: s.contract, actions: [fnCall("claim_seat", { seat_id: s.num }, 1n, 80n)] })));
+}
+
+/** What the receiver gets, in a few words. */
+export function receivedSummary(seat: Seat) {
+  const parts: string[] = [];
+  if (budgetGoesWithNft(seat)) parts.push(`${formatAsset(seat.balance, seat.asset)} of budget`);
+  const link = seat.profile?.manifest;
+  if (parseGatedUrl(link)) parts.push("a private skill only you can open");
+  else if (link) parts.push("its skill");
+  parts.push(`its record (${seat.done} done, ${seat.refused} blocked)`);
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts[0];
 }

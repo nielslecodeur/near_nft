@@ -653,6 +653,106 @@ function collapse<T extends LogEntry & { seat?: Seat }>(list: T[]): (T & { count
   return out;
 }
 
+/** Agents waiting in this wallet: on NFTs it holds, not claimed yet. Read from chain every 20 s; no link needed. */
+function useInbox(account: string) {
+  const [items, setItems] = useState<ag.ReceivedAgent[] | null>(null);
+  const reload = useCallback(() => {
+    if (!account) return setItems(null);
+    void ag.receivedAgents(account).then(setItems, () => {});
+  }, [account]);
+  useEffect(() => {
+    reload();
+    const t = setInterval(() => !document.hidden && reload(), 20_000);
+    return () => clearInterval(t);
+  }, [reload]);
+  return [items, reload] as const;
+}
+
+/** "Arrived in your wallet": what was sent to (or bought by) this account, with one-click claim. */
+function Inbox({
+  items,
+  readOnly,
+  navigate,
+  onClaimed,
+}: {
+  items: ag.ReceivedAgent[];
+  readOnly: boolean;
+  navigate: Nav;
+  onClaimed: () => void;
+}) {
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const slow = useSlow(busy !== "");
+  const images = useImages(items.map((i) => ({ key: i.seat.seat_id, contract: i.nft.contract, token: i.nft.token_id })));
+  async function claim(seats: Seat[], tag: string) {
+    setBusy(tag);
+    setError("");
+    try {
+      await ag.claimSeats(seats);
+      onClaimed();
+      if (seats.length === 1) navigate(`/agents/${seats[0].seat_id}`);
+    } catch (e) {
+      setError(ag.friendlyError(e));
+    } finally {
+      setBusy("");
+    }
+  }
+  if (!items.length) return null;
+  const many = items.length > 1;
+  return (
+    <section className="ag-inbox" aria-labelledby="ag-inbox-title">
+      <div className="ag-inbox-head">
+        <div>
+          <h2 id="ag-inbox-title">
+            {items.length} agent{many ? "s" : ""} arrived in {readOnly ? "this" : "your"} wallet
+          </h2>
+          <p className="ag-muted">
+            {many ? "They sit on NFTs" : "It sits on an NFT"} {readOnly ? "this account holds" : "you now hold"}.{" "}
+            {readOnly ? "Its holder claims it with one signature." : "One signature and it is yours, with everything listed."}
+          </p>
+        </div>
+        {many && !readOnly && (
+          <Button variant="primary" busy={busy === "all"} disabled={busy !== ""} onClick={() => void claim(items.map((i) => i.seat), "all")}>
+            Claim all {items.length}
+          </Button>
+        )}
+      </div>
+      {error && (
+        <Notice tone="error" title="Not claimed">
+          {error}
+        </Notice>
+      )}
+      <ul className="ag-inbox-list">
+        {items.map(({ seat, nft }) => (
+          <li key={seat.seat_id} className="ag-inbox-item">
+            <span className="ag-inbox-art">
+              <NftArt src={images[seat.seat_id]} label={nft.title} />
+            </span>
+            <div className="ag-inbox-text">
+              <strong>{seat.profile?.name ?? ag.seatLabel(seat.seat_id)}</strong>
+              <span className="ag-muted">
+                from {shortAccount(seat.owner)} · on {characterFromMedia(nft.media) ? nft.title : `${nft.label} #${nft.token_id}`}
+              </span>
+              <span>Comes with {ag.receivedSummary(seat)}.</span>
+            </div>
+            <div className="ag-inbox-actions">
+              {!readOnly && (
+                <Button variant="primary" busy={busy === seat.seat_id} disabled={busy !== ""} onClick={() => void claim([seat], seat.seat_id)}>
+                  Claim
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => navigate(`/agents/${seat.seat_id}`)}>
+                See it
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {slow && <WalletWait />}
+    </section>
+  );
+}
+
 export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav }) {
   /** `?as=<account>` shows someone's Agent Wallet read-only, with no wallet connected. */
   const viewAs = new URLSearchParams(location.search).get("as")?.trim().toLowerCase() || "";
@@ -735,6 +835,25 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
   badgeRef.current = useTitleBadge(live.hidden);
   const { busy, run, notice } = useAction(load);
   const images = useImages((seats ?? []).map((s) => ({ key: s.seat_id, contract: s.nft_contract, token: s.token_id })));
+  // Agents that arrived in this wallet; a toast for each one that lands while the page is open.
+  const [inbox, reloadInbox] = useInbox(account);
+  const seenInbox = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!inbox) return;
+    const ids = inbox.map((i) => i.seat.seat_id);
+    if (seenInbox.current)
+      for (const i of inbox.filter((x) => !seenInbox.current!.has(x.seat.seat_id))) {
+        push({
+          id: `inbox-${i.seat.seat_id}`,
+          tone: "up",
+          title: `${i.seat.profile?.name ?? "An agent"} arrived in your wallet`,
+          body: `From ${shortAccount(i.seat.owner)}. Claim it at the top of this page.`,
+          onOpen: () => navigate(`/agents/${i.seat.seat_id}`),
+        });
+        badgeRef.current(1);
+      }
+    seenInbox.current = new Set(ids);
+  }, [inbox, push, navigate]);
 
   const totals = useMemo(() => {
     const t = { near: 0n, usdc: 0n, todayNear: 0n, todayUsdc: 0n, done: 0, refused: 0, active: 0 };
@@ -820,6 +939,7 @@ export function AgentsPage({ wallet, navigate }: { wallet: Wallet; navigate: Nav
       )}
       {!readOnly && <RunnerLockedNotice runner={runner} />}
       {notice}
+      <Inbox items={inbox ?? []} readOnly={readOnly} navigate={navigate} onClaimed={() => (reloadInbox(), void load())} />
       {!readOnly && (refund.near !== "0" || refund.usdc !== "0") && (
         <Notice tone="info" title="Money set aside for you">
           From agents on NFTs you sold: {ag.formatAsset(refund.near, "NEAR")} and {ag.formatAsset(refund.usdc, "USDC")}.{" "}
@@ -2443,14 +2563,92 @@ function ConnectYourAi({
  * of the same kind (or import your own AI), set limits and budget, then ONE
  * wallet request sets the policy, resumes, funds and gives the agent its key.
  */
+/** Base units as a plain decimal for a form field, without rounding ("0.125"). */
+const exactAmount = (v: string, asset: "NEAR" | "USDC") => {
+  const decimals = asset === "NEAR" ? 24 : 6;
+  const n = BigInt(v);
+  const unit = 10n ** BigInt(decimals);
+  const frac = (n % unit).toString().padStart(decimals, "0").replace(/0+$/, "");
+  return `${n / unit}${frac ? `.${frac}` : ""}`;
+};
+
+/**
+ * The limits the agent had before it changed hands, found on chain, with how it did
+ * under them. The new owner can start from them instead of from scratch.
+ */
+function ProvenLimits({ seat, log, onUse }: { seat: Seat; log: LogEntry[]; onUse: (p: Policy) => void }) {
+  const [past, setPast] = useState<ag.PastLimits | null | undefined>();
+  const [used, setUsed] = useState(false);
+  // Only a new claim changes the answer: do not refetch on every live refresh.
+  const claims = log.filter((e) => e.action === "claim").map((e) => e.seq).join(",");
+  // When no transaction index can answer (rate limits), ask again a few times before giving up.
+  const [tries, setTries] = useState(0);
+  useEffect(() => {
+    if (!claims) return setPast(null);
+    let alive = true;
+    let again: ReturnType<typeof setTimeout> | undefined;
+    void ag.previousLimits(seat, log).then(
+      (p) => {
+        if (!alive) return;
+        if (p === undefined && tries < 4) again = setTimeout(() => setTries((t) => t + 1), 30_000);
+        else setPast(p ?? null);
+      },
+      () => alive && setPast(null),
+    );
+    return () => {
+      alive = false;
+      clearTimeout(again);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seat.seat_id, claims, tries]);
+  if (past === undefined) return claims ? <Skeleton label="Looking for its previous limits on chain" /> : null;
+  if (!past) return null;
+  const { policy } = past;
+  const paysOwner = policy.payees.includes(past.owner);
+  return (
+    <div className="ag-proven" role="group" aria-labelledby="ag-proven-title">
+      <strong id="ag-proven-title">Its proven limits</strong>
+      <p>
+        {ag.formatAsset(policy.per_tx_max, seat.asset)} per action · {ag.formatAsset(policy.per_day_max, seat.asset)} a day
+        {seat.kind === "Payer" && policy.payees.length > 0 && <> · pays {policy.payees.map(shortAccount).join(", ")}</>}
+        {seat.kind === "Buyer" && policy.market && <> · buys on {shortAccount(policy.market)}</>}
+      </p>
+      <p className="ag-muted">
+        Set by {shortAccount(past.owner)} on {new Date(Number(past.setAt / 1_000_000n)).toLocaleDateString()} (
+        <a href={`${EXPLORER}/txns/${past.tx}`} target="_blank" rel="noreferrer">
+          transaction
+        </a>
+        ). Under them, the agent did {past.done} action{past.done === 1 ? "" : "s"} and the contract blocked {past.blocked}.
+      </p>
+      {paysOwner && (
+        <p className="ag-muted">One account on the list is its previous owner: remove it unless you mean to pay them.</p>
+      )}
+      <div className="ag-buttons">
+        <Button
+          variant="secondary"
+          onClick={() => {
+            onUse(policy);
+            setUsed(true);
+          }}
+        >
+          {used ? "Filled in below" : "Start from these limits"}
+        </Button>
+        <span className="ag-muted">They fill the form; change anything before you sign.</span>
+      </div>
+    </div>
+  );
+}
+
 function TakeOverPanel({
   seat,
   account,
+  log,
   navigate,
   onDone,
 }: {
   seat: Seat;
   account: string;
+  log: LogEntry[];
   navigate: Nav;
   onDone: () => void;
 }) {
@@ -2551,6 +2749,18 @@ function TakeOverPanel({
         It is yours now, with its history but no limits, no budget and no key. Choose what it does, then one wallet request
         sets everything.
       </p>
+      <ProvenLimits
+        seat={seat}
+        log={log}
+        onUse={(p) =>
+          setD((x) => ({
+            ...x,
+            perTx: exactAmount(p.per_tx_max, seat.asset),
+            perDay: exactAmount(p.per_day_max, seat.asset),
+            payees: seat.kind === "Payer" ? p.payees.join(", ") : x.payees,
+          }))
+        }
+      />
       {error && (
         <Notice tone="error" title="Not done">
           {error}
@@ -2870,24 +3080,41 @@ function ForSalePanel({
   listing,
   account,
   connect,
+  onStart,
   onBought,
 }: {
   seat: Seat;
   listing: ag.AgentListing;
   account: string;
   connect: () => void;
+  /** The purchase begins: the page keeps this panel (and its result) even once the market drops the listing. */
+  onStart: () => void;
   onBought: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<{ bought: boolean; reason?: string } | null>(null);
+  const [result, setResult] = useState<{ bought: boolean; reason?: string; claimed?: boolean } | null>(null);
+  const [step, setStep] = useState<"buy" | "claim">("buy");
   const slow = useSlow(busy);
   async function buy() {
     setBusy(true);
     setError("");
+    setStep("buy");
+    onStart();
     try {
       const r = await ag.buyAgent(listing, account);
-      setResult(r);
+      let claimed = false;
+      if (r.bought && !r.reason) {
+        // The NFT is theirs: take the agent over at once, so nothing is left to find and do.
+        setStep("claim");
+        try {
+          await ag.claimSeat(seat);
+          claimed = true;
+        } catch {
+          // Refused or closed the wallet: the claim button stays on the page.
+        }
+      }
+      setResult({ ...r, claimed });
       onBought();
     } catch (e) {
       setError(ag.friendlyError(e));
@@ -2897,8 +3124,10 @@ function ForSalePanel({
   }
   if (result)
     return result.bought && !result.reason ? (
-      <Notice tone="success" title="Bought: the NFT is yours">
-        Claim the agent below (one signature){listing.budget !== "0" ? ` to receive its budget of ${ag.formatAsset(listing.budget, seat.asset)}` : ""}.
+      <Notice tone="success" title={result.claimed ? "Bought and claimed: it is yours" : "Bought: the NFT is yours"}>
+        {result.claimed
+          ? `The agent is yours${listing.budget !== "0" ? `, with its budget of ${ag.formatAsset(listing.budget, seat.asset)}` : ""}. Set it up below.`
+          : `Claim the agent on this page (one signature)${listing.budget !== "0" ? ` to receive its budget of ${ag.formatAsset(listing.budget, seat.asset)}` : ""}.`}
       </Notice>
     ) : (
       <Notice tone="info" title="Not sold: your NEAR came back">
@@ -2943,7 +3172,11 @@ function ForSalePanel({
             Connect a wallet to buy it
           </Button>
         )}
-        <span className="ag-muted">Then claim it here with one signature: its limits are yours to set.</span>
+        <span className="ag-muted">
+          {busy && step === "claim"
+            ? "Bought. Second signature: claim the agent."
+            : "Two signatures in a row: buy it, then claim it. Its limits are yours to set."}
+        </span>
       </div>
       {slow && <WalletWait />}
     </section>
@@ -2996,13 +3229,17 @@ function TransferPanel({ seat, name, navigate }: { seat: Seat; name: string; nav
   if (sent)
     return (
       <div className="ag-transfer">
-        <Notice tone="success" title={`Sent to ${shortAccount(sent)}`}>
-          The NFT is theirs. They claim the agent from its page with one signature.{" "}
+        <Notice tone="success" title={`It is in ${shortAccount(sent)}'s wallet`}>
+          Nothing to send them. When they open the Agent Wallet with that account, {name} is waiting at the top of the page: one
+          signature and it is theirs.{" "}
           <button type="button" className="ag-qs-change" onClick={() => navigate("/agents")}>
             Back to my agents
           </button>
         </Notice>
-        <SharePanel seat={seat} name={name} />
+        <details className="ag-share-optional">
+          <summary>Tell them anyway (optional)</summary>
+          <SharePanel seat={seat} name={name} />
+        </details>
       </div>
     );
 
@@ -3114,6 +3351,14 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
   const { busy, run, notice } = useAction(load);
   const images = useImages(seat ? [{ key: "art", contract: seat.nft_contract, token: seat.token_id }] : []);
   const [listing, reloadListing] = useListing(seat, nftOwner);
+  // The listing a purchase started on. The market removes a listing as soon as a purchase begins (even one it
+  // refunds), so without this the "For sale" panel would vanish with the outcome the buyer is waiting to read.
+  const [buying, setBuying] = useState<ag.AgentListing | null>(null);
+  useEffect(() => setBuying(null), [id]);
+  // Listed again after a refunded purchase: show the new offer, not the old outcome.
+  useEffect(() => {
+    if (buying && listing && listing.listed_at !== buying.listed_at) setBuying(null);
+  }, [buying, listing]);
 
   if (seat === undefined) return <Skeleton label="Loading the agent" />;
   if (seat === null)
@@ -3269,12 +3514,20 @@ export function AgentPage({ id, wallet, navigate }: { id: string; wallet: Wallet
         </Notice>
       )}
       <AgentPassport seat={seat} name={nameFor(seat, job)} listing={listing} />
-      {listing && account !== listing.seller && (
-        <ForSalePanel seat={seat} listing={listing} account={account} connect={() => void wallet.connect()} onBought={() => (void load(), reloadListing())} />
+      {(buying || (listing && account !== listing.seller)) && (
+        <ForSalePanel
+          key={(buying ?? listing)!.listed_at}
+          seat={seat}
+          listing={(buying ?? listing)!}
+          account={account}
+          connect={() => void wallet.connect()}
+          onStart={() => setBuying(listing)}
+          onBought={() => (void load(), reloadListing())}
+        />
       )}
       <SkillInstall seat={seat} account={account} holder={nftOwner} connect={() => void wallet.connect()} />
       {mine && nftOwner === account && !seat.policy && !ag.isSkillSeat(seat) && (
-        <TakeOverPanel seat={seat} account={account} navigate={navigate} onDone={() => void load()} />
+        <TakeOverPanel seat={seat} account={account} log={log} navigate={navigate} onDone={() => void load()} />
       )}
 
       {seat.policy && <AgentDashboard seat={seat} log={log} />}
